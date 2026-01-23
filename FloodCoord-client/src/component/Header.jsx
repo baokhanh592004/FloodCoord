@@ -13,7 +13,7 @@ export default function Header() {
           <Link to="/" className="hover:underline">
             Trang chủ
           </Link>
-          <Link to="/request" className="hover:underline">
+          <Link to="/map/sos" className="hover:underline">
             Gửi cứu hộ
           </Link>
           <Link to="/login" className="hover:underline">

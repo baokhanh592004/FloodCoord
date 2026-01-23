@@ -3,6 +3,7 @@ import Home from '../pages/Home'
 import { Route, Router, Routes } from 'react-router-dom'
 import MainLayout from '../layouts/MainLayout'
 import SoSMapPage from '../pages/citizens/SoSMapPage'
+import LoginPage from '../pages/auth/LoginPage'
 
 export default function AppRoutes() {
   return (
@@ -11,6 +12,7 @@ export default function AppRoutes() {
       <Route element={<MainLayout />}>
         <Route path = "/" element={<Home />} />
         <Route path = "/map/sos" element = {<SoSMapPage/>} />
+        <Route path = "/login" element = {<LoginPage />} />
       </Route>
 
       <Route
