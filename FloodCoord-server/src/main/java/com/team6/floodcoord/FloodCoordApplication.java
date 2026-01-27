@@ -1,4 +1,4 @@
-package com.team6.FloodCoord;
+package com.team6.floodcoord;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

@@ -1,6 +1,7 @@
 package com.team6.floodcoord.service;
 
 import com.team6.floodcoord.dto.request.UserRequest;
+import com.team6.floodcoord.dto.request.UserUpdateRequest;
 import com.team6.floodcoord.dto.response.UserResponse;
 import com.team6.floodcoord.model.Role;
 import com.team6.floodcoord.model.User;
@@ -12,10 +13,12 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class UserServiceImpl implements UserService{
+public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
@@ -80,5 +83,56 @@ public class UserServiceImpl implements UserService{
 
         return response;
     }
+    @Override
+    public List<UserResponse> getAllUsers() {
+        return userRepository.findAll().stream()
+                .map(this::mapToDTO)
+                .toList();
+    }
+    @Override
+    public UserResponse getUserById(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        return mapToDTO(user);
+    }
 
+    public UserResponse updateUser(Long id, UserUpdateRequest request) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (request.getFullName() != null)
+            user.setFullName(request.getFullName());
+
+        if (request.getPhoneNumber() != null)
+            user.setPhoneNumber(request.getPhoneNumber());
+
+        if (request.getStatus() != null)
+            user.setStatus(request.getStatus());
+
+        if (request.getRoleId() != null) {
+            Role role = roleRepository.findById(request.getRoleId())
+                    .orElseThrow(() -> new RuntimeException("Role not found"));
+            user.setRole(role);
+        }
+
+        return mapToDTO(userRepository.save(user));
+    }
+    @Override
+    public void deleteUser(Long id) {
+        if (!userRepository.existsById(id)) {
+            throw new RuntimeException("User not found");
+        }
+        userRepository.deleteById(id);
+    }
+
+    private UserResponse mapToDTO(User user) {
+        return UserResponse.builder()
+                .id(user.getId())
+                .fullName(user.getFullName())
+                .email(user.getEmail())
+                .phoneNumber(user.getPhoneNumber())
+                .status(user.getStatus())
+                .roleName(user.getRole().getRoleCode())
+                .build();
+    }
 }
