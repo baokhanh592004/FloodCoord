@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import Input from '../component/Input';
-import useFormValidation from '../hooks/useFormValidation';
-import { validateEmail, validatePassword } from '../utils/validationUtils';
+import Input from '../Input';
+import useFormValidation from '../../hooks/useFormValidation';
+import { validateEmail, validatePassword } from '../../utils/validationUtils';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
-import '../styles/AuthForms.css';
+import '../../styles/AuthForms.css';
 
 const LoginForm = ({ onSubmit, isLoading }) => {
   const [showPassword, setShowPassword] = useState(false);
