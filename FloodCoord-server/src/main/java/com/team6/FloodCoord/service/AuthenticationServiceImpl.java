@@ -3,20 +3,26 @@ package com.team6.floodcoord.service;
 import com.nimbusds.jose.JOSEException;
 import com.team6.floodcoord.dto.JwtInfo;
 import com.team6.floodcoord.dto.TokenPayLoad;
+import com.team6.floodcoord.dto.request.ChangePasswordRequest;
+import com.team6.floodcoord.dto.request.ForgotPasswordRequest;
 import com.team6.floodcoord.dto.request.LoginRequest;
+import com.team6.floodcoord.dto.request.ResetPasswordRequest;
 import com.team6.floodcoord.dto.response.LoginResponse;
 import com.team6.floodcoord.model.BlackListedAccessToken;
+import com.team6.floodcoord.model.PasswordResetToken;
 import com.team6.floodcoord.model.User;
 import com.team6.floodcoord.model.ValidRefreshToken;
 import com.team6.floodcoord.repository.BlacklistedAccessTokenRepository;
+import com.team6.floodcoord.repository.PasswordResetTokenRepository;
 import com.team6.floodcoord.repository.UserRepository;
 import com.team6.floodcoord.repository.ValidRefreshTokenRepository;
+import com.team6.floodcoord.utils.PasswordUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.authentication.*;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +30,7 @@ import java.text.ParseException;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -36,6 +43,11 @@ public class AuthenticationServiceImpl implements AuthenticationService{
     private final JwtService jwtService;
     private final BlacklistedAccessTokenRepository blacklistedAccessTokenRepository;
     private final ValidRefreshTokenRepository validRefreshTokenRepository;
+    private final PasswordEncoder passwordEncoder;
+    private static final int PASSWORD_RESET_TOKEN_VALIDITY_MINUTES = 5;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private static final int MAX_FAILED_ATTEMPTS = 5;
+    private final EmailService emailService;
 
     @Override
     public void logout(String token) throws ParseException {
@@ -51,6 +63,7 @@ public class AuthenticationServiceImpl implements AuthenticationService{
             return;
         }
 
+        // Add access token to blacklist in Redis
         BlackListedAccessToken blacklistedToken = BlackListedAccessToken.builder()
                 .jwtId(jwtId)
                 .timeToLiveSeconds(ttlSeconds)
@@ -64,30 +77,67 @@ public class AuthenticationServiceImpl implements AuthenticationService{
     public LoginResponse login(LoginRequest request) {
         log.info("Login attempt for email: {}", request.getEmail());
 
+        //Find user to check lock status first
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(()-> new BadCredentialsException("Invalid email or password"));
 
-        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword());
-        Authentication authentication = authenticationManager.authenticate(authToken);
+        //Check if the account is locked
+        if (!user.isAccountNonLocked()){
+            //Calculate remaining time (Optional: to display detailed notification)
+            long minutesLeft = 30 - java.time.Duration.between(user.getLockTime(), LocalDateTime.now()).toMinutes();
+            throw new LockedException("Account is locked due to 5 failed attempts. Please try again in: " + minutesLeft + "minutes.");
+        }
 
-        user = (User) authentication.getPrincipal();
-        log.info("User authenticated successfully: {}", user.getEmail());
+        //CHECK PASSWORD EXPIRED (90 DAYS)
+        if (!user.isCredentialsNonExpired()){
+            throw new CredentialsExpiredException("Password has expired. Please change your password.");
+        }
 
-        //generate tokens
-        TokenPayLoad accessPayload = jwtService.generateAccessToken(user);
-        TokenPayLoad refreshPayload = jwtService.generateRefreshToken(user);
+        try {
+            UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword());
+            Authentication authentication = authenticationManager.authenticate(authToken);
 
-        ValidRefreshToken refreshToken = ValidRefreshToken.builder()
-                .jwtId(refreshPayload.getJwtId())
-                .user(user)
-                .expiredTime(LocalDateTime.ofInstant(refreshPayload.getExpiredTime().toInstant(), ZoneId.systemDefault()))
-                .revoked(false)
-                .build();
+            //login successfully -> reset counter
+            if ((user.getFailedLoginAttempts() != null && user.getFailedLoginAttempts() > 0) || user.getLockTime() != null){
+                user.setFailedLoginAttempts(0);
+                user.setLockTime(null);
+                userRepository.save(user);
+            }
 
-        return LoginResponse.builder()
-                .accessToken(accessPayload.getToken())
-                .refreshToken(refreshPayload.getToken())
-                .build();
+            user = (User) authentication.getPrincipal();
+            log.info("User authenticated successfully: {}", user.getEmail());
+
+            //generate tokens
+            TokenPayLoad accessPayload = jwtService.generateAccessToken(user);
+            TokenPayLoad refreshPayload = jwtService.generateRefreshToken(user);
+
+            //save refresh tokens
+            ValidRefreshToken refreshToken = ValidRefreshToken.builder()
+                    .jwtId(refreshPayload.getJwtId())
+                    .user(user)
+                    .expiredTime(LocalDateTime.ofInstant(refreshPayload.getExpiredTime().toInstant(), ZoneId.systemDefault()))
+                    .revoked(false)
+                    .build();
+
+            return LoginResponse.builder()
+                    .accessToken(accessPayload.getToken())
+                    .refreshToken(refreshPayload.getToken())
+                    .build();
+        } catch (AuthenticationException e) {
+            if (e instanceof BadCredentialsException){
+                int currentAttempts = (user.getFailedLoginAttempts() == null ? 0 : user.getFailedLoginAttempts()) + 1;
+                user.setFailedLoginAttempts(currentAttempts);
+                log.warn("Failed login attempts {}/{} for email: {}", currentAttempts, MAX_FAILED_ATTEMPTS, request.getEmail());
+
+                if (currentAttempts >= MAX_FAILED_ATTEMPTS){
+                    user.setLockTime(LocalDateTime.now());
+                    log.warn("Account locked for email: {}", request.getEmail());
+                }
+                userRepository.save(user);
+            }
+            throw e;
+
+        }
 
     }
 
@@ -145,5 +195,139 @@ public class AuthenticationServiceImpl implements AuthenticationService{
                 .accessToken(newAccessPayload.getToken())
                 .refreshToken(newRefreshPayLoad.getToken())
                 .build();
+    }
+
+    @Override
+    public void changePassword(Long userId, ChangePasswordRequest request) {
+        log.info("Processing password change request for user ID: {}", userId);
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(()-> {
+                    log.error("User not found with ID: {}", userId);
+                    return new IllegalArgumentException("User not found with ID: " + userId);
+                });
+
+        //verify old password
+        if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
+            log.warn("Incorrect old password for user ID: {}", userId);
+            throw  new IllegalArgumentException("Incorrect old password for user ID: " + userId);
+        }
+
+        //ensure new password is different
+        if (request.getOldPassword().equals(request.getNewPassword())) {
+            log.warn("New password same as old password for user: {}", user.getEmail());
+            throw new IllegalArgumentException("New password must be different from current password");
+        }
+
+        //validate new password format
+        if (!PasswordUtils.isValidPassword(request.getNewPassword())){
+            log.warn("New password does not meet requirements for user: {}", user.getEmail());
+            throw new IllegalArgumentException("Invalid password. " + PasswordUtils.getPasswordValidationMessage());
+        }
+
+        //validate password match
+        if (!request.getNewPassword().equals(request.getConfirmPassword())){
+            log.warn("Password and confirm password do not match for user: {}", user.getEmail());
+            throw new IllegalArgumentException("Password and confirm password do not match");
+        }
+
+        //update password
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        user.setLastPasswordChangeDate(LocalDateTime.now());
+        userRepository.save(user);
+
+        //revoke all refresh tokens for security
+        int revokedCount = validRefreshTokenRepository.deleteAllByUser(user);
+        log.info("Revoked {} refresh tokens for user: {}", revokedCount, user.getEmail());
+
+        log.info("Password change completed successfully for user: {}", user.getEmail());
+    }
+
+    @Override
+    public void forgotPassword(ForgotPasswordRequest request) {
+        log.info("Processing forgot password request for email: {}", request.getEmail());
+
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() ->{
+                    log.warn("Forgot password requested for non-existent email: {}", request.getEmail());
+                    return new IllegalArgumentException("User not found with email: " + request.getEmail());
+                });
+
+        //Generate reset token
+        String token = UUID.randomUUID().toString();
+        LocalDateTime expiryDate = LocalDateTime.now().plusMinutes(PASSWORD_RESET_TOKEN_VALIDITY_MINUTES);
+
+        //update existing token or create new one
+        PasswordResetToken resetToken = passwordResetTokenRepository.findByUser(user)
+                .map(existing -> {
+                    log.info("Updating existing password reset token for user: {}", user.getEmail());
+                    existing.setToken(token);
+                    existing.setExpiryDate(expiryDate);
+                    existing.setUsed(false);
+                    return  existing;
+                })
+                .orElseGet(() ->{
+                    log.info("Creating new password reset token for user: {}", user.getEmail());
+                    return PasswordResetToken.builder()
+                            .token(token)
+                            .user(user)
+                            .expiryDate(expiryDate)
+                            .used(false)
+                            .build();
+                });
+
+        passwordResetTokenRepository.save(resetToken);
+
+        //send reset mail
+        emailService.sendPasswordResetEmail(user.getEmail(), token);
+        log.info("Password reset email sent to: {}", user.getEmail());
+    }
+
+    @Override
+    public void resetPassword(ResetPasswordRequest request) {
+        log.info("Processing password reset request");
+
+        PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(request.getToken())
+                .orElseThrow(() -> {
+                    log.warn("Invalid password reset token provided");
+                    return new IllegalArgumentException("Invalid password reset token");
+                });
+
+        //check if token is valid
+        if (!resetToken.isValid()){
+            log.warn("Password reset token expired or already used");
+            passwordResetTokenRepository.delete(resetToken);
+            throw new IllegalArgumentException("Password reset token has expired or has been used");
+        }
+
+        //validate password match
+        if (!request.getNewPassword().equals(request.getConfirmPassword())){
+            log.warn("Password and confirm password do not match");
+            throw new IllegalArgumentException("Password and confirm password do not match");
+        }
+
+        //validate password format
+        if (!PasswordUtils.isValidPassword(request.getNewPassword())){
+            log.warn("New password does not meet requirements");
+            throw new IllegalArgumentException("Invalid password. " + PasswordUtils.getPasswordValidationMessage());
+        }
+
+        User user = resetToken.getUser();
+        log.info("Resetting password for user: {}", user.getEmail());
+
+        //update password
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        user.setLastPasswordChangeDate(LocalDateTime.now());
+        userRepository.save(user);
+
+        //mark token as used
+        resetToken.setUsed(true);
+        passwordResetTokenRepository.save(resetToken);
+
+        //revoke all refresh tokens for security
+        int revokedCount = validRefreshTokenRepository.deleteAllByUser(user);
+        log.info("Revoked {} refresh tokens for user: {}", revokedCount, user.getEmail());
+
+        log.info("Password reset completed successfully for user: {}", user.getEmail());
     }
 }
