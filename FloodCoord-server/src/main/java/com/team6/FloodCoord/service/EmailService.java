@@ -1,4 +1,5 @@
 package com.team6.floodcoord.service;
 
-public class EmailService {
+public interface EmailService {
+    void sendPasswordResetEmail(String to, String token);
 }
