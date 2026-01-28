@@ -1,8 +1,7 @@
 import React from 'react'
 import Home from '../pages/Home'
-import { Route, Router, Routes } from 'react-router-dom'
+import { Route, Routes } from 'react-router-dom'
 import MainLayout from '../layouts/MainLayout'
-import SoSMapPage from '../pages/citizens/SoSMapPage'
 import LoginPage from '../pages/auth/LoginPage'
 
 export default function AppRoutes() {
@@ -10,9 +9,9 @@ export default function AppRoutes() {
     <Routes>
 
       <Route element={<MainLayout />}>
-        <Route path = "/" element={<Home />} />
-        <Route path = "/map/sos" element = {<SoSMapPage/>} />
-        <Route path = "/login" element = {<LoginPage />} />
+        {/* Route công khai - ai cũng xem được */}
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<LoginPage />} />
       </Route>
 
       <Route

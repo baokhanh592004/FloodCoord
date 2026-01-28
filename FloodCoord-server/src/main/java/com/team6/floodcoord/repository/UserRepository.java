@@ -18,4 +18,5 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
     @Query("SELECT u FROM User u LEFT JOIN FETCH u.role")
     List<User> findAllWithRoles();
 
+    List<User> findByStatusTrueAndLastLoginDateBefore(LocalDateTime thresholdDate);
 }
