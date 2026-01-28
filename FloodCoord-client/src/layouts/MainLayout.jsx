@@ -6,14 +6,12 @@ import { Outlet } from 'react-router-dom'
 
 export default function MainLayout() {
   return (
-    <div>
-
-        <Header/>
-      <main  className="min-h-screen bg-gray-100 py-6">
-
+    <div className="flex flex-col min-h-screen justify-between">
+      <Header/>
+      <main >
         <Outlet />
       </main>
-      <Footer/>
+    <Footer/>
 
     </div>
   )
