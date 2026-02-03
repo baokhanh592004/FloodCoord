@@ -82,7 +82,7 @@ export default function Header() {
               src= {logo}
               className="w-13 h-13 rounded-full border-2 border-white shadow-md"
             />
-            <span className="text-white font-bold text-lg hidden sm:block">FloodCoord</span>
+            <span className="text-white font-bold text-lg hidden sm:block">Trung tâm cứu trợ lũ lụt TP.HCM</span>
           </Link>
         </div>
         {/* Mobile menu button */}
