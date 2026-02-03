@@ -25,6 +25,7 @@ FROM eclipse-temurin:21-jre-alpine
 LABEL maintainer="Team 4"
 LABEL description="Laboratory Management Application"
 
+ENV SPRING_PROFILES_ACTIVE=docker
 # Cấu hình múi giờ Việt Nam
 ENV TZ=Asia/Ho_Chi_Minh
 

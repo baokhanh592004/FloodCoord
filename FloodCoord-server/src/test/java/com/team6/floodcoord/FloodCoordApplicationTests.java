@@ -1,4 +1,4 @@
-package com.team6.FloodCoord;
+package com.team6.floodcoord;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
