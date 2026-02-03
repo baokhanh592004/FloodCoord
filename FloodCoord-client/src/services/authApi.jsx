@@ -21,5 +21,19 @@ export const loginApi = {
         });
         return response.data;
     },
+
+    forgotPassword : async (email) => {
+        const response = await axiosClient.post('/api/auth/forgot-password', { email });
+        return response.data;
+    },
+
+    resetPassword: async (data) => {
+        const response = await axiosClient.post(
+            '/api/auth/reset-password',
+            data
+        );
+        return response.data;
+    },
+
 };
     
