@@ -3,6 +3,10 @@ package com.team6.floodcoord.service;
 import com.team6.floodcoord.dto.request.CreateRescueRequestDTO;
 import com.team6.floodcoord.dto.request.LocationDTO;
 import com.team6.floodcoord.dto.request.MediaDTO;
+import com.team6.floodcoord.dto.response.RequestLocationResponse;
+import com.team6.floodcoord.dto.response.RequestMediaResponse;
+import com.team6.floodcoord.dto.response.RescueRequestDetailResponse;
+import com.team6.floodcoord.dto.response.RescueRequestSummaryResponse;
 import com.team6.floodcoord.model.RequestLocation;
 import com.team6.floodcoord.model.RequestMedia;
 import com.team6.floodcoord.model.RescueRequest;
@@ -15,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -51,6 +56,8 @@ public class RescueRequestServiceImpl implements RescueRequestService {
         request.setPeopleCount(dto.getPeopleCount());
         request.setStatus("PENDING");
         request.setCreatedAt(LocalDateTime.now());
+        request.setContactName(dto.getContactName());
+        request.setContactPhone(dto.getContactPhone());
 
         requestRepo.save(request);
 
@@ -78,5 +85,69 @@ public class RescueRequestServiceImpl implements RescueRequestService {
         }
 
         return request.getRequestId();
+    }
+    @Override
+    public List<RescueRequestSummaryResponse> getAllRescueRequests() {
+        return requestRepo.findAll().stream()
+                .map(this::mapToSummary)
+                .toList();
+    }
+
+    @Override
+    public RescueRequestDetailResponse getRequestDetail(UUID requestId) {
+        RescueRequest request = requestRepo.findById(requestId)
+                .orElseThrow(() -> new RuntimeException("Rescue request not found"));
+
+        RescueRequestDetailResponse dto = new RescueRequestDetailResponse();
+        dto.setRequestId(request.getRequestId());
+        dto.setTitle(request.getTitle());
+        dto.setDescription(request.getDescription());
+        dto.setEmergencyLevel(request.getEmergencyLevel());
+        dto.setStatus(request.getStatus());
+        dto.setPeopleCount(request.getPeopleCount());
+        dto.setCreatedAt(request.getCreatedAt());
+        dto.setCitizenName(
+                request.getCitizen() != null ? request.getCitizen().getFullName() : null
+        );
+
+        // 📍 Location
+        if (request.getLocation() != null) {
+            RequestLocationResponse loc = new RequestLocationResponse();
+            loc.setLatitude(request.getLocation().getLatitude());
+            loc.setLongitude(request.getLocation().getLongitude());
+            loc.setAddressText(request.getLocation().getAddressText());
+            loc.setFloodDepth(request.getLocation().getFloodDepth());
+            dto.setLocation(loc);
+        }
+
+        // 🖼️ Media
+        if (request.getMediaList() != null) {
+            List<RequestMediaResponse> mediaList = request.getMediaList().stream().map(m -> {
+                RequestMediaResponse media = new RequestMediaResponse();
+                media.setMediaId(m.getMediaId());
+                media.setMediaType(m.getMediaType());
+                media.setMediaUrl(m.getMediaUrl());
+                media.setUploadedAt(m.getUploadedAt());
+                return media;
+            }).toList();
+
+            dto.setMedia(mediaList);
+        }
+
+        return dto;
+    }
+
+
+    private RescueRequestSummaryResponse mapToSummary(RescueRequest request) {
+        RescueRequestSummaryResponse dto = new RescueRequestSummaryResponse();
+        dto.setRequestId(request.getRequestId());
+        dto.setTitle(request.getTitle());
+        dto.setEmergencyLevel(request.getEmergencyLevel());
+        dto.setStatus(request.getStatus());
+        dto.setPeopleCount(request.getPeopleCount());
+        dto.setCreatedAt(request.getCreatedAt());
+        dto.setContactName(request.getContactName());
+        dto.setContactPhone(request.getContactPhone());
+        return dto;
     }
 }
