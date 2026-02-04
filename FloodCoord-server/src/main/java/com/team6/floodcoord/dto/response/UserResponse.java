@@ -16,4 +16,7 @@ public class UserResponse {
     private String phoneNumber;
     private Boolean status;
     private String roleName;
+    private Long teamId;        // ID của đội đang tham gia (nếu có)
+    private String teamName;    // Tên đội (cho tiện hiển thị)
+    private Boolean isTeamLeader; // True nếu người này là đội trưởng
 }

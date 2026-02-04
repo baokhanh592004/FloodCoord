@@ -1,25 +1,34 @@
 package com.team6.floodcoord.configuration;
 
+import com.team6.floodcoord.model.User;
+import com.team6.floodcoord.repository.UserRepository;
 import com.team6.floodcoord.service.UserDetailServiceCustomizer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.convert.converter.Converter;
+import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 @Slf4j
@@ -37,7 +46,7 @@ public class SecurityConfiguration {
             "/v3/api-docs/**",
             "/swagger-ui/**",
             "/swagger-ui.html",
-            "/api/rescue-requests"
+            "/api/rescue-requests/**"
     };
 
     private static final String CORS_MAPPING_PATTERN ="/**";
@@ -49,6 +58,7 @@ public class SecurityConfiguration {
 
     private final UserDetailServiceCustomizer userDetailServiceCustomizer;
     private final JwtDecoderConfiguration jwtDecoderConfiguration;
+    private final UserRepository userRepository;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -61,9 +71,41 @@ public class SecurityConfiguration {
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2
-                        .jwt(jwtConfigurer -> jwtConfigurer.decoder(jwtDecoderConfiguration )));
+                        .jwt(jwtConfigurer -> jwtConfigurer
+                                .decoder(jwtDecoderConfiguration)
+                                .jwtAuthenticationConverter(jwtAuthenticationConverter())));
         log.info("Security filter chain configured successfully");
         return http.build();
+    }
+
+    /**
+     * BEAN MỚI: Chuyển đổi từ JWT sang User Entity
+     * Giúp @AuthenticationPrincipal User currentUser hoạt động
+     */
+    @Bean
+    public Converter<Jwt, AbstractAuthenticationToken> jwtAuthenticationConverter() {
+        return new Converter<Jwt, AbstractAuthenticationToken>() {
+            @Override
+            public AbstractAuthenticationToken convert(Jwt jwt) {
+                // 1. Chuyển đổi Roles (Authorities)
+                JwtGrantedAuthoritiesConverter grantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
+                grantedAuthoritiesConverter.setAuthorityPrefix("ROLE_");
+                grantedAuthoritiesConverter.setAuthoritiesClaimName("roles");
+                Collection<GrantedAuthority> authorities = grantedAuthoritiesConverter.convert(jwt);
+
+                // 2. Load User từ Database dựa vào ID trong Token (Subject)
+                User userDetails = null;
+                try {
+                    Long userId = Long.valueOf(jwt.getSubject());
+                    userDetails = userRepository.findById(userId).orElse(null);
+                } catch (NumberFormatException e) {
+                    log.error("Invalid User ID in JWT Subject: {}", jwt.getSubject());
+                }
+
+                // 3. Trả về Authentication Token với Principal là User Entity
+                return new UsernamePasswordAuthenticationToken(userDetails, jwt, authorities);
+            }
+        };
     }
 
     @Bean

@@ -12,7 +12,8 @@ public class CreateRescueRequestDTO {
     private String description;
     private String emergencyLevel;
     private int peopleCount;
-    // 👤 Thông tin người gửi (QUAN TRỌNG)
+    private String contactName;
+
     @NotBlank(message = "Tên người gửi không được để trống")
     private String contactName;
 
@@ -20,7 +21,6 @@ public class CreateRescueRequestDTO {
     @Pattern(
             regexp = "^(0|\\+84)[0-9]{9}$",
             message = "Số điện thoại không hợp lệ"
-    )
     private String contactPhone;
     private LocationDTO location;
     private List<MediaDTO> mediaUrls;
