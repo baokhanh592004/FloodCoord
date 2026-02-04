@@ -48,9 +48,13 @@ public class User implements UserDetails {
     @Column(name = "last_login_date")
     private LocalDateTime lastLoginDate;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "role_id", nullable = false)
     private Role role;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "team_id")
+    private RescueTeam rescueTeam;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
