@@ -3,20 +3,13 @@ package com.team6.floodcoord.service;
 import com.nimbusds.jose.JOSEException;
 import com.team6.floodcoord.dto.JwtInfo;
 import com.team6.floodcoord.dto.TokenPayLoad;
-import com.team6.floodcoord.dto.request.ChangePasswordRequest;
-import com.team6.floodcoord.dto.request.ForgotPasswordRequest;
-import com.team6.floodcoord.dto.request.LoginRequest;
-import com.team6.floodcoord.dto.request.ResetPasswordRequest;
+import com.team6.floodcoord.dto.request.*;
 import com.team6.floodcoord.dto.response.LoginResponse;
-import com.team6.floodcoord.model.BlackListedAccessToken;
-import com.team6.floodcoord.model.PasswordResetToken;
-import com.team6.floodcoord.model.User;
-import com.team6.floodcoord.model.ValidRefreshToken;
-import com.team6.floodcoord.repository.BlacklistedAccessTokenRepository;
-import com.team6.floodcoord.repository.PasswordResetTokenRepository;
-import com.team6.floodcoord.repository.UserRepository;
-import com.team6.floodcoord.repository.ValidRefreshTokenRepository;
+import com.team6.floodcoord.dto.response.UserResponse;
+import com.team6.floodcoord.model.*;
+import com.team6.floodcoord.repository.*;
 import com.team6.floodcoord.utils.PasswordUtils;
+import com.team6.floodcoord.utils.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.*;
@@ -48,6 +41,7 @@ public class AuthenticationServiceImpl implements AuthenticationService{
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private static final int MAX_FAILED_ATTEMPTS = 5;
     private final EmailService emailService;
+    private final RoleRepository roleRepository;
 
     @Override
     public void logout(String token) throws ParseException {
@@ -329,5 +323,55 @@ public class AuthenticationServiceImpl implements AuthenticationService{
         log.info("Revoked {} refresh tokens for user: {}", revokedCount, user.getEmail());
 
         log.info("Password reset completed successfully for user: {}", user.getEmail());
+    }
+
+    @Override
+    public UserResponse register(UserRequest request) {
+        // 1. Validate Email & Phone
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new IllegalArgumentException("Email already exists: " + request.getEmail());
+        }
+        if (request.getPhoneNumber() != null && userRepository.existsByPhoneNumber(request.getPhoneNumber())) {
+            throw new IllegalArgumentException("Phone number already exists: " + request.getPhoneNumber());
+        }
+
+        // 2. Validate Password Match
+        if (!request.getPassword().equals(request.getConfirmPassword())) {
+            throw new IllegalArgumentException("Password and confirm password do not match");
+        }
+
+        // 3. Validate Password Complexity (Optional - Reuse PasswordUtils)
+        if (!PasswordUtils.isValidPassword(request.getPassword())) {
+            throw new IllegalArgumentException("Invalid password. " + PasswordUtils.getPasswordValidationMessage());
+        }
+
+        // 4. Handle Role
+        // Nếu không truyền roleCode, mặc định là USER (hoặc CITIZEN tùy DB của bạn)
+        String roleCode = request.getRollCode();
+        if (roleCode == null || roleCode.isEmpty()) {
+            roleCode = "USER";
+        }
+
+        Role role = roleRepository.findByRoleCode(roleCode).orElse(null);
+        if (role == null) {
+            role = roleRepository.findByRoleCode("USER")
+                    .orElseThrow(() -> new RuntimeException("Default Role USER not found in database."));
+        }
+
+        // 5. Create User Entity
+        User user = User.builder()
+                .fullName(request.getFullName())
+                .email(request.getEmail())
+                .phoneNumber(request.getPhoneNumber())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .status(true) // Mặc định Active khi đăng ký
+                .role(role)
+                .build();
+
+        userRepository.save(user);
+        log.info("User registered successfully: {}", user.getEmail());
+
+        // 6. Return Response
+        return UserMapper.toUserResponse(user);
     }
 }

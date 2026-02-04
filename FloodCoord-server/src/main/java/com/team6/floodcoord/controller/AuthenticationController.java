@@ -3,6 +3,7 @@ package com.team6.floodcoord.controller;
 import com.nimbusds.jose.JOSEException;
 import com.team6.floodcoord.dto.request.*;
 import com.team6.floodcoord.dto.response.LoginResponse;
+import com.team6.floodcoord.dto.response.UserResponse;
 import com.team6.floodcoord.service.AuthenticationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -24,6 +25,14 @@ import java.text.ParseException;
 @Tag(name = "Authentication", description = "Authentication and authorization endpoints")
 public class AuthenticationController {
     private final AuthenticationService authenticationService;
+
+    @PostMapping("/register")
+    @Operation(summary = "Register new user", description = "Đăng ký tài khoản người dùng mới (Public)")
+    public ResponseEntity<UserResponse> register(@Valid @RequestBody UserRequest request) {
+        log.info("Registration request received for email: {}", request.getEmail());
+        UserResponse response = authenticationService.register(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
 
     @PostMapping("/login")
     @Operation(summary = "User login", description = "Authenticates user and returns JWT tokens")
