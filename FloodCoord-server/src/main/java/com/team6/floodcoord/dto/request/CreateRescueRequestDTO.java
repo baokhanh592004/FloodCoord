@@ -10,6 +10,8 @@ public class CreateRescueRequestDTO {
     private String description;
     private String emergencyLevel;
     private int peopleCount;
+    private String contactName;
+    private String contactPhone;
     private LocationDTO location;
     private List<MediaDTO> mediaUrls;
 }
