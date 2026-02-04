@@ -5,13 +5,10 @@ import com.team6.floodcoord.dto.response.CreateRequestResponse;
 import com.team6.floodcoord.dto.response.RescueRequestResponse;
 import com.team6.floodcoord.model.User;
 
+import java.util.List;
 import java.util.UUID;
 
 public interface RescueRequestService {
-
-    /**
-     * MEMBER tạo yêu cầu cứu hộ
-     */
     CreateRequestResponse createRescueRequest(CreateRescueRequestDTO dto, com.team6.floodcoord.model.User currentUser);
     void assignTask(UUID requestId, AssignTaskRequest dto, User coordinator);
     void verifyRequest(UUID requestId, VerifyRequestDTO dto, User coordinator);

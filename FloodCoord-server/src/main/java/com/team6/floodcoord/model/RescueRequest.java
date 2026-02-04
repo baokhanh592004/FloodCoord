@@ -21,6 +21,9 @@ public class RescueRequest {
     @JoinColumn(name = "citizen_id")
     private com.team6.floodcoord.model.User citizen;
 
+    private String contactName;
+    private String contactPhone;
+
     private String title;
     private String description;
     private String emergencyLevel;

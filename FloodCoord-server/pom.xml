@@ -98,9 +98,9 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
-				<configuration>
-					<mainClass>com.team6.FloodCoord.FloodCoordApplication</mainClass>
-				</configuration>
+				<!-- <configuration>
+					<mainClass>com.team6.floodcoord.FloodCoordApplication</mainClass>
+				</configuration> -->
 			</plugin>
 		</plugins>
 	</build>
