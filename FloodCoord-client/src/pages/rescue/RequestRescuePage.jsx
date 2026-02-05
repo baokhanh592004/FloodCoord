@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
+import { useNavigate } from 'react-router-dom';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { rescueApi } from '../../services/rescueApi';
@@ -16,11 +17,14 @@ let DefaultIcon = L.icon({
 L.Marker.prototype.options.icon = DefaultIcon;
 
 const RequestRescuePage = () => {
+    const navigate = useNavigate();
     const [formData, setFormData] = useState({
         title: '',
         description: '',
         emergencyLevel: 'HIGH',
         peopleCount: 1,
+        contactName: '',
+        contactPhone: '',
         location: {
             latitude: 10.8231, // Mặc định TP.HCM
             longitude: 106.6297,
@@ -31,6 +35,7 @@ const RequestRescuePage = () => {
     });
 
     const [loading, setLoading] = useState(false);
+    const [successData, setSuccessData] = useState(null);
 
     // Thành phần xử lý click chuột trên bản đồ
     const MapEvents = () => {
@@ -85,17 +90,71 @@ const RequestRescuePage = () => {
         e.preventDefault();
         setLoading(true);
         try {
-            await rescueApi.requestRescue(formData);
-            alert("Gửi cứu trợ thành công!");
+            const response = await rescueApi.requestRescue(formData);
+            setSuccessData(response);
         } catch (error) {
-            alert("Lỗi: " + error.message);
+            alert("Lỗi: " + (error.response?.data?.message || error.message));
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="max-w-4xl mx-auto p-6 bg-white shadow-lg rounded-xl border-t-4 border-red-600 flex flex-col md:flex-row gap-6">
+        <>
+            {/* Modal hiển thị tracking code sau khi gửi thành công */}
+            {successData && (
+                <div 
+                    className="fixed inset-0 bg-light bg-opacity-70 flex items-center justify-center" 
+                    style={{ zIndex: 9999 }}
+                >
+                    <div className="bg-white p-8 rounded-xl shadow-2xl max-w-md w-full mx-4 relative">
+                        <div className="text-center">
+                            <div className="text-6xl mb-4">✅</div>
+                            <h2 className="text-2xl font-bold text-green-600 mb-4">
+                                Gửi yêu cầu thành công!
+                            </h2>
+                            <p className="text-gray-600 mb-4">
+                                Vui lòng lưu lại mã tra cứu này để theo dõi tình trạng cứu trợ
+                            </p>
+                            <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-4 mb-4">
+                                <p className="text-sm text-gray-600 mb-2">Mã tra cứu của bạn:</p>
+                                <p className="text-3xl font-bold text-red-600 tracking-wider break-all">
+                                    {successData.trackingCode}
+                                </p>
+                            </div>
+                            <p className="text-xs text-gray-500 mb-6 break-all">
+                                ID: {successData.requestId}
+                            </p>
+                            <div className="flex flex-col sm:flex-row gap-3">
+                                <button
+                                    onClick={() => {
+                                        navigator.clipboard.writeText(successData.trackingCode);
+                                        alert('Đã copy mã tra cứu!');
+                                    }}
+                                    className="flex-1 bg-blue-500 text-white py-3 px-4 rounded-lg hover:bg-blue-600 transition font-semibold"
+                                >
+                                    📋 Sao chép mã
+                                </button>
+                                <button
+                                    onClick={() => navigate('/track-rescue')}
+                                    className="flex-1 bg-green-500 text-white py-3 px-4 rounded-lg hover:bg-green-600 transition font-semibold"
+                                >
+                                    🔍 Tra cứu ngay
+                                </button>
+                            </div>
+                            <button
+                                onClick={() => window.location.reload()}
+                                className="mt-4 w-full text-gray-600 hover:text-gray-800 text-sm py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+                            >
+                                ← Gửi yêu cầu mới
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <div className="max-w-4xl mx-auto p-6">
+                <div className="bg-white shadow-lg rounded-xl border-t-4 border-red-600 flex flex-col md:flex-row gap-6 p-6">
             
             {/* Cột trái: Bản đồ */}
             <div className="w-full md:w-1/2 h-400px md:h-auto min-h-400px rounded-lg overflow-hidden border">
@@ -146,6 +205,31 @@ const RequestRescuePage = () => {
                     />
                 </div>
 
+                <div>
+                    <label className="block text-sm font-semibold text-red-600">Họ tên người liên hệ *</label>
+                    <input 
+                        type="text" 
+                        className="w-full border p-2 rounded" 
+                        value={formData.contactName}
+                        onChange={e => setFormData({...formData, contactName: e.target.value})} 
+                        placeholder="Nhập họ tên của bạn"
+                        required 
+                    />
+                </div>
+
+                <div>
+                    <label className="block text-sm font-semibold text-red-600">Số điện thoại liên hệ *</label>
+                    <input 
+                        type="tel" 
+                        className="w-full border p-2 rounded" 
+                        value={formData.contactPhone}
+                        onChange={e => setFormData({...formData, contactPhone: e.target.value})} 
+                        placeholder="0xxxxxxxxx hoặc +84xxxxxxxxx"
+                        pattern="^(0|\+84)[0-9]{9}$"
+                        required 
+                    />
+                </div>
+
                 <div className="flex gap-2">
                     <button type="button" onClick={handleGetGPS} className="flex-1 bg-blue-600 text-white p-2 rounded text-sm font-bold hover:bg-blue-800 transition">
                         📍 GPS Hiện Tại
@@ -169,11 +253,17 @@ const RequestRescuePage = () => {
                 </div>
 
                 <button type="submit" disabled={loading}
-                    className="w-full bg-red-600 text-white py-3 rounded-lg font-bold hover:bg-red-700 transition">
-                    {loading ? "ĐANG XỬ LÝ..." : "GỬI CỨU TRỢ NGAY"}
+                    className="w-full bg-red-600 text-white py-3 rounded-lg font-bold hover:bg-red-700 transition disabled:bg-gray-400">
+                    {loading ? "ĐANG XỬ LÝ..." : "🚨 GỬI CỨU TRỢ NGAY"}
                 </button>
+
+                <p className="text-xs text-center text-gray-500">
+                    * Bạn không cần đăng nhập. Sau khi gửi, bạn sẽ nhận được mã để tra cứu tình trạng
+                </p>
             </form>
-        </div>
+            </div>
+            </div>
+        </>
     );
 };
 
