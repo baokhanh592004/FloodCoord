@@ -4,6 +4,8 @@ import { teamApi } from '../../services/teamApi';
 import { vehicleApi } from '../../services/vehicleApi';
 import { supplyApi } from '../../services/supplyApi';
 import RequestCard from '../../components/coordinator/RequestCard';
+import AssignTaskModal from '../../components/coordinator/AssignTaskModal';
+import RequestDetailModal from '../../components/coordinator/RequestDetailModal';
 
 export default function AssignTeams() {
     const [requests, setRequests] = useState([]);
@@ -11,13 +13,8 @@ export default function AssignTeams() {
     const [vehicles, setVehicles] = useState([]);
     const [supplies, setSupplies] = useState([]);
     const [selectedRequest, setSelectedRequest] = useState(null);
-    const [formData, setFormData] = useState({
-        rescueTeamId: '',
-        vehicleId: '',
-        note: '',
-        emergencyLevel: '',
-        supplies: [],
-    });
+    const [showAssignModal, setShowAssignModal] = useState(false);
+    const [showDetailModal, setShowDetailModal] = useState(false);
 
     const loadData = async () => {
         try {
@@ -46,43 +43,6 @@ export default function AssignTeams() {
         [requests]
     );
 
-    const handleAssign = async () => {
-        if (!selectedRequest || !formData.rescueTeamId) return;
-
-        try {
-            await coordinatorApi.assignTask(selectedRequest.requestId || selectedRequest.id, {
-                rescueTeamId: Number(formData.rescueTeamId),
-                vehicleId: formData.vehicleId ? Number(formData.vehicleId) : null,
-                note: formData.note,
-                emergencyLevel: formData.emergencyLevel || selectedRequest.emergencyLevel,
-                supplies: formData.supplies,
-            });
-            loadData();
-            setSelectedRequest(null);
-        } catch (error) {
-            console.error('Assign task failed:', error);
-        }
-    };
-
-    const handleSupplyToggle = (supplyId) => {
-        setFormData((prev) => {
-            const exists = prev.supplies.find((s) => s.supplyId === supplyId);
-            if (exists) {
-                return { ...prev, supplies: prev.supplies.filter((s) => s.supplyId !== supplyId) };
-            }
-            return { ...prev, supplies: [...prev.supplies, { supplyId, quantity: 1 }] };
-        });
-    };
-
-    const updateSupplyQuantity = (supplyId, quantity) => {
-        setFormData((prev) => ({
-            ...prev,
-            supplies: prev.supplies.map((s) =>
-                s.supplyId === supplyId ? { ...s, quantity: Number(quantity) } : s
-            ),
-        }));
-    };
-
     return (
         <div className="p-6 space-y-6">
             <div>
@@ -96,8 +56,14 @@ export default function AssignTeams() {
                         <div key={req.requestId || req.id}>
                             <RequestCard
                                 request={req}
-                                onAssign={(r) => setSelectedRequest(r)}
-                                onViewDetails={() => setSelectedRequest(req)}
+                                onAssign={(r) => {
+                                    setSelectedRequest(r);
+                                    setShowAssignModal(true);
+                                }}
+                                onViewDetails={(r) => {
+                                    setSelectedRequest(r);
+                                    setShowDetailModal(true);
+                                }}
                             />
                         </div>
                     ))}
@@ -107,101 +73,46 @@ export default function AssignTeams() {
                 </div>
 
                 <div className="bg-white border border-gray-200 rounded-lg p-5">
-                    <h2 className="text-lg font-semibold text-gray-900 mb-4">Assignment Panel</h2>
-                    {!selectedRequest && (
-                        <div className="text-sm text-gray-500">Select a request to assign a team.</div>
-                    )}
-
-                    {selectedRequest && (
-                        <div className="space-y-4">
-                            <div>
-                                <p className="text-sm font-medium text-gray-900">Request</p>
-                                <p className="text-xs text-gray-500">{selectedRequest.title || selectedRequest.description}</p>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Rescue Team</label>
-                                <select
-                                    value={formData.rescueTeamId}
-                                    onChange={(e) => setFormData({ ...formData, rescueTeamId: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm"
-                                >
-                                    <option value="">Select team</option>
-                                    {teams.map((team) => (
-                                        <option key={team.id} value={team.id}>
-                                            {team.name}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Vehicle</label>
-                                <select
-                                    value={formData.vehicleId}
-                                    onChange={(e) => setFormData({ ...formData, vehicleId: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm"
-                                >
-                                    <option value="">Optional</option>
-                                    {vehicles.map((vehicle) => (
-                                        <option key={vehicle.id} value={vehicle.id}>
-                                            {vehicle.name} ({vehicle.type})
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Supplies</label>
-                                <div className="space-y-2">
-                                    {supplies.slice(0, 6).map((supply) => {
-                                        const selected = formData.supplies.find((s) => s.supplyId === supply.id);
-                                        return (
-                                            <div key={supply.id} className="flex items-center justify-between">
-                                                <label className="flex items-center gap-2 text-sm text-gray-600">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={!!selected}
-                                                        onChange={() => handleSupplyToggle(supply.id)}
-                                                    />
-                                                    {supply.name}
-                                                </label>
-                                                {selected && (
-                                                    <input
-                                                        type="number"
-                                                        min="1"
-                                                        value={selected.quantity}
-                                                        onChange={(e) => updateSupplyQuantity(supply.id, e.target.value)}
-                                                        className="w-16 px-2 py-1 border border-gray-200 rounded text-sm"
-                                                    />
-                                                )}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Note</label>
-                                <textarea
-                                    rows="3"
-                                    value={formData.note}
-                                    onChange={(e) => setFormData({ ...formData, note: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm"
-                                    placeholder="Instructions for the team..."
-                                />
-                            </div>
-
-                            <button
-                                onClick={handleAssign}
-                                className="w-full px-4 py-2 bg-teal-600 text-white rounded-md text-sm font-medium hover:bg-teal-700"
-                            >
-                                Assign Team
-                            </button>
+                    <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Info</h2>
+                    <div className="space-y-4">
+                        <div className="bg-gray-50 p-4 rounded-lg">
+                            <p className="text-sm text-gray-600">Available Teams</p>
+                            <p className="text-2xl font-bold text-gray-900">
+                                {teams.filter((t) => t.status === 'AVAILABLE').length}
+                            </p>
                         </div>
-                    )}
+                        <div className="bg-gray-50 p-4 rounded-lg">
+                            <p className="text-sm text-gray-600">Available Vehicles</p>
+                            <p className="text-2xl font-bold text-gray-900">
+                                {vehicles.filter((v) => v.status === 'AVAILABLE').length}
+                            </p>
+                        </div>
+                        <div className="bg-gray-50 p-4 rounded-lg">
+                            <p className="text-sm text-gray-600">Supplies Ready</p>
+                            <p className="text-2xl font-bold text-gray-900">{supplies.length}</p>
+                        </div>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-4">
+                        💡 Click "Assign Team" on a request card to dispatch resources
+                    </p>
                 </div>
             </div>
+
+            <AssignTaskModal
+                request={selectedRequest}
+                isOpen={showAssignModal}
+                onClose={() => setShowAssignModal(false)}
+                onSuccess={loadData}
+            />
+            <RequestDetailModal
+                request={selectedRequest}
+                isOpen={showDetailModal}
+                onClose={() => setShowDetailModal(false)}
+                onAssign={(r) => {
+                    setSelectedRequest(r);
+                    setShowAssignModal(true);
+                }}
+            />
         </div>
     );
 }
