@@ -34,6 +34,7 @@ export default function AppRoutes() {
           </PrivateRoute>
         }
       >
+        <Route path="" element={<CoordinatorDashboard />} />
         <Route path="dashboard" element={<CoordinatorDashboard />} />
         <Route path="requests" element={<RequestQueue />} />
         <Route path="assign-teams" element={<AssignTeams />} />
