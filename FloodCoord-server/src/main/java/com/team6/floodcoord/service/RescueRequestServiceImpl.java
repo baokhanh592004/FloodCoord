@@ -1,8 +1,7 @@
 package com.team6.floodcoord.service;
 
 import com.team6.floodcoord.dto.request.*;
-import com.team6.floodcoord.dto.response.CreateRequestResponse;
-import com.team6.floodcoord.dto.response.RescueRequestResponse;
+import com.team6.floodcoord.dto.response.*;
 import com.team6.floodcoord.model.*;
 import com.team6.floodcoord.model.enums.RequestStatus;
 import com.team6.floodcoord.model.enums.TeamStatus;
@@ -15,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -359,6 +359,57 @@ public class RescueRequestServiceImpl implements RescueRequestService {
                 .build();
     }
 
+    @Override
+    public List<RescueRequestSummaryResponse> getAllRescueRequests() {
+        return requestRepo.findAll().stream()
+                .map(this::mapToSummary)
+                .toList();
+    }
+
+    @Override
+    public RescueRequestDetailResponse getRequestDetail(UUID requestId) {
+        RescueRequest request = requestRepo.findById(requestId)
+                .orElseThrow(() -> new RuntimeException("Rescue request not found"));
+
+        RescueRequestDetailResponse dto = new RescueRequestDetailResponse();
+        dto.setRequestId(request.getRequestId());
+        dto.setTitle(request.getTitle());
+        dto.setDescription(request.getDescription());
+        dto.setEmergencyLevel(request.getEmergencyLevel());
+        dto.setStatus(request.getStatus().toString());
+        dto.setPeopleCount(request.getPeopleCount());
+        dto.setCreatedAt(request.getCreatedAt());
+        dto.setCitizenName(
+                request.getCitizen() != null ? request.getCitizen().getFullName() : null
+        );
+
+        // 📍 Location
+        if (request.getLocation() != null) {
+            RequestLocationResponse loc = new RequestLocationResponse();
+            loc.setLatitude(request.getLocation().getLatitude());
+            loc.setLongitude(request.getLocation().getLongitude());
+            loc.setAddressText(request.getLocation().getAddressText());
+            loc.setFloodDepth(request.getLocation().getFloodDepth());
+            dto.setLocation(loc);
+        }
+
+        // 🖼️ Media
+        if (request.getMediaList() != null) {
+            List<RequestMediaResponse> mediaList = request.getMediaList().stream().map(m -> {
+                RequestMediaResponse media = new RequestMediaResponse();
+                media.setMediaId(m.getMediaId());
+                media.setMediaType(m.getMediaType());
+                media.setMediaUrl(m.getMediaUrl());
+                media.setUploadedAt(m.getUploadedAt());
+                return media;
+            }).toList();
+
+            dto.setMedia(mediaList);
+        }
+
+        return dto;
+    }
+
     // Hàm kiểm tra logic chuyển trạng thái
     private void validateStatusTransition(RequestStatus currentStatus, RequestStatus newStatus) {
         // Không được chuyển về trạng thái cũ hoặc nhảy cóc quá xa (tùy độ chặt chẽ bạn muốn)
@@ -410,5 +461,17 @@ public class RescueRequestServiceImpl implements RescueRequestService {
                 teamRepo.save(team);
             }
         }
+    }
+    private RescueRequestSummaryResponse mapToSummary(RescueRequest request) {
+        RescueRequestSummaryResponse dto = new RescueRequestSummaryResponse();
+        dto.setRequestId(request.getRequestId());
+        dto.setTitle(request.getTitle());
+        dto.setEmergencyLevel(request.getEmergencyLevel());
+        dto.setStatus(request.getStatus().toString());
+        dto.setPeopleCount(request.getPeopleCount());
+        dto.setCreatedAt(request.getCreatedAt());
+        dto.setContactName(request.getContactName());
+        dto.setContactPhone(request.getContactPhone());
+        return dto;
     }
 }
