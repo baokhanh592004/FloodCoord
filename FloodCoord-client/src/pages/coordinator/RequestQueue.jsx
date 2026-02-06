@@ -1,6 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { coordinatorApi } from '../../services/coordinatorApi';
 import RequestCard from '../../components/coordinator/RequestCard';
+import VerifyRequestModal from '../../components/coordinator/VerifyRequestModal';
+import AssignTaskModal from '../../components/coordinator/AssignTaskModal';
+import RequestDetailModal from '../../components/coordinator/RequestDetailModal';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 
 export default function RequestQueue() {
@@ -8,6 +11,10 @@ export default function RequestQueue() {
     const [loading, setLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('ALL');
+    const [selectedRequest, setSelectedRequest] = useState(null);
+    const [showVerifyModal, setShowVerifyModal] = useState(false);
+    const [showAssignModal, setShowAssignModal] = useState(false);
+    const [showDetailModal, setShowDetailModal] = useState(false);
 
     const loadRequests = async () => {
         setLoading(true);
@@ -71,7 +78,22 @@ export default function RequestQueue() {
 
             <div className="space-y-4">
                 {filteredRequests.map((req) => (
-                    <RequestCard key={req.requestId || req.id} request={req} />
+                    <RequestCard
+                        key={req.requestId || req.id}
+                        request={req}
+                        onValidate={(r) => {
+                            setSelectedRequest(r);
+                            setShowVerifyModal(true);
+                        }}
+                        onAssign={(r) => {
+                            setSelectedRequest(r);
+                            setShowAssignModal(true);
+                        }}
+                        onViewDetails={(r) => {
+                            setSelectedRequest(r);
+                            setShowDetailModal(true);
+                        }}
+                    />
                 ))}
                 {filteredRequests.length === 0 && !loading && (
                     <div className="text-sm text-gray-500">No requests found.</div>
@@ -80,6 +102,32 @@ export default function RequestQueue() {
                     <div className="text-sm text-gray-500">Loading requests...</div>
                 )}
             </div>
+
+            <VerifyRequestModal
+                request={selectedRequest}
+                isOpen={showVerifyModal}
+                onClose={() => setShowVerifyModal(false)}
+                onSuccess={loadRequests}
+            />
+            <AssignTaskModal
+                request={selectedRequest}
+                isOpen={showAssignModal}
+                onClose={() => setShowAssignModal(false)}
+                onSuccess={loadRequests}
+            />
+            <RequestDetailModal
+                request={selectedRequest}
+                isOpen={showDetailModal}
+                onClose={() => setShowDetailModal(false)}
+                onValidate={(r) => {
+                    setSelectedRequest(r);
+                    setShowVerifyModal(true);
+                }}
+                onAssign={(r) => {
+                    setSelectedRequest(r);
+                    setShowAssignModal(true);
+                }}
+            />
         </div>
     );
 }
