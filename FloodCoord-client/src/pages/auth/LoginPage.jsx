@@ -1,17 +1,46 @@
 import React from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { jwtDecode } from 'jwt-decode'
 import backgroundImage from '../../assets/images/background.png'
 import { loginApi } from '../../services/authApi'
+import { useAuth } from '../../context/AuthContext'
 import toast from 'react-hot-toast';
 
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [error, setError] = React.useState(null);
   const [loading, setLoading] = React.useState(false);
+
+  const getRoleBasedDashboard = (token) => {
+    // Decode token to get role
+    const decoded = jwtDecode(token);
+    const roles = decoded.roles || [];
+    const userRole = roles.length > 0 ? roles[0] : 'CITIZEN';
+    
+    // Normalize role to uppercase
+    const normalizedRole = userRole?.toUpperCase() || 'CITIZEN';
+
+    switch (normalizedRole) {
+      case 'ADMIN':
+        return '/admin/dashboard';
+      case 'MANAGER':
+        return '/manager/dashboard';
+      case 'COORDINATOR':
+        return '/coordinator/dashboard';
+      case 'RESCUE_TEAM':
+      case 'TEAM_MEMBER':
+        return '/rescue-team/dashboard';
+      case 'CITIZEN':
+      case 'USER':
+      default:
+        return '/';
+    }
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -25,11 +54,16 @@ export default function LoginPage() {
       });
 
       console.log('Login successful:', data);
-      localStorage.setItem('accessToken', data.accessToken);
-      localStorage.setItem('refreshToken', data.refreshToken);
+      
+      // Use AuthContext to login
+      login(data.accessToken, data.refreshToken);
+      
       window.dispatchEvent(new Event('authChange'));
       toast.success('Login successful!');
-      navigate('/');
+
+      // Redirect based on user role from token
+      const redirectPath = getRoleBasedDashboard(data.accessToken);
+      navigate(redirectPath);
 
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed. Please try again.');
