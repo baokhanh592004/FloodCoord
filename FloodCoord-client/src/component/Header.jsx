@@ -26,7 +26,7 @@ import toast from 'react-hot-toast'
 import logo from '../assets/images/logo.png'
 const services = [
   { name: 'Bản đồ lũ lụt', description: 'Xem bản đồ theo dõi tình hình lũ', href: '/map', icon: MapIcon },
-  { name: 'Gửi yêu cầu cứu hộ', description: 'Gửi tín hiệu SOS khẩn cấp', href: '/map/sos', icon: ShieldExclamationIcon },
+  { name: 'Gửi yêu cầu cứu hộ', description: 'Gửi tín hiệu SOS khẩn cấp', href: '/request-rescue', icon: ShieldExclamationIcon },
   { name: 'Đội cứu hộ', description: 'Thông tin các đội cứu hộ', href: '/rescue-teams', icon: UserGroupIcon },
   { name: 'Hướng dẫn', description: 'Hướng dẫn sử dụng hệ thống', href: '/guide', icon: InformationCircleIcon },
 ]
@@ -143,7 +143,7 @@ export default function Header() {
           <Link to="/" className="text-sm/6 font-semibold text-white">
             Trang chủ
           </Link>
-          <Link to="/map/sos" className="text-sm/6 font-semibold text-white">
+          <Link to="/request-rescue" className="text-sm/6 font-semibold text-white">
             Gửi cứu hộ
           </Link>
           <Link to="/about" className="text-sm/6 font-semibold text-white">

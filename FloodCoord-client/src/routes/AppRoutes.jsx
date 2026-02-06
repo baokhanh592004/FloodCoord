@@ -7,6 +7,7 @@ import RequestRescuePage from '../pages/rescue/RequestRescuePage'
 import TrackRescuePage from '../pages/rescue/TrackRescuePage'
 import ForgotPasswordPage from '../pages/auth/ForgotPasswordPage'
 import ResetPasswordPage from '../pages/auth/ResetPasswordPage'
+import RegisterPage from '../pages/auth/RegisterPage'
 
 export default function AppRoutes() {
   return (
@@ -20,6 +21,7 @@ export default function AppRoutes() {
         <Route path="/request-rescue" element={<RequestRescuePage />} />
         <Route path="/track-rescue" element={<TrackRescuePage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/register" element={<RegisterPage />} />
       </Route>
 
       <Route
