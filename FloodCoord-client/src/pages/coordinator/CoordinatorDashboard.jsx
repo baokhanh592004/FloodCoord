@@ -7,6 +7,9 @@ import StatCard from '../../components/coordinator/StatCard';
 import RequestCard from '../../components/coordinator/RequestCard';
 import TeamCard from '../../components/coordinator/TeamCard';
 import ResourceCounter from '../../components/coordinator/ResourceCounter';
+import VerifyRequestModal from '../../components/coordinator/VerifyRequestModal';
+import AssignTaskModal from '../../components/coordinator/AssignTaskModal';
+import RequestDetailModal from '../../components/coordinator/RequestDetailModal';
 import {
     ExclamationTriangleIcon,
     CheckCircleIcon,
@@ -24,6 +27,10 @@ export default function CoordinatorDashboard() {
     const [vehicles, setVehicles] = useState([]);
     const [supplies, setSupplies] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [selectedRequest, setSelectedRequest] = useState(null);
+    const [showVerifyModal, setShowVerifyModal] = useState(false);
+    const [showAssignModal, setShowAssignModal] = useState(false);
+    const [showDetailModal, setShowDetailModal] = useState(false);
 
     const loadData = async () => {
         setLoading(true);
@@ -105,7 +112,22 @@ export default function CoordinatorDashboard() {
 
                     <div className="space-y-4">
                         {recentRequests.map((req) => (
-                            <RequestCard key={req.requestId || req.id} request={req} />
+                            <RequestCard
+                                key={req.requestId || req.id}
+                                request={req}
+                                onValidate={(r) => {
+                                    setSelectedRequest(r);
+                                    setShowVerifyModal(true);
+                                }}
+                                onAssign={(r) => {
+                                    setSelectedRequest(r);
+                                    setShowAssignModal(true);
+                                }}
+                                onViewDetails={(r) => {
+                                    setSelectedRequest(r);
+                                    setShowDetailModal(true);
+                                }}
+                            />
                         ))}
                         {recentRequests.length === 0 && (
                             <div className="text-sm text-gray-500">No incoming requests.</div>
@@ -154,6 +176,33 @@ export default function CoordinatorDashboard() {
                     </div>
 
                     <div className="bg-white border border-gray-200 rounded-lg p-5">
+
+            {/* Modals */}
+            <VerifyRequestModal
+                request={selectedRequest}
+                isOpen={showVerifyModal}
+                onClose={() => setShowVerifyModal(false)}
+                onSuccess={loadData}
+            />
+            <AssignTaskModal
+                request={selectedRequest}
+                isOpen={showAssignModal}
+                onClose={() => setShowAssignModal(false)}
+                onSuccess={loadData}
+            />
+            <RequestDetailModal
+                request={selectedRequest}
+                isOpen={showDetailModal}
+                onClose={() => setShowDetailModal(false)}
+                onValidate={(r) => {
+                    setSelectedRequest(r);
+                    setShowVerifyModal(true);
+                }}
+                onAssign={(r) => {
+                    setSelectedRequest(r);
+                    setShowAssignModal(true);
+                }}
+            />
                         <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
                         <div className="space-y-2">
                             <button className="w-full text-left px-3 py-2 text-sm border border-gray-200 rounded-md hover:bg-gray-50">
