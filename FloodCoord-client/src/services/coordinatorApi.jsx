@@ -15,7 +15,7 @@ export const coordinatorApi = {
     // Get all rescue requests with filters
     getAllRequests: async (params = {}) => {
         try {
-            const response = await axiosClient.get('/api/coordinator/requests', { params });
+            const response = await axiosClient.get('/api/coordinator/requests/rescue-requests', { params });
             return response.data;
         } catch (error) {
             console.error("Get all requests failed:", error);
@@ -26,7 +26,7 @@ export const coordinatorApi = {
     // Get single request detail
     getRequestDetail: async (requestId) => {
         try {
-            const response = await axiosClient.get(`/api/coordinator/requests/${requestId}`);
+            const response = await axiosClient.get(`/api/coordinator/requests/rescue-requests/${requestId}`);
             return response.data;
         } catch (error) {
             console.error("Get request detail failed:", error);
@@ -65,7 +65,7 @@ export const coordinatorApi = {
     // Get requests by status
     getRequestsByStatus: async (status) => {
         try {
-            const response = await axiosClient.get('/api/coordinator/requests', {
+            const response = await axiosClient.get('/api/coordinator/requests/rescue-requests', {
                 params: { status }
             });
             return response.data;
