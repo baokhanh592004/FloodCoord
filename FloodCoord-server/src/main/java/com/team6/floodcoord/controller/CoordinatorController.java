@@ -2,6 +2,8 @@ package com.team6.floodcoord.controller;
 
 import com.team6.floodcoord.dto.request.AssignTaskRequest;
 import com.team6.floodcoord.dto.request.VerifyRequestDTO;
+import com.team6.floodcoord.dto.response.RescueRequestDetailResponse;
+import com.team6.floodcoord.dto.response.RescueRequestSummaryResponse;
 import com.team6.floodcoord.model.User;
 import com.team6.floodcoord.service.RescueRequestServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
@@ -12,6 +14,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -21,6 +24,18 @@ import java.util.UUID;
 @PreAuthorize("hasRole('COORDINATOR') or hasRole('MANAGER') or hasRole('ADMIN')")
 public class CoordinatorController {
     private final RescueRequestServiceImpl requestService;
+
+    // GET ALL rescue requests
+    @GetMapping("/rescue-requests")
+    public List<RescueRequestSummaryResponse> getAllRescueRequests() {
+        return requestService.getAllRescueRequests();
+    }
+    @GetMapping("/rescue-requests/{id}")
+    public RescueRequestDetailResponse getRescueRequestDetail(
+            @PathVariable UUID id
+    ) {
+        return requestService.getRequestDetail(id);
+    }
 
     @PostMapping("/{requestId}/assign")
     @Operation(summary = "Phân công nhiệm vụ (Gán Team, Xe, Vật tư)")
@@ -43,4 +58,5 @@ public class CoordinatorController {
         requestService.verifyRequest(requestId, requestDTO, coordinator);
         return ResponseEntity.ok("Request verified successfully. Status changed to VERIFIED.");
     }
+
 }

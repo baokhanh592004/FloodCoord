@@ -66,4 +66,11 @@ public class RescueRequest {
 
     @Column(name = "completed_at")
     private LocalDateTime completedAt; // Thời gian hoàn thành/đóng hồ sơ
+
+    @OneToOne(mappedBy = "request", cascade = CascadeType.ALL)
+    private RequestLocation location;
+
+    // 🔹 Media (1 - N)
+    @OneToMany(mappedBy = "request", cascade = CascadeType.ALL)
+    private List<RequestMedia> mediaList;
 }
