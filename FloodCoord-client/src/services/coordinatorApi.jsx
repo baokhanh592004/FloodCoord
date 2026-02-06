@@ -37,7 +37,7 @@ export const coordinatorApi = {
     // Verify a pending request (PENDING -> VERIFIED)
     verifyRequest: async (requestId, data) => {
         try {
-            const response = await axiosClient.post(
+            const response = await axiosClient.put(
                 `/api/coordinator/requests/${requestId}/verify`,
                 data
             );
