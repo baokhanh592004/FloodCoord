@@ -38,6 +38,7 @@ axiosClient.interceptors.response.use(
                     // Không có refresh token, chuyển về trang login
                     localStorage.removeItem('accessToken');
                     localStorage.removeItem('refreshToken');
+                    window.dispatchEvent(new Event('authChange'));
                     window.location.href = '/login';
                     return Promise.reject(error);
                 }
@@ -64,9 +65,16 @@ axiosClient.interceptors.response.use(
                 // Refresh token cũng hết hạn, chuyển về trang login
                 localStorage.removeItem('accessToken');
                 localStorage.removeItem('refreshToken');
+                window.dispatchEvent(new Event('authChange'));
                 window.location.href = '/login';
                 return Promise.reject(refreshError);
             }
+        }
+
+        // Nếu lỗi 403 (Forbidden) - user không có quyền truy cập, không logout
+        if (error.response?.status === 403) {
+            console.warn('Access forbidden to this resource. User may not have the required role.');
+            return Promise.reject(error);
         }
 
         return Promise.reject(error);
