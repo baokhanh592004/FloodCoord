@@ -14,11 +14,16 @@ export const coordinatorApi = {
 
     // Get all rescue requests with filters
     getAllRequests: async (params = {}) => {
+        console.log('📡 coordinatorApi.getAllRequests() called');
+        console.log('Params:', params);
         try {
             const response = await axiosClient.get('/api/coordinator/requests/rescue-requests', { params });
+            console.log('✅ getAllRequests response:', response.data);
             return response.data;
         } catch (error) {
-            console.error("Get all requests failed:", error);
+            console.error("❌ Get all requests failed:", error);
+            console.error("Error response:", error.response?.data);
+            console.error("Error status:", error.response?.status);
             throw error;
         }
     },

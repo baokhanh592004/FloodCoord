@@ -13,6 +13,7 @@ import {
 } from '@heroicons/react/24/outline';
 
 export default function CoordinatorDashboard() {
+    console.log('🏗️ CoordinatorDashboard component rendered');
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(false);
     const [selectedRequest, setSelectedRequest] = useState(null);
@@ -21,21 +22,27 @@ export default function CoordinatorDashboard() {
     const [showDetailModal, setShowDetailModal] = useState(false);
 
     const loadData = async () => {
+        console.log('🔄 CoordinatorDashboard: Starting loadData...');
         setLoading(true);
         try {
             // Coordinator can only access rescue requests
             // Teams, vehicles, and supplies require MANAGER/ADMIN roles
+            console.log('📞 Calling coordinatorApi.getAllRequests()...');
             const reqData = await coordinatorApi.getAllRequests();
+            console.log('✅ Data received:', reqData);
             setRequests(reqData || []);
         } catch (error) {
-            console.error('Failed to load requests:', error);
+            console.error('❌ Failed to load requests:', error);
+            console.error('Keeping error for debugging - NOT redirecting');
             setRequests([]);
         } finally {
             setLoading(false);
+            console.log('✔️ loadData completed');
         }
     };
 
     useEffect(() => {
+        console.log('🚀 CoordinatorDashboard mounted - calling loadData()');
         loadData();
     }, []);
 

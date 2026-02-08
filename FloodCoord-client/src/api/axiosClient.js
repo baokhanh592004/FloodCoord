@@ -22,27 +22,40 @@ axiosClient.interceptors.request.use(
 // Response interceptor - Xử lý khi token hết hạn
 axiosClient.interceptors.response.use(
     (response) => {
+        console.log('✅ API Success:', response.config.method.toUpperCase(), response.config.url, 'Status:', response.status);
         return response;
     },
     async (error) => {
         const originalRequest = error.config;
 
+        // LOG CHI TIẾT LỖI
+        console.error('❌ API Error:', {
+            method: error.config?.method?.toUpperCase(),
+            url: error.config?.url,
+            status: error.response?.status,
+            statusText: error.response?.statusText,
+            data: error.response?.data,
+            message: error.message
+        });
+
         // Nếu lỗi 401 (Unauthorized) và chưa thử refresh token
         if (error.response?.status === 401 && !originalRequest._retry) {
+            console.warn('⚠️ 401 Unauthorized - Attempting to refresh token...');
             originalRequest._retry = true;
 
             try {
                 const refreshToken = localStorage.getItem('refreshToken');
                 
                 if (!refreshToken) {
-                    // Không có refresh token, chuyển về trang login
-                    localStorage.removeItem('accessToken');
-                    localStorage.removeItem('refreshToken');
-                    window.dispatchEvent(new Event('authChange'));
-                    window.location.href = '/login';
+                    // KHÔNG TỰ ĐỘNG REDIRECT - CHỈ LOG
+                    console.error('❌ No refresh token found!');
+                    console.error('❌ User will need to login again');
+                    console.error('❌ Keeping on current page for debugging...');
+                    // Không xóa token và không redirect để có thể debug
                     return Promise.reject(error);
                 }
 
+                console.log('🔄 Calling refresh token API...');
                 // Gọi API refresh token
                 const response = await axios.post(
                     `${import.meta.env.VITE_API_ROOT_URL}/api/auth/refresh`,
@@ -51,6 +64,7 @@ axiosClient.interceptors.response.use(
 
                 const { accessToken: newAccessToken, refreshToken: newRefreshToken } = response.data;
 
+                console.log('✅ Token refreshed successfully!');
                 // Lưu token mới
                 localStorage.setItem('accessToken', newAccessToken);
                 if (newRefreshToken) {
@@ -62,18 +76,28 @@ axiosClient.interceptors.response.use(
                 return axiosClient(originalRequest);
 
             } catch (refreshError) {
-                // Refresh token cũng hết hạn, chuyển về trang login
+                console.error('❌ Refresh token failed!');
+                console.error('❌ Refresh error:', refreshError.response?.data || refreshError.message);
+                console.error('🗑️ Clearing invalid tokens and redirecting to login...');
+                
+                // Xóa token cũ và redirect về login
                 localStorage.removeItem('accessToken');
                 localStorage.removeItem('refreshToken');
                 window.dispatchEvent(new Event('authChange'));
-                window.location.href = '/login';
+                
+                // Delay 2 giây để đọc log
+                setTimeout(() => {
+                    window.location.href = '/login';
+                }, 2000);
+                
                 return Promise.reject(refreshError);
             }
         }
 
-        // Nếu lỗi 403 (Forbidden) - user không có quyền truy cập, không logout
+        // Nếu lỗi 403 (Forbidden) - user không có quyền truy cập
         if (error.response?.status === 403) {
-            console.warn('Access forbidden to this resource. User may not have the required role.');
+            console.error('⛔ 403 Forbidden - User does not have permission to access this resource');
+            console.error('⛔ Required role may not match user role');
             return Promise.reject(error);
         }
 

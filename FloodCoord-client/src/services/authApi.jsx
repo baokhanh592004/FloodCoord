@@ -35,5 +35,10 @@ export const loginApi = {
         return response.data;
     },
 
+    register: async (data) => {
+        const response = await axiosClient.post('/api/auth/register', data);
+        return response.data;
+    },
+
 };
     
