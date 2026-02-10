@@ -16,7 +16,7 @@ import java.util.List;
 @RequestMapping("/api/admin/rescue-teams")
 @RequiredArgsConstructor
 @Tag(name = "Rescue Team Management", description = "Quản lý các đội cứu hộ")
-@PreAuthorize("hasRole('ADMIN') or hasRole('MANAGER')")
+@PreAuthorize("hasRole('ADMIN') or hasRole('MANAGER') or hasRole('COORDINATOR')")
 public class RescueTeamController {
     private final RescueTeamService rescueTeamService;
 
