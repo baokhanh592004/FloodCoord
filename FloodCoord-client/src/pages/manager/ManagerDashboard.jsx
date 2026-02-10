@@ -1,77 +1,83 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom'
+import StatCard from '../../components/coordinator/StatCard'
+import {
+  TruckIcon,
+  UserGroupIcon,
+  ArchiveBoxIcon,
+} from '@heroicons/react/24/outline'
 
 export default function ManagerDashboard() {
-    const navigate = useNavigate();
-    const { user, logout } = useAuth();
+  const navigate = useNavigate()
 
-    const handleLogout = () => {
-        logout();
-        navigate('/login');
-    };
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">
+          Manager Dashboard
+        </h1>
+        <p className="text-sm text-gray-600">
+          Manage vehicles, teams and supplies.
+        </p>
+      </div>
 
-    return (
-        <div className="min-h-screen bg-gray-100 p-8">
-            <div className="max-w-4xl mx-auto">
-                <div className="bg-white rounded-lg shadow-md p-8">
-                    <div className="flex justify-between items-start mb-8">
-                        <div>
-                            <h1 className="text-3xl font-bold text-gray-900">Manager Dashboard</h1>
-                            <p className="text-gray-600 mt-2">Welcome, {user?.email}!</p>
-                        </div>
-                        <button
-                            onClick={handleLogout}
-                            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-                        >
-                            Logout
-                        </button>
-                    </div>
+      {/* Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <StatCard
+          icon={<TruckIcon className="h-6 w-6" />}
+          count={18}
+          label="Vehicles"
+          color="blue"
+        />
+        <StatCard
+          icon={<UserGroupIcon className="h-6 w-6" />}
+          count={12}
+          label="Rescue Teams"
+          color="red"
+        />
+        <StatCard
+          icon={<ArchiveBoxIcon className="h-6 w-6" />}
+          count={4}
+          label="Warehouses"
+          color="green"
+        />
+      </div>
 
-                    <div className="grid grid-cols-2 gap-6">
-                        <div 
-                            onClick={() => navigate('/manager/vehicles')}
-                            className="bg-blue-50 p-6 rounded-lg border border-blue-200 cursor-pointer hover:bg-blue-100 transition"
-                        >
-                            <h3 className="text-lg font-semibold text-blue-900">🚗 Quản lý Phương tiện</h3>
-                            <p className="text-blue-700 mt-2">Quản lý các phương tiện cứu hộ</p>
-                            <button className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
-                                Xem chi tiết →
-                            </button>
-                        </div>
+      {/* Quick actions */}
+      <div className="bg-white border border-gray-200 rounded-lg p-5">
+        <h2 className="text-lg font-semibold mb-4">
+          Management Shortcuts
+        </h2>
 
-                        <div 
-                            onClick={() => navigate('/manager/rescue-teams')}
-                            className="bg-red-50 p-6 rounded-lg border border-red-200 cursor-pointer hover:bg-red-100 transition"
-                        >
-                            <h3 className="text-lg font-semibold text-red-900">🚨 Quản lý Đội Cứu hộ</h3>
-                            <p className="text-red-700 mt-2">Quản lý đội cứu hộ và thành viên</p>
-                            <button className="mt-4 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
-                                Xem chi tiết →
-                            </button>
-                        </div>
-
-                        <div 
-                            onClick={() => navigate('/manager/supplies')}
-                            className="bg-green-50 p-6 rounded-lg border border-green-200 cursor-pointer hover:bg-green-100 transition"
-                        >
-                            <h3 className="text-lg font-semibold text-green-900">📦 Quản lý Vật tư</h3>
-                            <p className="text-green-700 mt-2">Quản lý vật tư và kho hàng</p>
-                            <button className="mt-4 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">
-                                Xem chi tiết →
-                            </button>
-                        </div>
-
-                        <div className="bg-purple-50 p-6 rounded-lg border border-purple-200">
-                            <h3 className="text-lg font-semibold text-purple-900">🎯 Phân bổ Tài nguyên</h3>
-                            <p className="text-purple-700 mt-2">Phân bổ tài nguyên cho chiến dịch</p>
-                            <button className="mt-4 px-4 py-2 bg-gray-300 text-gray-600 rounded cursor-not-allowed">
-                                Sắp ra mắt
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <ActionCard
+            title="Manage Vehicles"
+            onClick={() => navigate('/manager/vehicles')}
+          />
+          <ActionCard
+            title="Manage Rescue Teams"
+            onClick={() => navigate('/manager/rescue-teams')}
+          />
+          <ActionCard
+            title="Manage Supplies"
+            onClick={() => navigate('/manager/supplies')}
+          />
         </div>
-    );
+      </div>
+    </div>
+  )
+}
+
+function ActionCard({ title, onClick }) {
+  return (
+    <div
+      onClick={onClick}
+      className="border rounded-lg p-4 bg-gray-50 hover:bg-gray-100 cursor-pointer"
+    >
+      <h3 className="font-semibold">{title}</h3>
+      <p className="text-sm text-gray-500 mt-1">
+        Access module →
+      </p>
+    </div>
+  )
 }

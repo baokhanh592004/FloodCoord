@@ -1,47 +1,56 @@
 import React from 'react'
-import HomePage from '../pages/HomePage'
-import { Route, Routes } from 'react-router-dom'
+import { Routes, Route } from 'react-router-dom'
+
+/* Layouts */
 import MainLayout from '../layouts/MainLayout'
+import CoordinatorLayout from '../layouts/CoordinatorLayout'
+import ManagerLayout from '../layouts/ManagerLayout'
+
+/* Public pages */
+import HomePage from '../pages/HomePage'
 import LoginPage from '../pages/auth/LoginPage'
-import RequestRescuePage from '../pages/rescue/RequestRescuePage'
-import TrackRescuePage from '../pages/rescue/TrackRescuePage'
+import RegisterPage from '../pages/auth/RegisterPage'
 import ForgotPasswordPage from '../pages/auth/ForgotPasswordPage'
 import ResetPasswordPage from '../pages/auth/ResetPasswordPage'
+import RequestRescuePage from '../pages/rescue/RequestRescuePage'
+import TrackRescuePage from '../pages/rescue/TrackRescuePage'
 
-import RegisterPage from '../pages/auth/RegisterPage'
-
-import PrivateRoute from './PrivateRoute'
+/* Route guards */
 import RoleBasedRoute from './RoleBasedRoute'
-import CoordinatorLayout from '../layouts/CoordinatorLayout'
-import CoordinatorDashboard from '../pages/coordinator/CoordinatorDashboard'
-import RequestQueue from '../pages/coordinator/RequestQueue'
-import AssignTeams from '../pages/coordinator/AssignTeams'
-import Operations from '../pages/coordinator/Operations'
+
+/* Admin */
 import AdminDashboard from '../pages/admin/AdminDashboard'
+
+/* Manager */
 import ManagerDashboard from '../pages/manager/ManagerDashboard'
 import VehicleManagement from '../pages/manager/VehicleManagement'
 import RescueTeamManagement from '../pages/manager/RescueTeamManagement'
 import SupplyManagement from '../pages/manager/SupplyManagement'
+
+/* Coordinator */
+import CoordinatorDashboard from '../pages/coordinator/CoordinatorDashboard'
+import RequestQueue from '../pages/coordinator/RequestQueue'
+import AssignTeams from '../pages/coordinator/AssignTeams'
+import Operations from '../pages/coordinator/Operations'
+
+/* Rescue Team */
 import RescueTeamDashboard from '../pages/rescue/RescueTeamDashboard'
-
-
 
 export default function AppRoutes() {
   return (
     <Routes>
-
+      {/* ================= PUBLIC ROUTES ================= */}
       <Route element={<MainLayout />}>
-        {/* Route công khai - ai cũng xem được */}
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/request-rescue" element={<RequestRescuePage />} />
         <Route path="/track-rescue" element={<TrackRescuePage />} />
-        <Route path="/reset-password" element={<ResetPasswordPage />} />
-        <Route path="/register" element={<RegisterPage />} />
       </Route>
 
-      {/* Admin Dashboard Route */}
+      {/* ================= ADMIN ================= */}
       <Route
         path="/admin/dashboard"
         element={
@@ -51,47 +60,23 @@ export default function AppRoutes() {
         }
       />
 
-      {/* Manager Dashboard Route */}
+      {/* ================= MANAGER (WITH SIDEBAR) ================= */}
       <Route
-        path="/manager/dashboard"
+        path="/manager"
         element={
           <RoleBasedRoute allowedRoles={['MANAGER']}>
-            <ManagerDashboard />
+            <ManagerLayout />
           </RoleBasedRoute>
         }
-      />
+      >
+        <Route path="" element={<ManagerDashboard />} />
+        <Route path="dashboard" element={<ManagerDashboard />} />
+        <Route path="vehicles" element={<VehicleManagement />} />
+        <Route path="rescue-teams" element={<RescueTeamManagement />} />
+        <Route path="supplies" element={<SupplyManagement />} />
+      </Route>
 
-      {/* Manager Vehicle Management Route */}
-      <Route
-        path="/manager/vehicles"
-        element={
-          <RoleBasedRoute allowedRoles={['MANAGER']}>
-            <VehicleManagement />
-          </RoleBasedRoute>
-        }
-      />
-
-      {/* Manager Rescue Team Management Route */}
-      <Route
-        path="/manager/rescue-teams"
-        element={
-          <RoleBasedRoute allowedRoles={['MANAGER']}>
-            <RescueTeamManagement />
-          </RoleBasedRoute>
-        }
-      />
-
-      {/* Manager Supply Management Route */}
-      <Route
-        path="/manager/supplies"
-        element={
-          <RoleBasedRoute allowedRoles={['MANAGER']}>
-            <SupplyManagement />
-          </RoleBasedRoute>
-        }
-      />
-
-      {/* Coordinator Dashboard Routes */}
+      {/* ================= COORDINATOR (WITH SIDEBAR) ================= */}
       <Route
         path="/coordinator"
         element={
@@ -107,7 +92,7 @@ export default function AppRoutes() {
         <Route path="operations" element={<Operations />} />
       </Route>
 
-      {/* Rescue Team Dashboard Route */}
+      {/* ================= RESCUE TEAM ================= */}
       <Route
         path="/rescue-team/dashboard"
         element={
@@ -117,14 +102,15 @@ export default function AppRoutes() {
         }
       />
 
+      {/* ================= 404 ================= */}
       <Route
         path="*"
         element={
-          <h2 className="text-center text-red-500">
+          <h2 className="text-center text-red-500 mt-10">
             404 - Not Found
           </h2>
         }
-      />  
+      />
     </Routes>
   )
 }
