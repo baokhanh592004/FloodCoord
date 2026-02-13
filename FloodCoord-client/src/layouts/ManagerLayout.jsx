@@ -18,10 +18,10 @@ export default function ManagerLayout() {
   }
 
   const menu = [
-    { name: 'Dashboard', path: '/manager/dashboard', icon: HomeIcon },
-    { name: 'Vehicles', path: '/manager/vehicles', icon: TruckIcon },
-    { name: 'Rescue Teams', path: '/manager/rescue-teams', icon: UserGroupIcon },
-    { name: 'Supplies', path: '/manager/supplies', icon: ArchiveBoxIcon },
+    { name: 'Tổng quan', path: '/manager/dashboard', icon: HomeIcon },
+    { name: 'Phương tiện', path: '/manager/vehicles', icon: TruckIcon },
+    { name: 'Đội cứu hộ', path: '/manager/rescue-teams', icon: UserGroupIcon },
+    { name: 'Vật tư', path: '/manager/supplies', icon: ArchiveBoxIcon },
   ]
 
   return (
@@ -30,7 +30,7 @@ export default function ManagerLayout() {
       <aside className="w-64 bg-slate-900 text-white flex flex-col">
         <div className="px-6 py-5 border-b border-slate-700">
           <h1 className="text-xl font-bold">FloodRescue</h1>
-          <p className="text-xs text-slate-400">Manager Panel</p>
+          <p className="text-xs text-slate-400">Trang quản lý</p>
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-1">
@@ -58,7 +58,7 @@ export default function ManagerLayout() {
           className="m-4 flex items-center gap-2 px-4 py-2 text-sm text-red-400 hover:bg-slate-800 rounded-md"
         >
           <ArrowRightOnRectangleIcon className="h-5 w-5" />
-          Logout
+          Đăng xuất
         </button>
       </aside>
 

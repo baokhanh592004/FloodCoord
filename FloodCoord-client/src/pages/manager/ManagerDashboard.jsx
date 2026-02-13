@@ -14,52 +14,52 @@ export default function ManagerDashboard() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">
-          Manager Dashboard
+          Bảng điều khiển Quản lý
         </h1>
         <p className="text-sm text-gray-600">
-          Manage vehicles, teams and supplies.
+          Quản lý phương tiện, đội cứu hộ và vật tư.
         </p>
       </div>
 
-      {/* Stats */}
+      {/* Thống kê */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard
           icon={<TruckIcon className="h-6 w-6" />}
           count={18}
-          label="Vehicles"
+          label="Phương tiện"
           color="blue"
         />
         <StatCard
           icon={<UserGroupIcon className="h-6 w-6" />}
           count={12}
-          label="Rescue Teams"
+          label="Đội cứu hộ"
           color="red"
         />
         <StatCard
           icon={<ArchiveBoxIcon className="h-6 w-6" />}
           count={4}
-          label="Warehouses"
+          label="Kho vật tư"
           color="green"
         />
       </div>
 
-      {/* Quick actions */}
+      {/* Thao tác nhanh */}
       <div className="bg-white border border-gray-200 rounded-lg p-5">
         <h2 className="text-lg font-semibold mb-4">
-          Management Shortcuts
+          Lối tắt quản lý
         </h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <ActionCard
-            title="Manage Vehicles"
+            title="Quản lý phương tiện"
             onClick={() => navigate('/manager/vehicles')}
           />
           <ActionCard
-            title="Manage Rescue Teams"
+            title="Quản lý đội cứu hộ"
             onClick={() => navigate('/manager/rescue-teams')}
           />
           <ActionCard
-            title="Manage Supplies"
+            title="Quản lý vật tư"
             onClick={() => navigate('/manager/supplies')}
           />
         </div>
@@ -76,8 +76,9 @@ function ActionCard({ title, onClick }) {
     >
       <h3 className="font-semibold">{title}</h3>
       <p className="text-sm text-gray-500 mt-1">
-        Access module →
+        Truy cập chức năng →
       </p>
     </div>
   )
 }
+  
