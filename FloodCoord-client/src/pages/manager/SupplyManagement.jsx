@@ -1,6 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { supplyApi } from '../../services/supplyApi';
 import { useNavigate } from 'react-router-dom';
+import { Package, Plus, ArrowLeft, AlertCircle, Clock, Apple, Pill } from 'lucide-react';
+import StatCard from '../../components/manager/StatCard';
+import EmptyState from '../../components/manager/EmptyState';
+import SupplyCard from '../../components/manager/SupplyCard';
+import SupplyFormModal from '../../components/manager/SupplyFormModal';
 
 export default function SupplyManagement() {
     const navigate = useNavigate();
@@ -124,31 +129,6 @@ export default function SupplyManagement() {
         setShowModal(true);
     };
 
-    const getTypeColor = (type) => {
-        const colors = {
-            FOOD_WATER: 'bg-green-100 text-green-800',
-            MEDICAL: 'bg-red-100 text-red-800',
-            EQUIPMENT: 'bg-blue-100 text-blue-800',
-            OTHER: 'bg-gray-100 text-gray-800'
-        };
-        return colors[type] || 'bg-gray-100 text-gray-800';
-    };
-
-    const getTypeLabel = (type) => {
-        const found = supplyTypes.find(t => t.value === type);
-        return found ? found.label : type;
-    };
-
-    const getTypeIcon = (type) => {
-        const icons = {
-            FOOD_WATER: '🍱',
-            MEDICAL: '💊',
-            EQUIPMENT: '🔦',
-            OTHER: '📦'
-        };
-        return icons[type] || '📦';
-    };
-
     const formatDate = (dateString) => {
         if (!dateString) return 'Không có';
         const date = new Date(dateString);
@@ -174,307 +154,106 @@ export default function SupplyManagement() {
         return new Date(expiryDate) < new Date();
     };
 
+    // Tính toán thống kê nhanh
+    const stats = useMemo(() => {
+        return {
+            total: supplies.length,
+            foodWater: supplies.filter(s => s.type === 'FOOD_WATER').length,
+            medical: supplies.filter(s => s.type === 'MEDICAL').length,
+            expiringSoon: supplies.filter(s => isExpiringSoon(s.expiryDate)).length
+        };
+    }, [supplies]);
+
+    const handleCloseModal = () => {
+        setShowModal(false);
+        resetForm();
+    };
+
     return (
-        <div className="min-h-screen bg-gray-100 p-8">
-            <div className="max-w-7xl mx-auto">
-                {/* Header */}
-                <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-                    <div className="flex justify-between items-center">
-                        <div>
-                            <h1 className="text-3xl font-bold text-gray-900">Quản lý Vật tư</h1>
-                            <p className="text-gray-600 mt-1">Quản lý tồn kho và vật tư cứu trợ</p>
-                        </div>
-                        <div className="flex gap-3">
-                            <button
-                                onClick={() => navigate('/manager/dashboard')}
-                                className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition"
-                            >
-                                ← Quay lại
-                            </button>
-                            <button
-                                onClick={openCreateModal}
-                                className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
-                            >
-                                + Thêm vật tư
-                            </button>
-                        </div>
+        // Background chính với màu xám nhẹ pha chút xanh lá (Green hint)
+        <div className="min-h-screen bg-slate-50 relative overflow-hidden font-sans text-slate-800">
+            {/* Background Decoration (Blobs) */}
+            <div className="absolute top-0 left-0 w-96 h-96 bg-green-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 -translate-x-1/2 -translate-y-1/2"></div>
+            <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-100 rounded-full mix-blend-multiply filter blur-3xl opacity-30 translate-x-1/3 -translate-y-1/2"></div>
+
+            <div className="max-w-7xl mx-auto px-6 py-8 relative z-10">
+                
+                {/* 1. Header Area with Glassmorphism */}
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+                    <div>
+                        <h1 className="text-3xl font-extrabold text-[#059669] tracking-tight">Quản lý Vật tư</h1>
+                        <p className="text-slate-500 mt-1 flex items-center gap-2">
+                            <span className="inline-block w-2 h-2 bg-emerald-500 rounded-full"></span>
+                            Quản lý tồn kho và vật tư cứu trợ
+                        </p>
+                    </div>
+                    <div className="flex gap-3">
+                        <button 
+                            onClick={() => navigate('/manager/dashboard')}
+                            className="px-5 py-2.5 rounded-xl bg-white/50 border border-white/60 text-slate-600 hover:bg-white hover:shadow-lg backdrop-blur-sm transition-all duration-300 flex items-center gap-2 font-medium"
+                        >
+                            <ArrowLeft size={18} /> Quay lại
+                        </button>
+                        <button 
+                            onClick={openCreateModal}
+                            className="px-5 py-2.5 rounded-xl bg-[#059669] text-white shadow-lg shadow-emerald-900/20 hover:bg-emerald-700 hover:scale-105 hover:shadow-emerald-900/30 transition-all duration-300 flex items-center gap-2 font-medium"
+                        >
+                            <Plus size={18} /> Thêm vật tư
+                        </button>
                     </div>
                 </div>
 
-                {/* Statistics */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                    <div className="bg-white rounded-lg shadow p-4">
-                        <p className="text-gray-600 text-sm">Tổng vật tư</p>
-                        <p className="text-2xl font-bold text-blue-600">{supplies.length}</p>
-                    </div>
-                    <div className="bg-white rounded-lg shadow p-4">
-                        <p className="text-gray-600 text-sm">Đồ ăn & Nước</p>
-                        <p className="text-2xl font-bold text-green-600">
-                            {supplies.filter(s => s.type === 'FOOD_WATER').length}
-                        </p>
-                    </div>
-                    <div className="bg-white rounded-lg shadow p-4">
-                        <p className="text-gray-600 text-sm">Y tế</p>
-                        <p className="text-2xl font-bold text-red-600">
-                            {supplies.filter(s => s.type === 'MEDICAL').length}
-                        </p>
-                    </div>
-                    <div className="bg-white rounded-lg shadow p-4">
-                        <p className="text-gray-600 text-sm">Sắp hết hạn</p>
-                        <p className="text-2xl font-bold text-yellow-600">
-                            {supplies.filter(s => isExpiringSoon(s.expiryDate)).length}
-                        </p>
-                    </div>
+                {/* 2. Quick Stats Area (Thống kê nhanh) */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
+                    <StatCard label="Tổng vật tư" count={stats.total} icon={Package} color="text-slate-600" />
+                    <StatCard label="Đồ ăn & Nước" count={stats.foodWater} icon={Apple} color="text-green-600" />
+                    <StatCard label="Y tế" count={stats.medical} icon={Pill} color="text-red-600" />
+                    <StatCard label="Sắp hết hạn" count={stats.expiringSoon} icon={Clock} color="text-yellow-500" />
                 </div>
 
-                {/* Error Message */}
+                {/* 3. Main Content Area */}
                 {error && (
-                    <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-                        {error}
+                    <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-100 text-red-700 flex items-center gap-3">
+                        <AlertCircle size={20} /> {error}
                     </div>
                 )}
 
-                {/* Supplies Grid */}
                 {loading ? (
-                    <div className="text-center py-12">
-                        <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-green-500"></div>
-                        <p className="mt-4 text-gray-600">Đang tải...</p>
+                    <div className="flex justify-center items-center h-64">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#059669]"></div>
                     </div>
+                ) : supplies.length === 0 ? (
+                    <EmptyState 
+                        onAdd={openCreateModal}
+                        icon={Package}
+                        title="Chưa có vật tư nào"
+                        description="Hệ thống chưa ghi nhận vật tư cứu trợ nào. Hãy thêm vật tư để bắt đầu quản lý kho."
+                        buttonText="+ Thêm vật tư đầu tiên"
+                    />
                 ) : (
+                    // Grid Card với thiết kế hiện đại
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {supplies.map(supply => (
-                            <div key={supply.id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition p-6">
-                                <div className="flex justify-between items-start mb-4">
-                                    <div className="flex items-center gap-3">
-                                        <span className="text-4xl">{getTypeIcon(supply.type)}</span>
-                                        <div>
-                                            <h3 className="text-xl font-bold text-gray-900">{supply.name}</h3>
-                                            <span className={`inline-block mt-1 px-2 py-1 rounded-full text-xs font-semibold ${getTypeColor(supply.type)}`}>
-                                                {getTypeLabel(supply.type)}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-2 mb-4">
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-gray-600">Số lượng:</span>
-                                        <span className="font-bold text-lg text-blue-600">
-                                            {supply.quantity} {supply.unit}
-                                        </span>
-                                    </div>
-
-                                    {supply.description && (
-                                        <div>
-                                            <p className="text-gray-600 text-sm">Ghi chú:</p>
-                                            <p className="text-sm">{supply.description}</p>
-                                        </div>
-                                    )}
-
-                                    <div className="border-t pt-2 mt-2">
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-gray-600">Nhập kho:</span>
-                                            <span className="font-semibold">{formatDate(supply.importedDate)}</span>
-                                        </div>
-                                        <div className="flex justify-between text-sm mt-1">
-                                            <span className="text-gray-600">Hạn sử dụng:</span>
-                                            <span className={`font-semibold ${
-                                                isExpired(supply.expiryDate) ? 'text-red-600' :
-                                                isExpiringSoon(supply.expiryDate) ? 'text-yellow-600' :
-                                                'text-gray-900'
-                                            }`}>
-                                                {formatDate(supply.expiryDate)}
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    {/* Warning badges */}
-                                    {isExpired(supply.expiryDate) && (
-                                        <div className="bg-red-100 border border-red-400 text-red-700 px-3 py-1 rounded text-xs">
-                                            ⚠️ Đã hết hạn
-                                        </div>
-                                    )}
-                                    {isExpiringSoon(supply.expiryDate) && !isExpired(supply.expiryDate) && (
-                                        <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-3 py-1 rounded text-xs">
-                                            ⏰ Sắp hết hạn
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="flex gap-2">
-                                    <button
-                                        onClick={() => handleEdit(supply)}
-                                        className="flex-1 px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition"
-                                    >
-                                        Sửa
-                                    </button>
-                                    <button
-                                        onClick={() => handleDelete(supply.id)}
-                                        className="flex-1 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition"
-                                    >
-                                        Xóa
-                                    </button>
-                                </div>
-                            </div>
+                            <SupplyCard
+                                key={supply.id}
+                                supply={supply}
+                                onEdit={handleEdit}
+                                onDelete={handleDelete}
+                            />
                         ))}
-                    </div>
-                )}
-
-                {!loading && supplies.length === 0 && (
-                    <div className="text-center py-12 bg-white rounded-lg">
-                        <p className="text-gray-500 text-lg">Chưa có vật tư nào</p>
-                        <button
-                            onClick={openCreateModal}
-                            className="mt-4 px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
-                        >
-                            Thêm vật tư đầu tiên
-                        </button>
                     </div>
                 )}
             </div>
 
             {/* Modal */}
-            {showModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
-                    <div className="bg-white rounded-lg p-8 max-w-2xl w-full mx-4 my-8">
-                        <h2 className="text-2xl font-bold mb-6">
-                            {editingSupply ? 'Cập nhật vật tư' : 'Thêm vật tư mới'}
-                        </h2>
-                        
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-gray-700 font-semibold mb-2">
-                                        Tên vật tư *
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="name"
-                                        value={formData.name}
-                                        onChange={handleInputChange}
-                                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                                        placeholder="VD: Mì tôm Hảo Hảo"
-                                        required
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-gray-700 font-semibold mb-2">
-                                        Loại vật tư *
-                                    </label>
-                                    <select
-                                        name="type"
-                                        value={formData.type}
-                                        onChange={handleInputChange}
-                                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                                        required
-                                    >
-                                        {supplyTypes.map(type => (
-                                            <option key={type.value} value={type.value}>
-                                                {type.label}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-gray-700 font-semibold mb-2">
-                                        Số lượng *
-                                    </label>
-                                    <input
-                                        type="number"
-                                        name="quantity"
-                                        value={formData.quantity}
-                                        onChange={handleInputChange}
-                                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                                        placeholder="VD: 100"
-                                        min="0"
-                                        required
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-gray-700 font-semibold mb-2">
-                                        Đơn vị *
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="unit"
-                                        value={formData.unit}
-                                        onChange={handleInputChange}
-                                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                                        placeholder="VD: Thùng, Hộp, Cái..."
-                                        required
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-gray-700 font-semibold mb-2">
-                                    Mô tả / Ghi chú
-                                </label>
-                                <textarea
-                                    name="description"
-                                    value={formData.description}
-                                    onChange={handleInputChange}
-                                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                                    placeholder="VD: Lô 1 - Ưu tiên xuất trước"
-                                    rows="2"
-                                />
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-gray-700 font-semibold mb-2">
-                                        Ngày nhập kho
-                                    </label>
-                                    <input
-                                        type="datetime-local"
-                                        name="importedDate"
-                                        value={formData.importedDate}
-                                        onChange={handleInputChange}
-                                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-gray-700 font-semibold mb-2">
-                                        Hạn sử dụng
-                                    </label>
-                                    <input
-                                        type="datetime-local"
-                                        name="expiryDate"
-                                        value={formData.expiryDate}
-                                        onChange={handleInputChange}
-                                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="flex gap-3 pt-4">
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setShowModal(false);
-                                        resetForm();
-                                    }}
-                                    className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition"
-                                >
-                                    Hủy
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
-                                >
-                                    {editingSupply ? 'Cập nhật' : 'Thêm mới'}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
+            <SupplyFormModal
+                showModal={showModal}
+                editingSupply={editingSupply}
+                formData={formData}
+                onInputChange={handleInputChange}
+                onSubmit={handleSubmit}
+                onClose={handleCloseModal}
+            />
         </div>
     );
 }

@@ -142,7 +142,7 @@ export default function VehicleManagement() {
                 {/* 1. Header Area with Glassmorphism */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                     <div>
-                        <h1 className="text-3xl font-extrabold text-[#1e40af] tracking-tight">Đội Cứu Trợ Lũ Lụt</h1>
+                        <h1 className="text-3xl font-extrabold text-[#1e40af] tracking-tight">Quản lý phương tiện</h1>
                         <p className="text-slate-500 mt-1 flex items-center gap-2">
                             <span className="inline-block w-2 h-2 bg-orange-500 rounded-full"></span>
                             Quản lý điều phối phương tiện thời gian thực
