@@ -1,55 +1,67 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { Users, UserCog, Settings, BarChart3, Shield, Activity, CheckCircle } from 'lucide-react';
 
 export default function AdminDashboard() {
     const navigate = useNavigate();
-    const { user, logout } = useAuth();
 
-    const handleLogout = () => {
-        logout();
-        navigate('/login');
-    };
+    const menuItems = [
+        {
+            title: 'Quản lý Đội Cứu Hộ',
+            description: 'Quản lý đội ngũ và thành viên cứu hộ',
+            icon: Users,
+            color: 'blue',
+            path: '/admin/rescue-teams',
+            gradient: 'from-blue-500 to-blue-600'
+        }
+       
+    ];
 
     return (
-        <div className="min-h-screen bg-gray-100 p-8">
-            <div className="max-w-4xl mx-auto">
-                <div className="bg-white rounded-lg shadow-md p-8">
-                    <div className="flex justify-between items-start mb-8">
-                        <div>
-                            <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-                            <p className="text-gray-600 mt-2">Welcome, {user?.email}!</p>
-                        </div>
-                        <button
-                            onClick={handleLogout}
-                            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-                        >
-                            Logout
-                        </button>
-                    </div>
+        <div className="min-h-screen bg-slate-50 relative overflow-hidden">
+            {/* Background Decoration */}
+            <div className="absolute top-0 left-0 w-96 h-96 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 -translate-x-1/2 -translate-y-1/2"></div>
+            <div className="absolute top-0 right-0 w-96 h-96 bg-purple-100 rounded-full mix-blend-multiply filter blur-3xl opacity-30 translate-x-1/3 -translate-y-1/2"></div>
 
-                    <div className="grid grid-cols-2 gap-6">
-                        <div className="bg-blue-50 p-6 rounded-lg border border-blue-200">
-                            <h3 className="text-lg font-semibold text-blue-900">Team Management</h3>
-                            <p className="text-blue-700 mt-2">Manage rescue teams and their assignments</p>
-                        </div>
-
-                        <div className="bg-purple-50 p-6 rounded-lg border border-purple-200">
-                            <h3 className="text-lg font-semibold text-purple-900">User Management</h3>
-                            <p className="text-purple-700 mt-2">Manage users and their roles</p>
-                        </div>
-
-                        <div className="bg-green-50 p-6 rounded-lg border border-green-200">
-                            <h3 className="text-lg font-semibold text-green-900">System Settings</h3>
-                            <p className="text-green-700 mt-2">Configure system settings and preferences</p>
-                        </div>
-
-                        <div className="bg-orange-50 p-6 rounded-lg border border-orange-200">
-                            <h3 className="text-lg font-semibold text-orange-900">Reports</h3>
-                            <p className="text-orange-700 mt-2">View system reports and analytics</p>
-                        </div>
-                    </div>
+            <div className="max-w-7xl mx-auto px-6 py-8 relative z-10">
+                {/* Header */}
+                <div className="mb-8">
+                    <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">Tổng quan hệ thống</h1>
+                    <p className="text-slate-500 mt-1">Quản lý và giám sát toàn bộ hệ thống cứu hộ</p>
                 </div>
+
+                {/* Menu Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {menuItems.map((item, index) => (
+                        <button
+                            key={index}
+                            onClick={() => item.path && navigate(item.path)}
+                            className="group bg-white/70 backdrop-blur-xl border border-white/50 rounded-2xl p-8 shadow-sm hover:shadow-xl transition-all duration-300 text-left relative overflow-hidden hover:scale-[1.02]"
+                        >
+                            {/* Decorative gradient blob */}
+                            <div className={`absolute -right-6 -top-6 w-32 h-32 bg-gradient-to-br ${item.gradient} rounded-full opacity-10 group-hover:scale-150 transition-transform duration-500`} />
+                            
+                            <div className="relative z-10">
+                                <div className={`w-14 h-14 bg-gradient-to-br ${item.gradient} rounded-xl flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                                    <item.icon size={28} className="text-white" strokeWidth={2} />
+                                </div>
+                                <h3 className="text-xl font-bold text-slate-800 mb-2 group-hover:text-blue-600 transition-colors">
+                                    {item.title}
+                                </h3>
+                                <p className="text-slate-600 text-sm">
+                                    {item.description}
+                                </p>
+                                {item.path && (
+                                    <div className="mt-4 flex items-center gap-2 text-sm font-semibold text-blue-600">
+                                        Truy cập →
+                                    </div>
+                                )}
+                            </div>
+                        </button>
+                    ))}
+                </div>
+
+               
             </div>
         </div>
     );

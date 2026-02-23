@@ -5,6 +5,7 @@ import { Routes, Route } from 'react-router-dom'
 import MainLayout from '../layouts/MainLayout'
 import CoordinatorLayout from '../layouts/CoordinatorLayout'
 import ManagerLayout from '../layouts/ManagerLayout'
+import AdminLayout from '../layouts/AdminLayout'
 
 /* Public pages */
 import HomePage from '../pages/HomePage'
@@ -20,6 +21,7 @@ import RoleBasedRoute from './RoleBasedRoute'
 
 /* Admin */
 import AdminDashboard from '../pages/admin/AdminDashboard'
+import AdminRescueTeamManagement from '../pages/admin/RescueTeamManagement'
 
 /* Manager */
 import ManagerDashboard from '../pages/manager/ManagerDashboard'
@@ -50,15 +52,19 @@ export default function AppRoutes() {
         <Route path="/track-rescue" element={<TrackRescuePage />} />
       </Route>
 
-      {/* ================= ADMIN ================= */}
+      {/* ================= ADMIN (WITH SIDEBAR) ================= */}
       <Route
-        path="/admin/dashboard"
+        path="/admin"
         element={
           <RoleBasedRoute allowedRoles={['ADMIN']}>
-            <AdminDashboard />
+            <AdminLayout />
           </RoleBasedRoute>
         }
-      />
+      >
+        <Route path="" element={<AdminDashboard />} />
+        <Route path="dashboard" element={<AdminDashboard />} />
+        <Route path="rescue-teams" element={<AdminRescueTeamManagement />} />
+      </Route>
 
       {/* ================= MANAGER (WITH SIDEBAR) ================= */}
       <Route
