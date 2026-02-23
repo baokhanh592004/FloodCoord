@@ -28,8 +28,9 @@ public class RescueRequestController {
      * CITIZEN tạo yêu cầu cứu hộ
      */
     @PostMapping
+    @Operation(summary = "Create rescue request with images")
     public ResponseEntity<?> createRescueRequest(
-            @RequestBody CreateRescueRequestDTO dto,
+            @ModelAttribute CreateRescueRequestDTO dto,
             @AuthenticationPrincipal User currentUser
     ) {
         if (currentUser != null) {
