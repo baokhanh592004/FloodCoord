@@ -11,7 +11,9 @@ import com.team6.floodcoord.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -29,6 +31,8 @@ public class RescueRequestServiceImpl implements RescueRequestService {
     private final VehicleRepository vehicleRepo;
     private final SupplyRepository supplyRepo;
     private final RequestSupplyRepository requestSupplyRepo;
+    private final CloudinaryService cloudinaryService;
+
 
     @Override
     public CreateRequestResponse createRescueRequest(CreateRescueRequestDTO dto, User currentUser) {
@@ -90,13 +94,23 @@ public class RescueRequestServiceImpl implements RescueRequestService {
         }
 
         // 6. Lưu Media (Hình ảnh/Video)
-        if (dto.getMediaUrls() != null && !dto.getMediaUrls().isEmpty()) {
-            for (MediaDTO m : dto.getMediaUrls()) {
+        if (dto.getFiles() != null && dto.getFiles().length > 0) {
+
+            for (MultipartFile file : dto.getFiles()) {
+
+                String imageUrl = null;
+                try {
+                    imageUrl = cloudinaryService.uploadMedia(file);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+
                 RequestMedia media = new RequestMedia();
                 media.setRequest(request);
-                media.setMediaType(m.getMediaType());
-                media.setMediaUrl(m.getMediaUrl());
+                media.setMediaType("IMAGE");
+                media.setMediaUrl(imageUrl);
                 media.setUploadedAt(LocalDateTime.now());
+
                 mediaRepo.save(media);
             }
         }

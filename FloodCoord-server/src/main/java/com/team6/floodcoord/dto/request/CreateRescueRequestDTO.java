@@ -3,6 +3,9 @@ package com.team6.floodcoord.dto.request;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import lombok.Data;
+import org.springframework.web.multipart.MultipartFile;
+import io.swagger.v3.oas.annotations.media.Schema;
+
 
 import java.util.List;
 
@@ -22,6 +25,7 @@ public class CreateRescueRequestDTO {
             message = "Số điện thoại không hợp lệ")
     private String contactPhone;
     private LocationDTO location;
-    private List<MediaDTO> mediaUrls;
+    @Schema(type = "string", format = "binary")
+    private MultipartFile[] files;
 }
 
