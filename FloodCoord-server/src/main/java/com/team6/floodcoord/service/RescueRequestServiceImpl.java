@@ -100,7 +100,7 @@ public class RescueRequestServiceImpl implements RescueRequestService {
 
                 String imageUrl = null;
                 try {
-                    imageUrl = cloudinaryService.uploadImage(file);
+                    imageUrl = cloudinaryService.uploadMedia(file);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
