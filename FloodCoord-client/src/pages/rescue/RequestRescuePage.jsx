@@ -88,21 +88,29 @@ const RequestRescuePage = () => {
     };
 
     const handleFileChange = (e) => {
-        const files = Array.from(e.target.files);
-        const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'video/mp4', 'video/avi', 'video/mov'];
-        const maxSize = 10 * 1024 * 1024; // 10MB
+    const files = Array.from(e.target.files);
 
-        const validFiles = files.filter(file => {
-            if (!validTypes.includes(file.type)) {
-                alert(`File ${file.name} không hợp lệ. Chỉ chấp nhận ảnh (JPG, PNG) và video (MP4, AVI, MOV)`);
-                return false;
-            }
-            if (file.size > maxSize) {
-                alert(`File ${file.name} quá lớn. Kích thước tối đa là 10MB`);
-                return false;
-            }
-            return true;
-        });
+    const validFiles = files.filter(file => {
+        const isImage = file.type.startsWith("image/");
+        const isVideo = file.type.startsWith("video/");
+
+        if (!isImage && !isVideo) {
+            alert(`File ${file.name} không hợp lệ.`);
+            return false;
+        }
+
+        if (isImage && file.size > 5 * 1024 * 1024) {
+            alert(`Ảnh ${file.name} phải <= 5MB`);
+            return false;
+        }
+
+        if (isVideo && file.size > 25 * 1024 * 1024) {
+            alert(`Video ${file.name} phải <= 25MB`);
+            return false;
+        }
+
+        return true;
+    });
 
         setSelectedFiles(prev => [...prev, ...validFiles]);
     };
@@ -111,62 +119,49 @@ const RequestRescuePage = () => {
         setSelectedFiles(prev => prev.filter((_, i) => i !== index));
     };
 
-    const uploadToCloudinary = async (file) => {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('upload_preset', 'floodcoord'); // Thay bằng upload preset của bạn
-        
-        const resourceType = file.type.startsWith('video/') ? 'video' : 'image';
-        const cloudName = 'YOUR_CLOUD_NAME'; // Thay bằng cloud name của bạn
-        
-        try {
-            const response = await fetch(
-                `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`,
-                {
-                    method: 'POST',
-                    body: formData
-                }
-            );
-            const data = await response.json();
-            return {
-                mediaType: resourceType.toUpperCase(),
-                mediaUrl: data.secure_url
-            };
-        } catch (error) {
-            console.error('Upload failed:', error);
-            throw error;
-        }
-    };
+    
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        setUploadProgress(true);
-        
-        try {
-            // Upload files nếu có
-            let uploadedMedia = [];
-            if (selectedFiles.length > 0) {
-                uploadedMedia = await Promise.all(
-                    selectedFiles.map(file => uploadToCloudinary(file))
-                );
-            }
+   const handleSubmit = async (e) => {
+    e.preventDefault();
 
-            // Gửi request với media URLs
-            const requestData = {
-                ...formData,
-                media: uploadedMedia
-            };
-            
-            const response = await rescueApi.requestRescue(requestData);
-            setSuccessData(response);
-        } catch (error) {
-            alert("Lỗi: " + (error.response?.data?.message || error.message));
-        } finally {
-            setLoading(false);
-            setUploadProgress(false);
-        }
-    };
+    if (selectedFiles.length === 0) {
+        if (!window.confirm("Bạn chưa đính kèm bằng chứng. Vẫn gửi?")) return;
+    }
+
+    setLoading(true);
+    setUploadProgress(true);
+
+    try {
+        const form = new FormData();
+
+        form.append("title", formData.title);
+        form.append("description", formData.description);
+        form.append("emergencyLevel", formData.emergencyLevel);
+        form.append("peopleCount", formData.peopleCount);
+        form.append("contactName", formData.contactName);
+        form.append("contactPhone", formData.contactPhone);
+
+        form.append("location.latitude", formData.location.latitude);
+        form.append("location.longitude", formData.location.longitude);
+        form.append("location.addressText", formData.location.addressText);
+        form.append("location.floodDepth", formData.location.floodDepth);
+
+        selectedFiles.forEach(file => {
+            form.append("files", file);
+        });
+
+        const response = await rescueApi.requestRescue(form);
+
+        setSuccessData(response.data || response);
+
+    } catch (error) {
+        console.error(error);
+        alert(error.response?.data?.message || "Upload thất bại");
+    } finally {
+        setLoading(false);
+        setUploadProgress(false);
+    }
+};
 
     return (
         <>
