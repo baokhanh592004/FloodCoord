@@ -1,5 +1,5 @@
 import React from 'react';
-import { Edit, Trash2, Apple, Pill, Wrench, Box, Package } from 'lucide-react';
+import { Edit, Trash2, Apple, Pill, Wrench, Box, Package, Calendar, AlertTriangle, CheckCircle, TruckIcon } from 'lucide-react';
 
 export default function SupplyCard({ supply, onEdit, onDelete }) {
     const getTypeIconComponent = (type) => {
@@ -109,9 +109,12 @@ export default function SupplyCard({ supply, onEdit, onDelete }) {
             </div>
 
             <div className="mb-4 relative z-10">
-                <h3 className="text-xl font-bold text-slate-800 mb-1 group-hover:text-[#059669] transition-colors">
-                    {supply.name}
-                </h3>
+                <div className="flex items-start justify-between mb-2">
+                    <h3 className="text-xl font-bold text-slate-800 group-hover:text-[#059669] transition-colors">
+                        {supply.name}
+                    </h3>
+                    <span className="text-xs text-slate-400 font-mono">Lô #{supply.id}</span>
+                </div>
                 <span className={`inline-block px-2 py-1 rounded-full text-xs font-semibold ${getTypeColor(supply.type)}`}>
                     {getTypeLabel(supply.type)}
                 </span>
@@ -127,19 +130,32 @@ export default function SupplyCard({ supply, onEdit, onDelete }) {
                 
                 {supply.description && (
                     <div className="text-sm py-2 border-b border-slate-100/50">
-                        <span className="text-slate-500 block mb-1">Ghi chú</span>
-                        <span className="text-slate-700">{supply.description}</span>
+                        <span className="text-slate-500 block mb-1">Ghi chú lô</span>
+                        <span className="text-slate-700 italic">{supply.description}</span>
                     </div>
                 )}
 
-                <div className="flex justify-between text-sm items-center">
-                    <span className="text-slate-500">Nhập kho</span>
+                <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-500 flex items-center gap-1">
+                        <Calendar size={14} className="text-blue-500" />
+                        Nhập kho
+                    </span>
                     <span className="font-semibold text-slate-700 text-xs">
                         {formatDate(supply.importedDate)}
                     </span>
                 </div>
-                <div className="flex justify-between text-sm items-center">
-                    <span className="text-slate-500">Hạn dùng</span>
+                
+                <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-500 flex items-center gap-1">
+                        {isExpired(supply.expiryDate) ? (
+                            <AlertTriangle size={14} className="text-red-500" />
+                        ) : isExpiringSoon(supply.expiryDate) ? (
+                            <AlertTriangle size={14} className="text-yellow-500" />
+                        ) : (
+                            <CheckCircle size={14} className="text-green-500" />
+                        )}
+                        Hạn dùng
+                    </span>
                     <span className={`font-semibold text-xs ${
                         isExpired(supply.expiryDate) ? 'text-red-600' :
                         isExpiringSoon(supply.expiryDate) ? 'text-yellow-600' :
@@ -148,11 +164,30 @@ export default function SupplyCard({ supply, onEdit, onDelete }) {
                         {formatDate(supply.expiryDate)}
                     </span>
                 </div>
+
+                {/* Export Date */}
+                {supply.exportedDate && (
+                    <div className="flex items-center justify-between text-sm bg-blue-50 px-3 py-2 rounded-lg">
+                        <span className="text-blue-700 flex items-center gap-1 font-semibold">
+                            <TruckIcon size={14} />
+                            Đã xuất kho
+                        </span>
+                        <span className="font-semibold text-blue-700 text-xs">
+                            {formatDate(supply.exportedDate)}
+                        </span>
+                    </div>
+                )}
             </div>
 
             <div className="flex items-center justify-between mt-auto relative z-10">
                 {getStatusBadge()}
-                <span className="text-xs text-slate-400">ID: #{supply.id}</span>
+                <button
+                    onClick={() => onEdit(supply)}
+                    className="text-xs text-blue-600 hover:text-blue-800 font-semibold hover:underline"
+                    title="Cập nhật lô hàng"
+                >
+                    Cập nhật →
+                </button>
             </div>
         </div>
     );

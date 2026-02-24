@@ -24,7 +24,7 @@ export default function VehicleManagement() {
     });
 
     const vehicleTypes = ['BOAT', 'TRUCK', 'HELICOPTER', 'AMBULANCE', 'RESCUE_VAN'];
-    const vehicleStatuses = ['AVAILABLE', 'IN_USE', 'MAINTENANCE', 'BROKEN'];
+    const vehicleStatuses = ['AVAILABLE', 'IN_USE', 'MAINTENANCE', 'UNAVAILABLE'];
 
     // --- Giữ nguyên Logic Fetch/CRUD ---
     useEffect(() => {
@@ -38,13 +38,8 @@ export default function VehicleManagement() {
             setVehicles(data);
             setError('');
         } catch (err) {
-            setError('Không thể tải danh sách phương tiện');
-            // Mock data để bạn xem trước giao diện nếu API lỗi
-            setVehicles([
-                { id: 1, name: 'Cano Cao Tốc ST-01', type: 'BOAT', licensePlate: 'QN-1234', capacity: 12, status: 'AVAILABLE' },
-                { id: 2, name: 'Xe Tải Cứu Trợ', type: 'TRUCK', licensePlate: '29C-56789', capacity: 3, status: 'IN_USE' },
-                { id: 3, name: 'Trực Thăng Cứu Hộ', type: 'HELICOPTER', licensePlate: 'VN-8888', capacity: 6, status: 'MAINTENANCE' },
-            ]); 
+            setError('Không thể tải danh sách phương tiện. Vui lòng kiểm tra kết nối với server.');
+            console.error('Fetch vehicles error:', err);
         } finally {
             setLoading(false);
         }
@@ -57,10 +52,34 @@ export default function VehicleManagement() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        // ... (Logic submit giữ nguyên)
-        // Mock success visual
-        setShowModal(false);
-        resetForm();
+        try {
+            const dataToSubmit = {
+                name: formData.name,
+                type: formData.type,
+                licensePlate: formData.licensePlate,
+                capacity: parseInt(formData.capacity),
+                status: formData.status
+            };
+
+            if (editingVehicle) {
+                await vehicleApi.updateVehicle(editingVehicle.id, dataToSubmit);
+            } else {
+                await vehicleApi.createVehicle(dataToSubmit);
+            }
+            
+            await fetchVehicles();
+            setShowModal(false);
+            resetForm();
+            setError('');
+        } catch (err) {
+            // Xử lý lỗi validation từ backend
+            if (err.response?.status === 400 || err.response?.status === 500) {
+                const errorMsg = err.response?.data?.message || err.response?.data?.error || 'Có lỗi xảy ra';
+                setError(errorMsg);
+            } else {
+                setError('Không thể lưu thông tin phương tiện');
+            }
+        }
     };
 
     const handleEdit = (vehicle) => {
@@ -76,7 +95,18 @@ export default function VehicleManagement() {
     };
 
     const handleDelete = async (vehicleId) => {
-        // ... (Logic delete giữ nguyên)
+        if (!window.confirm('Bạn có chắc chắn muốn xóa phương tiện này?')) {
+            return;
+        }
+
+        try {
+            await vehicleApi.deleteVehicle(vehicleId);
+            await fetchVehicles();
+            setError('');
+        } catch (err) {
+            const errorMsg = err.response?.data?.message || 'Không thể xóa phương tiện';
+            setError(errorMsg);
+        }
     };
 
     const resetForm = () => {
@@ -97,7 +127,7 @@ export default function VehicleManagement() {
             total: vehicles.length,
             available: vehicles.filter(v => v.status === 'AVAILABLE').length,
             inUse: vehicles.filter(v => v.status === 'IN_USE').length,
-            maintenance: vehicles.filter(v => ['MAINTENANCE', 'BROKEN'].includes(v.status)).length
+            maintenance: vehicles.filter(v => ['MAINTENANCE', 'UNAVAILABLE'].includes(v.status)).length
         };
     }, [vehicles]);
 
@@ -118,7 +148,7 @@ export default function VehicleManagement() {
             AVAILABLE: { color: 'bg-emerald-100 text-emerald-700', dot: 'bg-emerald-500', label: 'Sẵn sàng' },
             IN_USE: { color: 'bg-blue-100 text-blue-700', dot: 'bg-blue-500', label: 'Đang làm nhiệm vụ' },
             MAINTENANCE: { color: 'bg-orange-100 text-orange-700', dot: 'bg-orange-500', label: 'Bảo trì' },
-            BROKEN: { color: 'bg-red-100 text-red-700', dot: 'bg-red-500', label: 'Hỏng hóc' },
+            UNAVAILABLE: { color: 'bg-red-100 text-red-700', dot: 'bg-red-500', label: 'Không khả dụng' },
         };
         const current = config[status] || config['AVAILABLE'];
 
@@ -248,6 +278,21 @@ export default function VehicleManagement() {
                         </div>
                         
                         <form onSubmit={handleSubmit} className="p-8 space-y-5">
+                            {/* Warning nếu đang edit vehicle IN_USE */}
+                            {editingVehicle && editingVehicle.status === 'IN_USE' && (
+                                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
+                                    <AlertCircle size={20} className="text-amber-600 mt-0.5 flex-shrink-0" />
+                                    <div>
+                                        <p className="text-sm font-semibold text-amber-800">Lưu ý quan trọng</p>
+                                        <p className="text-xs text-amber-700 mt-1">
+                                            Phương tiện này đang <strong>IN_USE</strong> (Đang làm nhiệm vụ). 
+                                            Bạn có thể sửa thông tin cơ bản, nhưng <strong>không thể thay đổi trạng thái</strong> sang MAINTENANCE hoặc UNAVAILABLE. 
+                                            Hãy thu hồi xe về trước khi bảo trì.
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+                            
                             <div className="grid grid-cols-2 gap-5">
                                 <div className="col-span-2">
                                     <label className="block text-sm font-semibold text-slate-700 mb-2">Tên phương tiện</label>
@@ -305,10 +350,14 @@ export default function VehicleManagement() {
                                         name="status"
                                         value={formData.status}
                                         onChange={handleInputChange}
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                        disabled={editingVehicle && editingVehicle.status === 'IN_USE'}
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         {vehicleStatuses.map(s => <option key={s} value={s}>{s}</option>)}
                                     </select>
+                                    {editingVehicle && editingVehicle.status === 'IN_USE' && (
+                                        <p className="text-xs text-amber-600 mt-1">🔒 Bị khóa vì xe đang hoạt động</p>
+                                    )}
                                 </div>
                             </div>
 
