@@ -13,8 +13,15 @@ export default function AdminDashboard() {
             color: 'blue',
             path: '/admin/rescue-teams',
             gradient: 'from-blue-500 to-blue-600'
+        },
+        {
+            title: 'Quản lý Người Dùng',
+            description: 'Quản lý tài khoản và phân quyền hệ thống',
+            icon: UserCog,
+            color: 'purple',
+            path: '/admin/users',
+            gradient: 'from-purple-500 to-purple-600'
         }
-       
     ];
 
     return (
