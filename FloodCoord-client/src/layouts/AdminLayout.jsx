@@ -22,6 +22,7 @@ export default function AdminLayout() {
   const menu = [
     { name: 'Tổng quan', path: '/admin/dashboard', icon: HomeIcon },
     { name: 'Đội cứu hộ', path: '/admin/rescue-teams', icon: UserGroupIcon },
+    { name: 'Người dùng', path: '/admin/users', icon: UsersIcon },
   ]
 
   return (

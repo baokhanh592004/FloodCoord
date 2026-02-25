@@ -22,6 +22,7 @@ import RoleBasedRoute from './RoleBasedRoute'
 /* Admin */
 import AdminDashboard from '../pages/admin/AdminDashboard'
 import AdminRescueTeamManagement from '../pages/admin/RescueTeamManagement'
+import UserManagement from '../pages/admin/UserManagement'
 
 /* Manager */
 import ManagerDashboard from '../pages/manager/ManagerDashboard'
@@ -64,6 +65,7 @@ export default function AppRoutes() {
         <Route path="" element={<AdminDashboard />} />
         <Route path="dashboard" element={<AdminDashboard />} />
         <Route path="rescue-teams" element={<AdminRescueTeamManagement />} />
+        <Route path="users" element={<UserManagement />} />
       </Route>
 
       {/* ================= MANAGER (WITH SIDEBAR) ================= */}
