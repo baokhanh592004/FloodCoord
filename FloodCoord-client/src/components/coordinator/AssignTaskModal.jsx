@@ -133,9 +133,9 @@ export default function AssignTaskModal({ request, isOpen, onClose, onSuccess })
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-gray-200">
                     <div>
-                        <h2 className="text-xl font-semibold text-gray-900">Assign Rescue Team</h2>
+                        <h2 className="text-xl font-semibold text-gray-900">Phân công đội cứu hộ</h2>
                         <p className="text-sm text-gray-500 mt-1">
-                            Dispatch team and resources to rescue location
+                            Gửi đội cứu hộ và hàng cứu trợ tới địa điểm cần cứu hộ
                         </p>
                     </div>
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
@@ -154,24 +154,24 @@ export default function AssignTaskModal({ request, isOpen, onClose, onSuccess })
                             📍 {request.location?.addressText || 'Location not specified'}
                         </p>
                         <p className="text-xs text-blue-700 mt-1">
-                            👥 {request.peopleCount || 0} people need rescue
+                            👥 {request.peopleCount || 0} người cần cứu
                         </p>
                     </div>
 
                     {/* Team Selection */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Rescue Team <span className="text-red-500">*</span>
+                            Đội cứu hộ <span className="text-red-500">*</span>
                         </label>
                         <select
                             value={formData.rescueTeamId}
                             onChange={(e) => setFormData({ ...formData, rescueTeamId: e.target.value })}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500"
                         >
-                            <option value="">Select a team</option>
+                            <option value="">Chọn đội cứu hộ</option>
                             {availableTeams.map((team) => (
                                 <option key={team.id} value={team.id}>
-                                    {team.name} - {team.members?.length || 0} members
+                                    {team.name} - {team.members?.length || 0} thành viên
                                     {team.status === 'BUSY' ? ' (Busy)' : ''}
                                 </option>
                             ))}
@@ -181,17 +181,17 @@ export default function AssignTaskModal({ request, isOpen, onClose, onSuccess })
                     {/* Vehicle Selection */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Vehicle <span className="text-gray-400">(Optional)</span>
+                            Phương tiện <span className="text-gray-400">(Tùy chọn)</span>
                         </label>
                         <select
                             value={formData.vehicleId}
                             onChange={(e) => setFormData({ ...formData, vehicleId: e.target.value })}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500"
                         >
-                            <option value="">No vehicle needed</option>
+                            <option value="">Không cần phương tiện di chuyển</option>
                             {availableVehicles.map((vehicle) => (
                                 <option key={vehicle.id} value={vehicle.id}>
-                                    {vehicle.name} - {vehicle.type} (Capacity: {vehicle.capacity})
+                                    {vehicle.name} - {vehicle.type} (Sức chứa: {vehicle.capacity})
                                 </option>
                             ))}
                         </select>
@@ -200,7 +200,7 @@ export default function AssignTaskModal({ request, isOpen, onClose, onSuccess })
                     {/* Supplies Selection */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Supplies <span className="text-gray-400">(Optional)</span>
+                            Hàng cứu trợ <span className="text-gray-400">(Tùy chọn)</span>
                         </label>
                         <div className="border border-gray-300 rounded-md max-h-48 overflow-y-auto">
                             {supplies.map((supply) => {
@@ -220,7 +220,7 @@ export default function AssignTaskModal({ request, isOpen, onClose, onSuccess })
                                             <div className="flex-1">
                                                 <p className="text-sm font-medium text-gray-900">{supply.name}</p>
                                                 <p className="text-xs text-gray-500">
-                                                    {supply.type} • Available: {supply.quantity} {supply.unit}
+                                                    {supply.type} • Đang có sẵn: {supply.quantity} {supply.unit}
                                                 </p>
                                             </div>
                                         </label>
@@ -252,7 +252,7 @@ export default function AssignTaskModal({ request, isOpen, onClose, onSuccess })
                     {/* Instructions */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Instructions for Team
+                            Hướng dẫn cho đội cứu hộ
                         </label>
                         <textarea
                             rows="3"

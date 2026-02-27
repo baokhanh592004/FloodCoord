@@ -87,7 +87,7 @@ export default function RequestDetailModal({ request, isOpen, onClose, onValidat
                             {displayData.title || 'Rescue Request Details'}
                         </h2>
                         <p className="text-sm text-gray-500 mt-1">
-                            Request ID: {displayData.trackingCode || displayData.requestId}
+                            ID yêu cầu: {displayData.trackingCode || displayData.requestId}
                         </p>
                     </div>
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
@@ -99,14 +99,14 @@ export default function RequestDetailModal({ request, isOpen, onClose, onValidat
                 <div className="p-6 space-y-6">
                     {/* Description */}
                     <div>
-                        <h3 className="text-sm font-semibold text-gray-900 mb-2">Description</h3>
+                        <h3 className="text-sm font-semibold text-gray-900 mb-2">Mô tả</h3>
                         <p className="text-sm text-gray-700">{displayData.description}</p>
                     </div>
 
                     {/* Key Info */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <div className="bg-gray-50 p-3 rounded-lg">
-                            <p className="text-xs text-gray-500">People Count</p>
+                            <p className="text-xs text-gray-500">Số người</p>
                             <p className="text-lg font-semibold text-gray-900">
                                 {displayData.peopleCount || 0}
                             </p>
@@ -118,13 +118,13 @@ export default function RequestDetailModal({ request, isOpen, onClose, onValidat
                             </p>
                         </div>
                         <div className="bg-gray-50 p-3 rounded-lg">
-                            <p className="text-xs text-gray-500">Flood Depth</p>
+                            <p className="text-xs text-gray-500">Độ sâu lũ lụt</p>
                             <p className="text-lg font-semibold text-gray-900">
                                 {location.floodDepth ? `${location.floodDepth}m` : 'N/A'}
                             </p>
                         </div>
                         <div className="bg-gray-50 p-3 rounded-lg">
-                            <p className="text-xs text-gray-500">Contact</p>
+                            <p className="text-xs text-gray-500">Liên hệ</p>
                             <p className="text-sm font-semibold text-gray-900">
                                 {displayData.contactName || displayData.citizenName || 'Unknown'}
                             </p>
@@ -134,7 +134,7 @@ export default function RequestDetailModal({ request, isOpen, onClose, onValidat
                     {/* Contact Info */}
                     {(displayData.contactName || displayData.contactPhone) && (
                         <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
-                            <h3 className="text-sm font-semibold text-blue-900 mb-3">Contact Information</h3>
+                            <h3 className="text-sm font-semibold text-blue-900 mb-3">Thông tin liên hệ</h3>
                             <div className="space-y-2">
                                 {displayData.contactName && (
                                     <div className="flex items-center gap-2 text-sm text-blue-800">
@@ -157,7 +157,7 @@ export default function RequestDetailModal({ request, isOpen, onClose, onValidat
                     {/* Location Map */}
                     {hasLocation && (
                         <div>
-                            <h3 className="text-sm font-semibold text-gray-900 mb-2">Location</h3>
+                            <h3 className="text-sm font-semibold text-gray-900 mb-2">Địa điểm</h3>
                             <div className="flex items-start gap-2 mb-3">
                                 <MapPinIcon className="h-5 w-5 text-gray-400 mt-0.5 flex-shrink-0" />
                                 <p className="text-sm text-gray-700">{location.addressText}</p>
@@ -185,7 +185,7 @@ export default function RequestDetailModal({ request, isOpen, onClose, onValidat
                     {/* Media */}
                     {displayData.media && displayData.media.length > 0 && (
                         <div>
-                            <h3 className="text-sm font-semibold text-gray-900 mb-2">Media Attachments</h3>
+                            <h3 className="text-sm font-semibold text-gray-900 mb-2">Các tệp đính kèm</h3>
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                                 {displayData.media.map((media) => (
                                     <div key={media.mediaId} className="aspect-video bg-gray-100 rounded-lg overflow-hidden">
@@ -207,11 +207,11 @@ export default function RequestDetailModal({ request, isOpen, onClose, onValidat
                     {/* Assigned Team */}
                     {displayData.assignedTeamName && (
                         <div className="bg-green-50 border border-green-200 p-4 rounded-lg">
-                            <h3 className="text-sm font-semibold text-green-900 mb-2">Assigned Team</h3>
+                            <h3 className="text-sm font-semibold text-green-900 mb-2">Đội được phân công</h3>
                             <p className="text-sm text-green-800">{displayData.assignedTeamName}</p>
                             {displayData.coordinatorNote && (
                                 <p className="text-xs text-green-700 mt-2">
-                                    Note: {displayData.coordinatorNote}
+                                    Ghi chú: {displayData.coordinatorNote}
                                 </p>
                             )}
                         </div>
@@ -224,7 +224,7 @@ export default function RequestDetailModal({ request, isOpen, onClose, onValidat
                         onClick={onClose}
                         className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
                     >
-                        Close
+                        Đóng
                     </button>
                     {displayData.status === 'PENDING' && onValidate && (
                         <button
@@ -234,7 +234,7 @@ export default function RequestDetailModal({ request, isOpen, onClose, onValidat
                             }}
                             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
                         >
-                            Validate Request
+                            Xác thực yêu cầu
                         </button>
                     )}
                     {(displayData.status === 'VERIFIED' || displayData.status === 'VALIDATED') && onAssign && (
@@ -245,7 +245,7 @@ export default function RequestDetailModal({ request, isOpen, onClose, onValidat
                             }}
                             className="px-4 py-2 text-sm font-medium text-white bg-teal-600 rounded-md hover:bg-teal-700"
                         >
-                            Assign Team
+                            Phân công đội cứu hộ
                         </button>
                     )}
                 </div>

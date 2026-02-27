@@ -57,7 +57,7 @@ export default function RequestCard({ request, onValidate, onAssign, onViewDetai
                         }}
                         className="flex-1 px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
                     >
-                        Validate
+                        Xác thực
                     </button>
                 )}
                 {(request.status === 'VERIFIED' || request.status === 'VALIDATED') && onAssign && (
@@ -68,7 +68,7 @@ export default function RequestCard({ request, onValidate, onAssign, onViewDetai
                         }}
                         className="flex-1 px-3 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 transition-colors"
                     >
-                        Assign Team
+                        Phân công đội cứu hộ
                     </button>
                 )}
                 {(request.status === 'IN_PROGRESS' || request.status === 'ASSIGNED') && (
@@ -79,7 +79,7 @@ export default function RequestCard({ request, onValidate, onAssign, onViewDetai
                         }}
                         className="flex-1 px-3 py-2 bg-yellow-600 text-white text-sm font-medium rounded-md hover:bg-yellow-700 transition-colors"
                     >
-                        Track
+                        Theo dõi
                     </button>
                 )}
             </div>

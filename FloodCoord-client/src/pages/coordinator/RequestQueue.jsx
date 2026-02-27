@@ -48,8 +48,8 @@ export default function RequestQueue() {
     return (
         <div className="p-6 space-y-6">
             <div>
-                <h1 className="text-2xl font-bold text-gray-900">Request Queue</h1>
-                <p className="text-sm text-gray-600">Review, validate, and manage incoming rescue requests.</p>
+                <h1 className="text-2xl font-bold text-gray-900">Danh sách yêu cầu</h1>
+                <p className="text-sm text-gray-600">Đánh giá, xác thực, và quản lí các yêu cầu giải cứu được gửi đến.</p>
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3">
@@ -68,11 +68,11 @@ export default function RequestQueue() {
                     onChange={(e) => setStatusFilter(e.target.value)}
                     className="px-3 py-2 border border-gray-200 rounded-md text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                 >
-                    <option value="ALL">All Status</option>
-                    <option value="PENDING">Pending</option>
-                    <option value="VERIFIED">Validated</option>
-                    <option value="IN_PROGRESS">In Progress</option>
-                    <option value="COMPLETED">Completed</option>
+                    <option value="ALL">Tất cả trạng thái</option>
+                    <option value="PENDING">Đang chờ duyệt</option>
+                    <option value="VERIFIED">Đã xác thực</option>
+                    <option value="IN_PROGRESS">Đang thực thi</option>
+                    <option value="COMPLETED">Hoàn thành</option>
                 </select>
             </div>
 
@@ -96,10 +96,10 @@ export default function RequestQueue() {
                     />
                 ))}
                 {filteredRequests.length === 0 && !loading && (
-                    <div className="text-sm text-gray-500">No requests found.</div>
+                    <div className="text-sm text-gray-500">Không tìm thấy yêu cầu.</div>
                 )}
                 {loading && (
-                    <div className="text-sm text-gray-500">Loading requests...</div>
+                    <div className="text-sm text-gray-500">Đang tải yêu cầu...</div>
                 )}
             </div>
 

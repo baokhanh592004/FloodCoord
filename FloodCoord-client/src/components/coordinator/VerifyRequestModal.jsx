@@ -48,9 +48,9 @@ export default function VerifyRequestModal({ request, isOpen, onClose, onSuccess
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-gray-200">
                     <div>
-                        <h2 className="text-xl font-semibold text-gray-900">Validate Request</h2>
+                        <h2 className="text-xl font-semibold text-gray-900">Xác Thực Yêu Cầu</h2>
                         <p className="text-sm text-gray-500 mt-1">
-                            Review and approve rescue request
+                            Xem và Duyệt Yêu Cầu
                         </p>
                     </div>
                     <button
@@ -66,24 +66,24 @@ export default function VerifyRequestModal({ request, isOpen, onClose, onSuccess
                     {/* Request Details */}
                     <div className="bg-gray-50 p-4 rounded-lg space-y-3">
                         <div>
-                            <label className="text-xs font-semibold text-gray-500 uppercase">Request ID</label>
+                            <label className="text-xs font-semibold text-gray-500 uppercase">ID yêu cầu</label>
                             <p className="text-sm text-gray-900">{request.trackingCode || request.requestId}</p>
                         </div>
                         <div>
-                            <label className="text-xs font-semibold text-gray-500 uppercase">Title</label>
+                            <label className="text-xs font-semibold text-gray-500 uppercase">Tiêu đề</label>
                             <p className="text-sm text-gray-900">{request.title || 'No title'}</p>
                         </div>
                         <div>
-                            <label className="text-xs font-semibold text-gray-500 uppercase">Description</label>
+                            <label className="text-xs font-semibold text-gray-500 uppercase">Mô tả</label>
                             <p className="text-sm text-gray-900">{request.description}</p>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="text-xs font-semibold text-gray-500 uppercase">People Count</label>
-                                <p className="text-sm text-gray-900">{request.peopleCount || 0} people</p>
+                                <label className="text-xs font-semibold text-gray-500 uppercase">Số người</label>
+                                <p className="text-sm text-gray-900">{request.peopleCount || 0} người</p>
                             </div>
                             <div>
-                                <label className="text-xs font-semibold text-gray-500 uppercase">Location</label>
+                                <label className="text-xs font-semibold text-gray-500 uppercase">Địa điểm</label>
                                 <p className="text-sm text-gray-900 line-clamp-2">
                                     {request.location?.addressText || 'Location not specified'}
                                 </p>
@@ -94,27 +94,26 @@ export default function VerifyRequestModal({ request, isOpen, onClose, onSuccess
                     {/* Validation Form */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Emergency Level <span className="text-red-500">*</span>
+                            Mức độ khẩn cấp <span className="text-red-500">*</span>
                         </label>
                         <select
                             value={formData.emergencyLevel}
                             onChange={(e) => setFormData({ ...formData, emergencyLevel: e.target.value })}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                         >
-                            <option value="CRITICAL">🔴 Critical - Life threatening</option>
-                            <option value="HIGH">🟠 High - Urgent attention needed</option>
-                            <option value="MEDIUM">🟡 Medium - Standard priority</option>
-                            <option value="NORMAL">🟡 Normal - Standard priority</option>
-                            <option value="LOW">⚪ Low - Non-urgent</option>
+                            <option value="CRITICAL">🔴 Nghiêm trọng - Đe dọa đến tính mạng</option>
+                            <option value="HIGH">🟠 Cao - Cần chú ý khẩn cấp</option>
+                            <option value="MEDIUM">🟡 Bình thường - Ưu tiên bình thường</option>
+                            <option value="LOW">⚪ Thấp - Không khẩn cấp</option>
                         </select>
                         <p className="text-xs text-gray-500 mt-1">
-                            Adjust priority based on the situation severity
+                            Điều chỉnh mức độ ưu tiên dựa trên mức độ nghiêm trọng của tình huống
                         </p>
                     </div>
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Coordinator Notes
+                            Ghi chú của điều phối viên
                         </label>
                         <textarea
                             rows="4"

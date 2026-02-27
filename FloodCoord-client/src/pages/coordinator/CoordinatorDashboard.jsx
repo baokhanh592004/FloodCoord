@@ -64,8 +64,8 @@ export default function CoordinatorDashboard() {
         <div className="p-6 space-y-6">
             <div className="flex items-start justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Coordinator Dashboard</h1>
-                    <p className="text-sm text-gray-600">Validate requests, assign teams, and coordinate rescue operations.</p>
+                    <h1 className="text-2xl font-bold text-gray-900">Điều phối viên Dashboard</h1>
+                    <p className="text-sm text-gray-600">Xác thực yêu cầu, phân công đội, và điều phối hoạt động cứu hộ.</p>
                 </div>
                 <button
                     onClick={loadData}
@@ -87,10 +87,10 @@ export default function CoordinatorDashboard() {
                 <div className="lg:col-span-2 bg-white border border-gray-200 rounded-lg p-5">
                     <div className="flex items-center justify-between mb-4">
                         <div>
-                            <h2 className="text-lg font-semibold text-gray-900">Incoming Requests</h2>
-                            <p className="text-xs text-gray-500">Validate and assign rescue requests</p>
+                            <h2 className="text-lg font-semibold text-gray-900">Yêu cầu đang chờ</h2>
+                            <p className="text-xs text-gray-500">Xác thực và phân công các yêu cầu cứu hộ</p>
                         </div>
-                        <div className="text-sm text-gray-500">Showing {recentRequests.length} items</div>
+                        <div className="text-sm text-gray-500">Hiển thị {recentRequests.length} mục</div>
                     </div>
 
                     <div className="space-y-4">
@@ -113,7 +113,7 @@ export default function CoordinatorDashboard() {
                             />
                         ))}
                         {recentRequests.length === 0 && (
-                            <div className="text-sm text-gray-500">No incoming requests.</div>
+                            <div className="text-sm text-gray-500">Không có yêu cầu đang chờ nào.</div>
                         )}
                     </div>
                 </div>
