@@ -33,7 +33,6 @@ import SupplyManagement from '../pages/manager/SupplyManagement'
 /* Coordinator */
 import CoordinatorDashboard from '../pages/coordinator/CoordinatorDashboard'
 import RequestQueue from '../pages/coordinator/RequestQueue'
-import AssignTeams from '../pages/coordinator/AssignTeams'
 import Operations from '../pages/coordinator/Operations'
 
 /* Rescue Team */
@@ -96,7 +95,6 @@ export default function AppRoutes() {
         <Route path="" element={<CoordinatorDashboard />} />
         <Route path="dashboard" element={<CoordinatorDashboard />} />
         <Route path="requests" element={<RequestQueue />} />
-        <Route path="assign-teams" element={<AssignTeams />} />
         <Route path="operations" element={<Operations />} />
       </Route>
 

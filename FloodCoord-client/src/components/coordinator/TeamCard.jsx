@@ -37,7 +37,7 @@ export default function TeamCard({ team }) {
             <div className="flex items-start justify-between mb-3">
                 <div className="flex-1">
                     <h3 className="text-sm font-semibold text-gray-900 mb-1">{team.name}</h3>
-                    <p className="text-xs text-gray-500">{team.members?.length || 0} members</p>
+                    <p className="text-xs text-gray-500">{team.members?.length || 0} thành viên</p>
                 </div>
                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor()}`}>
                     {getStatusText()}
@@ -47,7 +47,7 @@ export default function TeamCard({ team }) {
             {team.leaderName && (
                 <div className="flex items-center text-xs text-gray-600 mb-2">
                     <UserGroupIcon className="h-3.5 w-3.5 mr-1.5" />
-                    <span>Leader: {team.leaderName}</span>
+                    <span>Đội trưởng: {team.leaderName}</span>
                 </div>
             )}
             

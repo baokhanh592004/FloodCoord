@@ -3,16 +3,14 @@ import { Link, NavLink, Outlet } from 'react-router-dom';
 import {
     HomeIcon,
     ClipboardDocumentListIcon,
-    UserGroupIcon,
     MapIcon,
     ArrowRightOnRectangleIcon,
 } from '@heroicons/react/24/outline';
 
 const navItems = [
-    { name: 'Dashboard', href: '/coordinator/dashboard', icon: HomeIcon },
-    { name: 'Request Queue', href: '/coordinator/requests', icon: ClipboardDocumentListIcon },
-    { name: 'Assign Teams', href: '/coordinator/assign-teams', icon: UserGroupIcon },
-    { name: 'Operations', href: '/coordinator/operations', icon: MapIcon },
+    { name: 'Tổng quan', href: '/coordinator/dashboard', icon: HomeIcon },
+    { name: 'Danh sách yêu cầu', href: '/coordinator/requests', icon: ClipboardDocumentListIcon },
+    { name: 'Giám sát hoạt động', href: '/coordinator/operations', icon: MapIcon },
 ];
 
 export default function CoordinatorLayout() {
@@ -24,7 +22,7 @@ export default function CoordinatorLayout() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 flex">
+        <div className="h-screen bg-gray-50 flex overflow-hidden">
             <aside className="w-64 bg-slate-900 text-white flex flex-col">
                 <div className="px-6 py-5 border-b border-slate-800">
                     <Link to="/coordinator/dashboard" className="text-lg font-semibold">
@@ -66,7 +64,7 @@ export default function CoordinatorLayout() {
                 </div>
             </aside>
 
-            <main className="flex-1">
+            <main className="flex-1 overflow-hidden">
                 <Outlet />
             </main>
         </div>
