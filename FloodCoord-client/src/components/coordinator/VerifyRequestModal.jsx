@@ -1,148 +1,306 @@
-import React, { useState } from 'react';
-import { XMarkIcon } from '@heroicons/react/24/outline';
+import React, { useState, useEffect } from 'react';
+import { XMarkIcon, ExclamationTriangleIcon, PhotoIcon } from '@heroicons/react/24/outline';
 import { coordinatorApi } from '../../services/coordinatorApi';
 import toast from 'react-hot-toast';
 
 /**
- * VerifyRequestModal - Modal for coordinator to validate pending requests
- * 
- * FUNCTION:
- * - Review pending rescue requests
- * - Adjust emergency level if needed
- * - Add coordinator notes
- * - Approve (PENDING -> VERIFIED) or Reject
- * 
+ * VerifyRequestModal - Modal xác thực yêu cầu cứu hộ
+ *
  * FLOW:
- * 1. Coordinator opens modal from pending request
- * 2. Reviews details and adjusts priority
- * 3. Clicks "Approve" -> calls coordinatorApi.verifyRequest()
- * 4. Backend changes status to VERIFIED
- * 5. Request moves to "Assign Teams" queue
+ * 1. Coordinator mở modal từ yêu cầu PENDING
+ * 2. Xem lại ảnh/video đính kèm (load từ getRequestDetail)
+ * 3. Kiểm tra: địa điểm có gặp sự cố thật? Video/ảnh không phải AI?
+ * 4. Phân loại mức độ khẩn cấp + thêm ghi chú
+ * 5. Bấm "Duyệt" → hiện modal xác nhận nhỏ → gọi API → PENDING → VALIDATED
  */
 export default function VerifyRequestModal({ request, isOpen, onClose, onSuccess }) {
     const [formData, setFormData] = useState({
-        emergencyLevel: request?.emergencyLevel || 'HIGH',
+        emergencyLevel: 'HIGH',
         note: '',
+        locationConfirmed: false,
+        mediaAuthentic: false,
     });
     const [loading, setLoading] = useState(false);
+    const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+    const [details, setDetails] = useState(null);
+    const [loadingDetails, setLoadingDetails] = useState(false);
+
+    // Reset form + load chi tiết (bao gồm media) khi mở modal
+    useEffect(() => {
+        if (isOpen && request) {
+            setFormData({
+                emergencyLevel: request.emergencyLevel || 'HIGH',
+                note: '',
+                locationConfirmed: false,
+                mediaAuthentic: false,
+            });
+            setShowConfirmDialog(false);
+            setDetails(null);
+            loadDetails();
+        }
+    }, [isOpen, request]);
+
+    const loadDetails = async () => {
+        if (!request) return;
+        setLoadingDetails(true);
+        try {
+            const data = await coordinatorApi.getRequestDetail(request.requestId || request.id);
+            setDetails(data);
+        } catch (error) {
+            console.error('Failed to load request details for verify:', error);
+        } finally {
+            setLoadingDetails(false);
+        }
+    };
 
     if (!isOpen || !request) return null;
 
-    const handleVerify = async () => {
+    const displayData = details || request;
+    const media = displayData.media || request?.media || [];
+    const canVerify = formData.locationConfirmed && formData.mediaAuthentic;
+
+    const handleClickVerify = () => {
+        if (!canVerify) {
+            toast.error('Vui lòng xác minh đầy đủ trước khi duyệt');
+            return;
+        }
+        setShowConfirmDialog(true);
+    };
+
+    const handleConfirmVerify = async () => {
         setLoading(true);
         try {
-            await coordinatorApi.verifyRequest(request.requestId || request.id, formData);
-            toast.success('Request validated successfully!');
+            await coordinatorApi.verifyRequest(request.requestId || request.id, {
+                emergencyLevel: formData.emergencyLevel,
+                note: formData.note,
+            });
+            toast.success('Xác thực yêu cầu thành công!');
+            setShowConfirmDialog(false);
             onSuccess?.();
             onClose();
         } catch (error) {
-            toast.error('Failed to validate request: ' + error.message);
+            toast.error('Xác thực thất bại: ' + (error.response?.data?.message || error.message));
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-                {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b border-gray-200">
-                    <div>
-                        <h2 className="text-xl font-semibold text-gray-900">Xác Thực Yêu Cầu</h2>
-                        <p className="text-sm text-gray-500 mt-1">
-                            Xem và Duyệt Yêu Cầu
-                        </p>
+        <>
+            {/* Main Modal */}
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] flex flex-col">
+                    {/* Header — cố định */}
+                    <div className="flex-shrink-0 flex items-center justify-between p-5 border-b border-gray-200">
+                        <div>
+                            <h2 className="text-lg font-semibold text-gray-900">Xác Thực Yêu Cầu</h2>
+                            <p className="text-xs text-gray-500 mt-0.5">
+                                Kiểm tra media đính kèm và xác minh yêu cầu trước khi duyệt
+                            </p>
+                        </div>
+                        <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+                            <XMarkIcon className="h-5 w-5" />
+                        </button>
                     </div>
-                    <button
-                        onClick={onClose}
-                        className="text-gray-400 hover:text-gray-600"
-                    >
-                        <XMarkIcon className="h-6 w-6" />
-                    </button>
-                </div>
 
-                {/* Content */}
-                <div className="p-6 space-y-6">
-                    {/* Request Details */}
-                    <div className="bg-gray-50 p-4 rounded-lg space-y-3">
-                        <div>
-                            <label className="text-xs font-semibold text-gray-500 uppercase">ID yêu cầu</label>
-                            <p className="text-sm text-gray-900">{request.trackingCode || request.requestId}</p>
-                        </div>
-                        <div>
-                            <label className="text-xs font-semibold text-gray-500 uppercase">Tiêu đề</label>
-                            <p className="text-sm text-gray-900">{request.title || 'No title'}</p>
-                        </div>
-                        <div>
-                            <label className="text-xs font-semibold text-gray-500 uppercase">Mô tả</label>
-                            <p className="text-sm text-gray-900">{request.description}</p>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
+                    {/* Content — cuộn được */}
+                    <div className="flex-1 min-h-0 overflow-y-auto p-5 space-y-5">
+                        {/* Thông tin yêu cầu */}
+                        <div className="bg-gray-50 p-4 rounded-lg space-y-2">
                             <div>
-                                <label className="text-xs font-semibold text-gray-500 uppercase">Số người</label>
-                                <p className="text-sm text-gray-900">{request.peopleCount || 0} người</p>
+                                <label className="text-xs font-semibold text-gray-500 uppercase">Tiêu đề</label>
+                                <p className="text-sm text-gray-900">{displayData.title || 'Không có tiêu đề'}</p>
                             </div>
                             <div>
-                                <label className="text-xs font-semibold text-gray-500 uppercase">Địa điểm</label>
-                                <p className="text-sm text-gray-900 line-clamp-2">
-                                    {request.location?.addressText || 'Location not specified'}
+                                <label className="text-xs font-semibold text-gray-500 uppercase">Người gửi</label>
+                                <p className="text-sm text-gray-900">
+                                    {request?.contactName || displayData.contactName || request?.citizenName || displayData.citizenName || 'Không rõ'}
+                                    {(request?.contactPhone || displayData.contactPhone) && (
+                                        <span className="ml-2 text-gray-500">• {request?.contactPhone || displayData.contactPhone}</span>
+                                    )}
                                 </p>
                             </div>
+                            <div>
+                                <label className="text-xs font-semibold text-gray-500 uppercase">Mô tả</label>
+                                <p className="text-sm text-gray-900">{displayData.description}</p>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-xs font-semibold text-gray-500 uppercase">Số người</label>
+                                    <p className="text-sm text-gray-900">{displayData.peopleCount || 0} người</p>
+                                </div>
+                                <div>
+                                    <label className="text-xs font-semibold text-gray-500 uppercase">Địa điểm cứu trợ</label>
+                                    <p className="text-sm text-gray-900 line-clamp-2">
+                                        {displayData.location?.addressText || 'Chưa xác định'}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Media đính kèm — hiển thị ảnh/video để coordinator kiểm tra */}
+                        <div className="border border-gray-200 rounded-lg p-4">
+                            <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                                <PhotoIcon className="h-4 w-4 text-gray-500" />
+                                Hình ảnh / Video đính kèm
+                                {media.length > 0 && (
+                                    <span className="text-xs font-normal text-gray-400">({media.length} tệp)</span>
+                                )}
+                            </h3>
+                            {loadingDetails ? (
+                                <div className="text-center py-4 text-gray-400 text-xs">Đang tải media...</div>
+                            ) : media.length > 0 ? (
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                                    {media.map((m) => (
+                                        <div key={m.mediaId} className="aspect-video bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
+                                            {m.mediaType === 'IMAGE' ? (
+                                                <img
+                                                    src={m.mediaUrl}
+                                                    alt="Bằng chứng"
+                                                    className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                                                    onClick={() => window.open(m.mediaUrl, '_blank')}
+                                                />
+                                            ) : (
+                                                <video src={m.mediaUrl} controls className="w-full h-full" />
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-xs text-gray-400 text-center py-3">Không có media đính kèm</p>
+                            )}
+                        </div>
+
+                        {/* Phần xác minh — 2 checkbox bắt buộc */}
+                        <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg space-y-3">
+                            <h3 className="text-sm font-semibold text-amber-900 flex items-center gap-2">
+                                <ExclamationTriangleIcon className="h-4 w-4" />
+                                Xác minh thông tin
+                            </h3>
+
+                            <label className="flex items-start gap-3 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={formData.locationConfirmed}
+                                    onChange={(e) => setFormData({ ...formData, locationConfirmed: e.target.checked })}
+                                    className="mt-0.5 h-4 w-4 text-teal-600 rounded border-gray-300 focus:ring-teal-500"
+                                />
+                                <div>
+                                    <p className="text-sm font-medium text-gray-800">
+                                        Xác nhận địa điểm đang gặp sự cố
+                                    </p>
+                                    <p className="text-xs text-gray-500 mt-0.5">
+                                        Tôi đã kiểm tra và xác nhận rằng địa điểm được gửi kèm đang thực sự gặp sự cố lũ lụt / thiên tai.
+                                    </p>
+                                </div>
+                            </label>
+
+                            <label className="flex items-start gap-3 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={formData.mediaAuthentic}
+                                    onChange={(e) => setFormData({ ...formData, mediaAuthentic: e.target.checked })}
+                                    className="mt-0.5 h-4 w-4 text-teal-600 rounded border-gray-300 focus:ring-teal-500"
+                                />
+                                <div>
+                                    <p className="text-sm font-medium text-gray-800">
+                                        Xác nhận ảnh/video không phải do AI tạo
+                                    </p>
+                                    <p className="text-xs text-gray-500 mt-0.5">
+                                        Tôi đã kiểm tra hình ảnh/video đính kèm và xác nhận chúng là thật, không phải do AI sinh ra.
+                                    </p>
+                                </div>
+                            </label>
+                        </div>
+
+                        {/* Phân loại mức độ khẩn cấp */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                Mức độ khẩn cấp <span className="text-red-500">*</span>
+                            </label>
+                            <select
+                                value={formData.emergencyLevel}
+                                onChange={(e) => setFormData({ ...formData, emergencyLevel: e.target.value })}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                            >
+                                <option value="CRITICAL">🔴 Nghiêm trọng — Đe dọa đến tính mạng</option>
+                                <option value="HIGH">🟠 Cao — Cần chú ý khẩn cấp</option>
+                                <option value="MEDIUM">🟡 Bình thường — Ưu tiên bình thường</option>
+                                <option value="LOW">⚪ Thấp — Không khẩn cấp</option>
+                            </select>
+                        </div>
+
+                        {/* Ghi chú */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                Ghi chú của điều phối viên
+                            </label>
+                            <textarea
+                                rows="2"
+                                value={formData.note}
+                                onChange={(e) => setFormData({ ...formData, note: e.target.value })}
+                                placeholder="Thêm ghi chú xác thực, hướng dẫn đặc biệt..."
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                            />
                         </div>
                     </div>
 
-                    {/* Validation Form */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Mức độ khẩn cấp <span className="text-red-500">*</span>
-                        </label>
-                        <select
-                            value={formData.emergencyLevel}
-                            onChange={(e) => setFormData({ ...formData, emergencyLevel: e.target.value })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    {/* Footer — cố định */}
+                    <div className="flex-shrink-0 flex items-center justify-end gap-3 px-5 py-4 border-t border-gray-200 bg-gray-50">
+                        <button
+                            onClick={onClose}
+                            disabled={loading}
+                            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
                         >
-                            <option value="CRITICAL">🔴 Nghiêm trọng - Đe dọa đến tính mạng</option>
-                            <option value="HIGH">🟠 Cao - Cần chú ý khẩn cấp</option>
-                            <option value="MEDIUM">🟡 Bình thường - Ưu tiên bình thường</option>
-                            <option value="LOW">⚪ Thấp - Không khẩn cấp</option>
-                        </select>
-                        <p className="text-xs text-gray-500 mt-1">
-                            Điều chỉnh mức độ ưu tiên dựa trên mức độ nghiêm trọng của tình huống
-                        </p>
+                            Hủy
+                        </button>
+                        <button
+                            onClick={handleClickVerify}
+                            disabled={loading || !canVerify}
+                            className="px-6 py-2 text-sm font-medium text-white bg-teal-600 rounded-md hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Duyệt & Xác thực
+                        </button>
                     </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Ghi chú của điều phối viên
-                        </label>
-                        <textarea
-                            rows="4"
-                            value={formData.note}
-                            onChange={(e) => setFormData({ ...formData, note: e.target.value })}
-                            placeholder="Add verification notes, special instructions, or concerns..."
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                        />
-                    </div>
-                </div>
-
-                {/* Footer */}
-                <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
-                    <button
-                        onClick={onClose}
-                        disabled={loading}
-                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        onClick={handleVerify}
-                        disabled={loading}
-                        className="px-6 py-2 text-sm font-medium text-white bg-teal-600 rounded-md hover:bg-teal-700 disabled:opacity-50"
-                    >
-                        {loading ? 'Validating...' : 'Approve & Validate'}
-                    </button>
                 </div>
             </div>
-        </div>
+
+            {/* Confirmation Dialog — modal nhỏ xác nhận lần cuối */}
+            {showConfirmDialog && (
+                <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60] p-4">
+                    <div className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center">
+                                <ExclamationTriangleIcon className="h-5 w-5 text-teal-600" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-semibold text-gray-900">Xác nhận duyệt</h3>
+                                <p className="text-sm text-gray-500">Hành động này không thể hoàn tác</p>
+                            </div>
+                        </div>
+                        <p className="text-sm text-gray-700 mb-6">
+                            Bạn có chắc chắn muốn xác thực yêu cầu <strong>"{request.title}"</strong>? 
+                            Yêu cầu sẽ chuyển sang trạng thái <span className="text-teal-600 font-medium">Đã xác thực</span> và sẵn sàng để phân công đội cứu hộ.
+                        </p>
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={() => setShowConfirmDialog(false)}
+                                disabled={loading}
+                                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                            >
+                                Quay lại
+                            </button>
+                            <button
+                                onClick={handleConfirmVerify}
+                                disabled={loading}
+                                className="px-6 py-2 text-sm font-medium text-white bg-teal-600 rounded-md hover:bg-teal-700 disabled:opacity-50"
+                            >
+                                {loading ? 'Đang xử lý...' : 'Xác nhận duyệt'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </>
     );
 }
