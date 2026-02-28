@@ -6,6 +6,9 @@ import com.team6.floodcoord.dto.response.RescueRequestDetailResponse;
 import com.team6.floodcoord.dto.response.RescueRequestResponse;
 import com.team6.floodcoord.dto.response.RescueRequestSummaryResponse;
 import com.team6.floodcoord.model.User;
+import com.team6.floodcoord.model.enums.RequestStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.UUID;
@@ -19,4 +22,5 @@ public interface RescueRequestService {
     RescueRequestResponse trackRequest(String trackingCode);
     List<RescueRequestSummaryResponse> getAllRescueRequests();
     RescueRequestDetailResponse getRequestDetail(UUID requestId);
+    Page<RescueRequestSummaryResponse> getAllRequestsForAdmin(RequestStatus status, Pageable pageable);
 }

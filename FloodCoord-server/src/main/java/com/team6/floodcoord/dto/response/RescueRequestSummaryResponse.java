@@ -1,5 +1,6 @@
 package com.team6.floodcoord.dto.response;
 
+import lombok.Builder;
 import lombok.Data;
 
 import java.time.LocalDateTime;
