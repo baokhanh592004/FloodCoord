@@ -21,15 +21,15 @@ export default function PriorityBadge({ priority }) {
     const getDisplayText = () => {
         switch (priority?.toUpperCase()) {
             case 'CRITICAL':
-                return 'Critical';
+                return 'NGHIÊM TRỌNG';
             case 'HIGH':
-                return 'High';
+                return 'CAO';
             case 'MEDIUM':
-                return 'Medium';
+                return 'TRUNG BÌNH';
             case 'NORMAL':
-                return 'Medium';
+                return 'TRUNG BÌNH';
             case 'LOW':
-                return 'Low';
+                return 'THẤP';
             default:
                 return priority;
         }

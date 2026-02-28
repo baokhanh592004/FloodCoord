@@ -31,25 +31,25 @@ export default function StatusBadge({ status }) {
     const getDisplayText = () => {
         switch (status?.toUpperCase()) {
             case 'PENDING':
-                return 'Pending';
+                return 'ĐANG CHỜ';
             case 'VERIFIED':
-                return 'Validated';
+                return 'ĐÃ XÁC THỰC';
             case 'IN_PROGRESS':
-                return 'In Progress';
+                return 'ĐANG THỰC HIỆN';
             case 'MOVING':
-                return 'Moving';
+                return 'ĐANG DI CHUYỂN';
             case 'ARRIVED':
-                return 'Arrived';
+                return 'ĐÃ ĐẾN NƠI';
             case 'RESCUING':
-                return 'Rescuing';
+                return 'ĐANG CỨU HỘ';
             case 'COMPLETED':
-                return 'Completed';
+                return 'HOÀN THÀNH';
             case 'CANCELLED':
-                return 'Cancelled';
+                return 'ĐÃ HỦY';
             case 'REJECTED':
-                return 'Không duyệt';
+                return 'KHÔNG DUYỆT';
             case 'ASSIGNED':
-                return 'Assigned';
+                return 'ĐÃ PHÂN CÔNG';
             default:
                 return status;
         }

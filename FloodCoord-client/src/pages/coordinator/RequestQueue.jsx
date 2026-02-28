@@ -241,14 +241,14 @@ export default function RequestQueue() {
 
                                     {/* Tiêu đề */}
                                     <td className="px-3 py-2">
-                                        <p className="font-medium text-gray-900 line-clamp-1">
+                                        <p className="font-medium text-gray-900">
                                             {req.title || 'Yêu cầu cứu hộ'}
                                         </p>
                                     </td>
 
                                     {/* Người gửi (tên + SĐT) */}
                                     <td className="px-3 py-2">
-                                        <p className="text-gray-900 font-medium line-clamp-1">
+                                        <p className="text-gray-900 font-medium">
                                             {req.contactName || req.citizenName || 'Không rõ'}
                                         </p>
                                         {(req.contactPhone) && (
