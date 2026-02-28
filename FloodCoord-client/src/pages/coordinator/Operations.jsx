@@ -102,12 +102,12 @@ export default function Operations() {
     };
 
     return (
-        <div className="p-6 space-y-6">
-            {/* Header */}
-            <div className="flex items-start justify-between">
+        <div className="h-full flex flex-col p-4 gap-3">
+            {/* Header — compact */}
+            <div className="flex-shrink-0 flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Giám sát hoạt động</h1>
-                    <p className="text-sm text-gray-500">
+                    <h1 className="text-xl font-bold text-gray-900">Giám sát hoạt động</h1>
+                    <p className="text-xs text-gray-500">
                         Theo dõi các nhiệm vụ cứu hộ đang diễn ra theo thời gian thực.
                     </p>
                 </div>
@@ -117,31 +117,47 @@ export default function Operations() {
                             Cập nhật: {lastRefresh.toLocaleTimeString('vi-VN')}
                         </span>
                     )}
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 border border-green-200 rounded-full">
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 bg-green-50 border border-green-200 rounded-full">
                         <span className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></span>
                         <span className="text-xs text-green-700 font-medium">
-                            {activeRequests.length} nhiệm vụ đang hoạt động
+                            {activeRequests.length} đang hoạt động
                         </span>
                     </div>
                     <button
                         onClick={loadData}
                         disabled={loading}
-                        className="inline-flex items-center gap-2 px-3 py-2 bg-teal-600 text-white text-sm font-medium rounded-md hover:bg-teal-700 disabled:opacity-60"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-teal-600 text-white text-xs font-medium rounded-md hover:bg-teal-700 disabled:opacity-60 transition-colors"
                     >
-                        <ArrowPathIcon className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                        <ArrowPathIcon className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
                         Làm mới
                     </button>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* ===== BẢN ĐỒ ===== */}
-                <div className="lg:col-span-2 bg-white border border-gray-200 rounded-lg p-5">
-                    <div className="flex items-center gap-2 text-gray-700 mb-4">
-                        <MapIcon className="h-5 w-5" />
-                        <span className="text-sm font-semibold">Bản đồ hoạt động</span>
+            {/* Summary cards */}
+            <div className="flex-shrink-0 grid grid-cols-4 gap-3">
+                {[
+                    { label: 'Đang hoạt động', value: activeRequests.length, color: 'text-yellow-700 bg-yellow-50 border-yellow-200' },
+                    { label: 'Chờ duyệt', value: requests.filter(r => r.status === 'PENDING').length, color: 'text-blue-700 bg-blue-50 border-blue-200' },
+                    { label: 'Đã xác thực', value: requests.filter(r => r.status === 'VERIFIED' || r.status === 'VALIDATED').length, color: 'text-teal-700 bg-teal-50 border-teal-200' },
+                    { label: 'Hoàn thành', value: requests.filter(r => r.status === 'COMPLETED').length, color: 'text-green-700 bg-green-50 border-green-200' },
+                ].map((stat, i) => (
+                    <div key={i} className={`px-3 py-2 rounded-lg border ${stat.color}`}>
+                        <p className="text-xs font-medium opacity-80">{stat.label}</p>
+                        <p className="text-lg font-bold">{stat.value}</p>
                     </div>
-                    <div className="h-96 rounded-lg overflow-hidden border border-gray-300">
+                ))}
+            </div>
+
+            {/* Main content — fills remaining viewport */}
+            <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-3">
+                {/* ===== BẢN ĐỒ ===== */}
+                <div className="lg:col-span-2 bg-white border border-gray-200 rounded-lg flex flex-col overflow-hidden">
+                    <div className="flex-shrink-0 flex items-center gap-2 text-gray-700 px-4 py-2.5 border-b border-gray-100">
+                        <MapIcon className="h-4 w-4" />
+                        <span className="text-xs font-semibold">Bản đồ hoạt động</span>
+                    </div>
+                    <div className="flex-1 min-h-0">
                         <MapContainer
                             center={[10.8231, 106.6297]}
                             zoom={12}
@@ -184,13 +200,15 @@ export default function Operations() {
                     </div>
                 </div>
 
-                {/* ===== TIMELINE HOẠT ĐỘNG ===== */}
-                <div className="bg-white border border-gray-200 rounded-lg p-5">
-                    <div className="flex items-center gap-2 text-gray-700 mb-4">
-                        <ClockIcon className="h-5 w-5" />
-                        <span className="text-sm font-semibold">Hoạt động gần đây</span>
-                    </div>
-                    <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                {/* ===== SIDEBAR: TIMELINE + WEATHER ===== */}
+                <div className="flex flex-col gap-3 min-h-0">
+                    {/* Timeline */}
+                    <div className="flex-1 min-h-0 bg-white border border-gray-200 rounded-lg flex flex-col overflow-hidden">
+                        <div className="flex-shrink-0 flex items-center gap-2 text-gray-700 px-4 py-2.5 border-b border-gray-100">
+                            <ClockIcon className="h-4 w-4" />
+                            <span className="text-xs font-semibold">Hoạt động gần đây</span>
+                        </div>
+                        <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-2">
                         {recentActivity.map((req) => (
                             <div
                                 key={req.requestId || req.id}
@@ -228,69 +246,27 @@ export default function Operations() {
                         )}
                     </div>
                 </div>
-            </div>
 
-            {/* ===== BẢNG THEO DÕI NHIỆM VỤ ĐANG HOẠT ĐỘNG ===== */}
-            <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-                <div className="px-5 py-4 border-b border-gray-200 flex items-center gap-2">
-                    <SignalIcon className="h-5 w-5 text-teal-600" />
-                    <h2 className="text-lg font-semibold text-gray-900">Nhiệm vụ đang hoạt động</h2>
-                    <span className="text-xs text-gray-400 ml-auto">Tự động cập nhật mỗi 15 giây</span>
+                    {/* Thời tiết & Lũ lụt */}
+                    <div className="flex-shrink-0 bg-white border border-gray-200 rounded-lg p-3">
+                        <h3 className="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
+                            🌊 Thời tiết & Mực nước
+                        </h3>
+                        <div className="grid grid-cols-2 gap-2">
+                            <div className="bg-blue-50 border border-blue-100 rounded p-2">
+                                <p className="text-[10px] text-blue-600 font-medium">Lượng mưa</p>
+                                <p className="text-sm font-bold text-blue-800">45 mm/h</p>
+                                <p className="text-[10px] text-blue-500">Mưa vừa đến to</p>
+                            </div>
+                            <div className="bg-amber-50 border border-amber-100 rounded p-2">
+                                <p className="text-[10px] text-amber-600 font-medium">Mực nước</p>
+                                <p className="text-sm font-bold text-amber-800">2.1 m</p>
+                                <p className="text-[10px] text-amber-500">Trên mức cảnh báo</p>
+                            </div>
+                        </div>
+                        <p className="text-[10px] text-gray-400 mt-2 text-center">⚠️ Dữ liệu mẫu — sẽ tích hợp API thời tiết sau</p>
+                    </div>
                 </div>
-
-                {activeRequests.length > 0 ? (
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                            <thead>
-                                <tr className="bg-gray-50 border-b border-gray-200">
-                                    <th className="text-left px-4 py-3 font-semibold text-gray-600">Yêu cầu</th>
-                                    <th className="text-left px-4 py-3 font-semibold text-gray-600">Đội cứu hộ</th>
-                                    <th className="text-left px-4 py-3 font-semibold text-gray-600">Địa điểm</th>
-                                    <th className="text-center px-4 py-3 font-semibold text-gray-600">Trạng thái</th>
-                                    <th className="text-center px-4 py-3 font-semibold text-gray-600">Mức độ</th>
-                                    <th className="text-left px-4 py-3 font-semibold text-gray-600">Bắt đầu lúc</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100">
-                                {activeRequests.map((req) => (
-                                    <tr
-                                        key={req.requestId || req.id}
-                                        className="hover:bg-gray-50 cursor-pointer transition-colors"
-                                        onClick={() => {
-                                            setSelectedRequest(req);
-                                            setShowDetailModal(true);
-                                        }}
-                                    >
-                                        <td className="px-4 py-3">
-                                            <p className="font-medium text-gray-900 line-clamp-1">{req.title || 'Yêu cầu cứu hộ'}</p>
-                                            <p className="text-xs text-gray-400">{req.trackingCode || `#${req.requestId || req.id}`}</p>
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            <span className="text-gray-700">{req.assignedTeamName || '—'}</span>
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            <p className="text-gray-700 line-clamp-1">{req.location?.addressText || '—'}</p>
-                                        </td>
-                                        <td className="px-4 py-3 text-center">
-                                            <StatusBadge status={req.status} />
-                                        </td>
-                                        <td className="px-4 py-3 text-center">
-                                            <PriorityBadge priority={req.emergencyLevel} />
-                                        </td>
-                                        <td className="px-4 py-3 text-gray-600">
-                                            {formatTime(req.updatedAt || req.createdAt)}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                ) : (
-                    <div className="text-center py-12 text-gray-400">
-                        <SignalIcon className="h-10 w-10 mx-auto mb-2 opacity-50" />
-                        <p className="text-sm">Hiện không có nhiệm vụ nào đang hoạt động.</p>
-                    </div>
-                )}
             </div>
 
             <RequestDetailModal

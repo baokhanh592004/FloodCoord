@@ -25,6 +25,8 @@ import {
  * - Tích hợp xác thực (PENDING → VALIDATED) + phân công đội (VALIDATED → IN_PROGRESS)
  * - Nút xem chi tiết, xác thực, phân công, theo dõi tùy theo trạng thái
  */
+const ITEMS_PER_PAGE = 10;
+
 export default function RequestQueue() {
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -35,6 +37,7 @@ export default function RequestQueue() {
     const [showAssignModal, setShowAssignModal] = useState(false);
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [lastRefresh, setLastRefresh] = useState(null);
+    const [currentPage, setCurrentPage] = useState(1);
 
     // Hàm load dữ liệu, dùng useCallback để tránh tạo lại mỗi render
     const loadRequests = useCallback(async () => {
@@ -85,6 +88,9 @@ export default function RequestQueue() {
         return () => clearInterval(interval); // Dọn dẹp khi unmount
     }, [loadRequests]);
 
+    // Reset về trang 1 khi thay đổi filter hoặc tìm kiếm
+    useEffect(() => { setCurrentPage(1); }, [statusFilter, searchTerm]);
+
     // Tính thời gian đã gửi (vd: "5 phút trước", "2 giờ trước")
     const formatTimeAgo = (dateString) => {
         if (!dateString) return '—';
@@ -123,11 +129,19 @@ export default function RequestQueue() {
                     statusFilter === 'ALL' ||
                     req.status === statusFilter ||
                     (statusFilter === 'VERIFIED' && req.status === 'VALIDATED') ||
-                    (statusFilter === 'IN_PROGRESS' && ['IN_PROGRESS', 'MOVING', 'ARRIVED', 'RESCUING'].includes(req.status));
+                    (statusFilter === 'IN_PROGRESS' && ['IN_PROGRESS', 'MOVING', 'ARRIVED', 'RESCUING'].includes(req.status)) ||
+                    (statusFilter === 'REJECTED' && req.status === 'REJECTED');
                 return matchesSearch && matchesStatus;
             })
             .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     }, [requests, searchTerm, statusFilter]);
+
+    // Pagination
+    const totalPages = Math.ceil(filteredRequests.length / ITEMS_PER_PAGE);
+    const paginatedRequests = filteredRequests.slice(
+        (currentPage - 1) * ITEMS_PER_PAGE,
+        currentPage * ITEMS_PER_PAGE
+    );
 
     // Đếm số yêu cầu theo trạng thái
     const statusCounts = useMemo(() => ({
@@ -136,6 +150,7 @@ export default function RequestQueue() {
         VERIFIED: requests.filter((r) => r.status === 'VERIFIED' || r.status === 'VALIDATED').length,
         IN_PROGRESS: requests.filter((r) => ['IN_PROGRESS', 'MOVING', 'ARRIVED', 'RESCUING'].includes(r.status)).length,
         COMPLETED: requests.filter((r) => r.status === 'COMPLETED').length,
+        REJECTED: requests.filter((r) => r.status === 'REJECTED').length,
     }), [requests]);
 
     return (
@@ -184,6 +199,7 @@ export default function RequestQueue() {
                         { key: 'VERIFIED', label: 'Đã xác thực' },
                         { key: 'IN_PROGRESS', label: 'Đang thực thi' },
                         { key: 'COMPLETED', label: 'Hoàn thành' },
+                        { key: 'REJECTED', label: 'Không duyệt' },
                     ].map((tab) => (
                         <button
                             key={tab.key}
@@ -218,10 +234,10 @@ export default function RequestQueue() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                            {filteredRequests.map((req, index) => (
+                            {paginatedRequests.map((req, index) => (
                                 <tr key={req.requestId || req.id} className="hover:bg-gray-50 transition-colors">
                                     {/* # Thứ tự */}
-                                    <td className="px-3 py-2 text-gray-400 font-mono">{index + 1}</td>
+                                    <td className="px-3 py-2 text-gray-400 font-mono">{(currentPage - 1) * ITEMS_PER_PAGE + index + 1}</td>
 
                                     {/* Tiêu đề */}
                                     <td className="px-3 py-2">
@@ -244,7 +260,7 @@ export default function RequestQueue() {
 
                                     {/* Địa điểm cứu trợ — sau khi enrich sẽ có location từ detail API */}
                                     <td className="px-3 py-2">
-                                        <p className="text-gray-700 line-clamp-1">
+                                        <p className="text-gray-700">
                                             {req.location?.addressText || 'Đang tải...'}
                                         </p>
                                     </td>
@@ -330,10 +346,43 @@ export default function RequestQueue() {
                     )}
                 </div>
 
-                {/* Footer: tổng số */}
+                {/* Footer: phân trang */}
                 {filteredRequests.length > 0 && (
-                    <div className="flex-shrink-0 px-3 py-2 bg-gray-50 border-t border-gray-200 text-xs text-gray-500 flex justify-between">
-                        <span>Hiển thị {filteredRequests.length} / {requests.length} yêu cầu</span>
+                    <div className="flex-shrink-0 px-3 py-2 bg-gray-50 border-t border-gray-200 text-xs text-gray-500 flex items-center justify-between">
+                        <span>
+                            Hiển thị {(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, filteredRequests.length)} / {filteredRequests.length} yêu cầu
+                        </span>
+                        {totalPages > 1 && (
+                            <div className="flex items-center gap-1">
+                                <button
+                                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                                    disabled={currentPage === 1}
+                                    className="px-2 py-1 rounded border border-gray-300 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed"
+                                >
+                                    ‹
+                                </button>
+                                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                                    <button
+                                        key={page}
+                                        onClick={() => setCurrentPage(page)}
+                                        className={`px-2 py-1 rounded border ${
+                                            currentPage === page
+                                                ? 'bg-teal-600 text-white border-teal-600'
+                                                : 'border-gray-300 hover:bg-white'
+                                        }`}
+                                    >
+                                        {page}
+                                    </button>
+                                ))}
+                                <button
+                                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                                    disabled={currentPage === totalPages}
+                                    className="px-2 py-1 rounded border border-gray-300 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed"
+                                >
+                                    ›
+                                </button>
+                            </div>
+                        )}
                         <span>Tự động làm mới mỗi 30 giây</span>
                     </div>
                 )}

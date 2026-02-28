@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { XMarkIcon, ExclamationTriangleIcon, PhotoIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, ExclamationTriangleIcon, PhotoIcon, XCircleIcon } from '@heroicons/react/24/outline';
 import { coordinatorApi } from '../../services/coordinatorApi';
 import toast from 'react-hot-toast';
 
@@ -13,6 +13,15 @@ import toast from 'react-hot-toast';
  * 4. Phân loại mức độ khẩn cấp + thêm ghi chú
  * 5. Bấm "Duyệt" → hiện modal xác nhận nhỏ → gọi API → PENDING → VALIDATED
  */
+const REJECT_REASONS = [
+    { id: 'fake_media', label: 'Ảnh/Video không xác thực (nghi AI tạo)' },
+    { id: 'wrong_location', label: 'Địa điểm không khớp với sự cố' },
+    { id: 'duplicate', label: 'Yêu cầu trùng lặp' },
+    { id: 'insufficient_info', label: 'Thông tin không đầy đủ' },
+    { id: 'no_emergency', label: 'Không phải tình huống khẩn cấp' },
+    { id: 'other', label: 'Lý do khác' },
+];
+
 export default function VerifyRequestModal({ request, isOpen, onClose, onSuccess }) {
     const [formData, setFormData] = useState({
         emergencyLevel: 'HIGH',
@@ -24,6 +33,9 @@ export default function VerifyRequestModal({ request, isOpen, onClose, onSuccess
     const [showConfirmDialog, setShowConfirmDialog] = useState(false);
     const [details, setDetails] = useState(null);
     const [loadingDetails, setLoadingDetails] = useState(false);
+    const [showRejectDialog, setShowRejectDialog] = useState(false);
+    const [rejectReasons, setRejectReasons] = useState([]);
+    const [rejectNote, setRejectNote] = useState('');
 
     // Reset form + load chi tiết (bao gồm media) khi mở modal
     useEffect(() => {
@@ -35,6 +47,9 @@ export default function VerifyRequestModal({ request, isOpen, onClose, onSuccess
                 mediaAuthentic: false,
             });
             setShowConfirmDialog(false);
+            setShowRejectDialog(false);
+            setRejectReasons([]);
+            setRejectNote('');
             setDetails(null);
             loadDetails();
         }
@@ -73,6 +88,7 @@ export default function VerifyRequestModal({ request, isOpen, onClose, onSuccess
             await coordinatorApi.verifyRequest(request.requestId || request.id, {
                 emergencyLevel: formData.emergencyLevel,
                 note: formData.note,
+                approved: true,
             });
             toast.success('Xác thực yêu cầu thành công!');
             setShowConfirmDialog(false);
@@ -85,10 +101,51 @@ export default function VerifyRequestModal({ request, isOpen, onClose, onSuccess
         }
     };
 
+    const handleClickReject = () => {
+        setShowRejectDialog(true);
+    };
+
+    const handleConfirmReject = async () => {
+        if (rejectReasons.length === 0) {
+            toast.error('Vui lòng chọn ít nhất 1 lý do từ chối');
+            return;
+        }
+        setLoading(true);
+        try {
+            // Reject dùng cùng endpoint verify với approved: false
+            const reasonLabels = rejectReasons.map(
+                (id) => REJECT_REASONS.find((r) => r.id === id)?.label || id
+            );
+            await coordinatorApi.verifyRequest(request.requestId || request.id, {
+                emergencyLevel: formData.emergencyLevel,
+                note: [reasonLabels.join('; '), rejectNote].filter(Boolean).join(' — '),
+                approved: false,
+            });
+            toast.success('Đã từ chối yêu cầu');
+            setShowRejectDialog(false);
+            onSuccess?.();
+            onClose();
+        } catch (error) {
+            toast.error('Từ chối thất bại: ' + (error.response?.data?.message || error.message));
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const toggleRejectReason = (reasonId) => {
+        setRejectReasons((prev) =>
+            prev.includes(reasonId) ? prev.filter((r) => r !== reasonId) : [...prev, reasonId]
+        );
+    };
+
+    // Sender info: ưu tiên list API (request prop) vì detail API không trả contactName/Phone
+    const senderName = request?.contactName || displayData.contactName || request?.citizenName || displayData.citizenName || 'Không rõ';
+    const senderPhone = request?.contactPhone || displayData.contactPhone || null;
+
     return (
         <>
             {/* Main Modal */}
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                 <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] flex flex-col">
                     {/* Header — cố định */}
                     <div className="flex-shrink-0 flex items-center justify-between p-5 border-b border-gray-200">
@@ -114,9 +171,9 @@ export default function VerifyRequestModal({ request, isOpen, onClose, onSuccess
                             <div>
                                 <label className="text-xs font-semibold text-gray-500 uppercase">Người gửi</label>
                                 <p className="text-sm text-gray-900">
-                                    {request?.contactName || displayData.contactName || request?.citizenName || displayData.citizenName || 'Không rõ'}
-                                    {(request?.contactPhone || displayData.contactPhone) && (
-                                        <span className="ml-2 text-gray-500">• {request?.contactPhone || displayData.contactPhone}</span>
+                                    {senderName}
+                                    {senderPhone && (
+                                        <span className="ml-2 text-gray-500">• {senderPhone}</span>
                                     )}
                                 </p>
                             </div>
@@ -161,7 +218,7 @@ export default function VerifyRequestModal({ request, isOpen, onClose, onSuccess
                                                     onClick={() => window.open(m.mediaUrl, '_blank')}
                                                 />
                                             ) : (
-                                                <video src={m.mediaUrl} controls className="w-full h-full" />
+                                                <video src={m.mediaUrl} controls preload="metadata" className="w-full h-full object-contain bg-black" />
                                             )}
                                         </div>
                                     ))}
@@ -246,28 +303,38 @@ export default function VerifyRequestModal({ request, isOpen, onClose, onSuccess
                     </div>
 
                     {/* Footer — cố định */}
-                    <div className="flex-shrink-0 flex items-center justify-end gap-3 px-5 py-4 border-t border-gray-200 bg-gray-50">
+                    <div className="flex-shrink-0 flex items-center justify-between px-5 py-4 border-t border-gray-200 bg-gray-50">
                         <button
-                            onClick={onClose}
+                            onClick={handleClickReject}
                             disabled={loading}
-                            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+                            className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 disabled:opacity-50"
                         >
-                            Hủy
+                            <XCircleIcon className="h-4 w-4" />
+                            Không duyệt
                         </button>
-                        <button
-                            onClick={handleClickVerify}
-                            disabled={loading || !canVerify}
-                            className="px-6 py-2 text-sm font-medium text-white bg-teal-600 rounded-md hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            Duyệt & Xác thực
-                        </button>
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={onClose}
+                                disabled={loading}
+                                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+                            >
+                                Hủy
+                            </button>
+                            <button
+                                onClick={handleClickVerify}
+                                disabled={loading || !canVerify}
+                                className="px-6 py-2 text-sm font-medium text-white bg-teal-600 rounded-md hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Duyệt & Xác thực
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
 
             {/* Confirmation Dialog — modal nhỏ xác nhận lần cuối */}
             {showConfirmDialog && (
-                <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60] p-4">
+                <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
                     <div className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6">
                         <div className="flex items-center gap-3 mb-4">
                             <div className="flex-shrink-0 w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center">
@@ -296,6 +363,62 @@ export default function VerifyRequestModal({ request, isOpen, onClose, onSuccess
                                 className="px-6 py-2 text-sm font-medium text-white bg-teal-600 rounded-md hover:bg-teal-700 disabled:opacity-50"
                             >
                                 {loading ? 'Đang xử lý...' : 'Xác nhận duyệt'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Reject Dialog — modal từ chối yêu cầu */}
+            {showRejectDialog && (
+                <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+                    <div className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                                <XCircleIcon className="h-5 w-5 text-red-600" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-semibold text-gray-900">Từ chối yêu cầu</h3>
+                                <p className="text-sm text-gray-500">Chọn lý do từ chối</p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-2 mb-4 max-h-48 overflow-y-auto">
+                            {REJECT_REASONS.map((reason) => (
+                                <label key={reason.id} className="flex items-start gap-2 cursor-pointer p-2 rounded hover:bg-gray-50">
+                                    <input
+                                        type="checkbox"
+                                        checked={rejectReasons.includes(reason.id)}
+                                        onChange={() => toggleRejectReason(reason.id)}
+                                        className="mt-0.5 h-4 w-4 text-red-600 rounded border-gray-300 focus:ring-red-500"
+                                    />
+                                    <span className="text-sm text-gray-700">{reason.label}</span>
+                                </label>
+                            ))}
+                        </div>
+
+                        <textarea
+                            rows="2"
+                            value={rejectNote}
+                            onChange={(e) => setRejectNote(e.target.value)}
+                            placeholder="Ghi chú thêm (không bắt buộc)..."
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 mb-4"
+                        />
+
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={() => setShowRejectDialog(false)}
+                                disabled={loading}
+                                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                            >
+                                Quay lại
+                            </button>
+                            <button
+                                onClick={handleConfirmReject}
+                                disabled={loading || rejectReasons.length === 0}
+                                className="px-6 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {loading ? 'Đang xử lý...' : 'Xác nhận từ chối'}
                             </button>
                         </div>
                     </div>
