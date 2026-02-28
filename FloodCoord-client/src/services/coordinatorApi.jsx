@@ -39,7 +39,9 @@ export const coordinatorApi = {
         }
     },
 
-    // Verify a pending request (PENDING -> VERIFIED)
+    // Verify a pending request (PENDING -> VERIFIED / REJECTED)
+    // Body: { emergencyLevel: string, note: string, approved: boolean }
+    // approved=true → VERIFIED, approved=false → REJECTED
     verifyRequest: async (requestId, data) => {
         try {
             const response = await axiosClient.put(
@@ -90,6 +92,21 @@ export const coordinatorApi = {
             return response.data;
         } catch (error) {
             console.error("Cancel request failed:", error);
+            throw error;
+        }
+    },
+
+    // rejectRequest đã được gộp vào verifyRequest (approved: false)
+    // Giữ alias nếu cần dùng ở nơi khác
+    rejectRequest: async (requestId, data) => {
+        try {
+            const response = await axiosClient.put(
+                `/api/coordinator/requests/${requestId}/verify`,
+                { ...data, approved: false }
+            );
+            return response.data;
+        } catch (error) {
+            console.error("Reject request failed:", error);
             throw error;
         }
     }

@@ -19,6 +19,8 @@ export default function StatusBadge({ status }) {
                 return 'bg-green-100 text-green-700 border-green-300';
             case 'CANCELLED':
                 return 'bg-red-100 text-red-700 border-red-300';
+            case 'REJECTED':
+                return 'bg-rose-100 text-rose-800 border-rose-400';
             case 'ASSIGNED':
                 return 'bg-green-100 text-green-700 border-green-300';
             default:
@@ -44,6 +46,8 @@ export default function StatusBadge({ status }) {
                 return 'Completed';
             case 'CANCELLED':
                 return 'Cancelled';
+            case 'REJECTED':
+                return 'Không duyệt';
             case 'ASSIGNED':
                 return 'Assigned';
             default:
