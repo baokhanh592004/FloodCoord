@@ -6,4 +6,5 @@ import lombok.Data;
 public class VerifyRequestDTO {
     private String emergencyLevel;
     private String note;
+    private boolean isApproved;
 }

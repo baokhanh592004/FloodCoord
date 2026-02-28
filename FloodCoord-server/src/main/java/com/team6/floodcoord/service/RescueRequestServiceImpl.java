@@ -8,7 +8,10 @@ import com.team6.floodcoord.model.enums.TeamStatus;
 import com.team6.floodcoord.model.enums.VehicleStatus;
 import com.team6.floodcoord.repository.*;
 
+import com.team6.floodcoord.utils.RescueRequestMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -32,6 +35,7 @@ public class RescueRequestServiceImpl implements RescueRequestService {
     private final SupplyRepository supplyRepo;
     private final RequestSupplyRepository requestSupplyRepo;
     private final CloudinaryService cloudinaryService;
+    private final RescueRequestMapper requestMapper;
 
 
     @Override
@@ -221,19 +225,21 @@ public class RescueRequestServiceImpl implements RescueRequestService {
             throw new IllegalStateException("Request can only be verified when status is PENDING. Current: " + request.getStatus());
         }
 
-        // 3. Cập nhật thông tin xác minh
-        request.setStatus(RequestStatus.VERIFIED); // Chuyển sang đã xác minh
-        request.setVerifiedBy(coordinator);        // Lưu người duyệt
-
-        if (dto.getEmergencyLevel() != null) {
-            request.setEmergencyLevel(dto.getEmergencyLevel());
+        // Xử lý Duyệt hoặc Từ chối
+        if (dto.isApproved()) {
+            request.setStatus(RequestStatus.VERIFIED);
+            if (dto.getEmergencyLevel() != null) {
+                request.setEmergencyLevel(dto.getEmergencyLevel());
+            }
+        } else {
+            request.setStatus(RequestStatus.REJECTED); // Đảm bảo bạn đã thêm REJECTED vào RequestStatus.java
+            if (dto.getNote() == null || dto.getNote().isBlank()) {
+                throw new IllegalArgumentException("Vui lòng nhập lý do từ chối vào phần ghi chú.");
+            }
         }
 
-        // Cập nhật ghi chú (Nếu có gửi lên)
-        if (dto.getNote() != null && !dto.getNote().isEmpty()) {
-            request.setCoordinatorNote(dto.getNote());
-        }
-
+        request.setVerifiedBy(coordinator);
+        request.setCoordinatorNote(dto.getNote());
         requestRepo.save(request);
     }
 
@@ -422,6 +428,12 @@ public class RescueRequestServiceImpl implements RescueRequestService {
         }
 
         return dto;
+    }
+
+    @Override
+    public Page<RescueRequestSummaryResponse> getAllRequestsForAdmin(RequestStatus status, Pageable pageable) {
+        return requestRepo.findAllByStatusOptional(status, pageable)
+                .map(requestMapper::toSummaryResponse);
     }
 
     // Hàm kiểm tra logic chuyển trạng thái
