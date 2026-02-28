@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { XMarkIcon, PlusIcon, MinusIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, PlusIcon, MinusIcon, ExclamationTriangleIcon, ChevronDownIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import { coordinatorApi } from '../../services/coordinatorApi';
 import { teamApi } from '../../services/teamApi';
 import { vehicleApi } from '../../services/vehicleApi';
@@ -26,11 +26,11 @@ export default function AssignTaskModal({ request, isOpen, onClose, onSuccess })
     // Toggle có/không sử dụng phương tiện & hàng cứu trợ
     const [useVehicle, setUseVehicle] = useState(false);
     const [useSupplies, setUseSupplies] = useState(false);
+    const [expandedGroups, setExpandedGroups] = useState({});
 
     const [formData, setFormData] = useState({
         rescueTeamId: '',
-        vehicleId: '',
-        vehicleQuantity: 1,
+        vehicleIds: [],     // multi-select vehicles
         note: '',
         emergencyLevel: '',
         supplies: [],       // [{supplyId, quantity}]
@@ -41,8 +41,7 @@ export default function AssignTaskModal({ request, isOpen, onClose, onSuccess })
             loadResources();
             setFormData({
                 rescueTeamId: '',
-                vehicleId: '',
-                vehicleQuantity: 1,
+                vehicleIds: [],
                 note: '',
                 emergencyLevel: request?.emergencyLevel || '',
                 supplies: [],
@@ -83,7 +82,9 @@ export default function AssignTaskModal({ request, isOpen, onClose, onSuccess })
         try {
             await coordinatorApi.assignTask(request.requestId || request.id, {
                 rescueTeamId: Number(formData.rescueTeamId),
-                vehicleId: useVehicle && formData.vehicleId ? Number(formData.vehicleId) : null,
+                vehicleIds: useVehicle && formData.vehicleIds.length > 0
+                    ? formData.vehicleIds.map(Number)
+                    : [],
                 note: formData.note,
                 emergencyLevel: formData.emergencyLevel || request.emergencyLevel,
                 supplies: useSupplies
@@ -114,11 +115,28 @@ export default function AssignTaskModal({ request, isOpen, onClose, onSuccess })
     const updateQuantity = (supplyId, delta) => {
         setFormData((prev) => ({
             ...prev,
-            supplies: prev.supplies.map((s) =>
-                s.supplyId === supplyId ? { ...s, quantity: Math.max(1, s.quantity + delta) } : s
-            ),
+            supplies: prev.supplies.map((s) => {
+                if (s.supplyId !== supplyId) return s;
+                const maxQty = supplies.find((sup) => sup.id === supplyId)?.quantity || 999;
+                return { ...s, quantity: Math.max(1, Math.min(maxQty, s.quantity + delta)) };
+            }),
         }));
     };
+
+    const toggleGroup = (type) => {
+        setExpandedGroups((prev) => ({ ...prev, [type]: prev[type] === false ? true : false }));
+    };
+
+    // Lọc hàng hết hạn, nhóm theo loại
+    const validSupplies = supplies.filter(
+        (s) => !s.expiryDate || new Date(s.expiryDate) > new Date()
+    );
+    const groupedSupplies = validSupplies.reduce((acc, s) => {
+        const type = s.type || 'Khác';
+        if (!acc[type]) acc[type] = [];
+        acc[type].push(s);
+        return acc;
+    }, {});
 
     if (!isOpen || !request) return null;
 
@@ -137,7 +155,7 @@ export default function AssignTaskModal({ request, isOpen, onClose, onSuccess })
     return (
         <>
             {/* Main Modal */}
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                 <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] flex flex-col">
                     {/* Header — cố định */}
                     <div className="flex-shrink-0 flex items-center justify-between p-5 border-b border-gray-200">
@@ -205,7 +223,7 @@ export default function AssignTaskModal({ request, isOpen, onClose, onSuccess })
                                     type="button"
                                     onClick={() => {
                                         setUseVehicle(!useVehicle);
-                                        if (useVehicle) setFormData({ ...formData, vehicleId: '', vehicleQuantity: 1 });
+                                        if (useVehicle) setFormData({ ...formData, vehicleIds: [] });
                                     }}
                                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                                         useVehicle ? 'bg-teal-600' : 'bg-gray-300'
@@ -223,19 +241,38 @@ export default function AssignTaskModal({ request, isOpen, onClose, onSuccess })
                             </p>
 
                             {useVehicle && (
-                                <div className="border border-gray-200 rounded-md p-3 space-y-3">
-                                    <select
-                                        value={formData.vehicleId}
-                                        onChange={(e) => setFormData({ ...formData, vehicleId: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-teal-500"
-                                    >
-                                        <option value="">— Chọn phương tiện —</option>
-                                        {availableVehicles.map((v) => (
-                                            <option key={v.id} value={v.id}>
-                                                {v.name} — {v.type} (Sức chứa: {v.capacity})
-                                            </option>
-                                        ))}
-                                    </select>
+                                <div className="border border-gray-200 rounded-md max-h-48 overflow-y-auto">
+                                    {availableVehicles.length === 0 ? (
+                                        <p className="text-sm text-gray-400 text-center py-4">Không có phương tiện khả dụng</p>
+                                    ) : (
+                                        availableVehicles.map((v) => {
+                                            const checked = formData.vehicleIds.includes(String(v.id));
+                                            return (
+                                                <label
+                                                    key={v.id}
+                                                    className="flex items-center gap-3 px-3 py-2.5 border-b border-gray-100 last:border-b-0 hover:bg-gray-50 cursor-pointer"
+                                                >
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={checked}
+                                                        onChange={() => {
+                                                            setFormData((prev) => ({
+                                                                ...prev,
+                                                                vehicleIds: checked
+                                                                    ? prev.vehicleIds.filter((id) => id !== String(v.id))
+                                                                    : [...prev.vehicleIds, String(v.id)],
+                                                            }));
+                                                        }}
+                                                        className="h-4 w-4 text-teal-600 rounded"
+                                                    />
+                                                    <div className="flex-1">
+                                                        <p className="text-sm font-medium text-gray-900">{v.name}</p>
+                                                        <p className="text-xs text-gray-500">{v.type} • Sức chứa: {v.capacity}</p>
+                                                    </div>
+                                                </label>
+                                            );
+                                        })
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -266,56 +303,94 @@ export default function AssignTaskModal({ request, isOpen, onClose, onSuccess })
                             </p>
 
                             {useSupplies && (
-                                <div className="border border-gray-200 rounded-md max-h-56 overflow-y-auto">
-                                    {supplies.length === 0 ? (
+                                <div className="border border-gray-200 rounded-md max-h-64 overflow-y-auto">
+                                    {Object.keys(groupedSupplies).length === 0 ? (
                                         <p className="text-sm text-gray-400 text-center py-4">Không có hàng cứu trợ</p>
                                     ) : (
-                                        supplies.map((supply) => {
-                                            const selected = formData.supplies.find((s) => s.supplyId === supply.id);
-                                            return (
-                                                <div
-                                                    key={supply.id}
-                                                    className="flex items-center justify-between p-3 border-b border-gray-100 last:border-b-0 hover:bg-gray-50"
+                                        Object.entries(groupedSupplies).map(([type, items]) => (
+                                            <div key={type}>
+                                                {/* Group header — bấm để mở/đóng */}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => toggleGroup(type)}
+                                                    className="w-full flex items-center justify-between px-3 py-2 bg-gray-50 border-b border-gray-200 hover:bg-gray-100 transition-colors"
                                                 >
-                                                    <label className="flex items-center gap-3 flex-1 cursor-pointer">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={!!selected}
-                                                            onChange={() => toggleSupply(supply.id)}
-                                                            className="h-4 w-4 text-teal-600 rounded"
-                                                        />
-                                                        <div className="flex-1">
-                                                            <p className="text-sm font-medium text-gray-900">{supply.name}</p>
-                                                            <p className="text-xs text-gray-500">
-                                                                {supply.type} • Có sẵn: {supply.quantity} {supply.unit}
-                                                            </p>
-                                                        </div>
-                                                    </label>
-                                                    {selected && (
-                                                        <div className="flex items-center gap-2">
-                                                            <button
-                                                                onClick={() => updateQuantity(supply.id, -1)}
-                                                                className="p-1 rounded hover:bg-gray-200"
-                                                            >
-                                                                <MinusIcon className="h-4 w-4 text-gray-600" />
-                                                            </button>
-                                                            <span className="w-12 text-center text-sm font-medium">
-                                                                {selected.quantity}
-                                                            </span>
-                                                            <button
-                                                                onClick={() => updateQuantity(supply.id, 1)}
-                                                                className="p-1 rounded hover:bg-gray-200"
-                                                            >
-                                                                <PlusIcon className="h-4 w-4 text-gray-600" />
-                                                            </button>
-                                                            <span className="text-xs text-gray-500 w-10">
-                                                                {supply.unit}
-                                                            </span>
-                                                        </div>
+                                                    <span className="text-xs font-semibold text-gray-700 uppercase">
+                                                        {type} ({items.length})
+                                                    </span>
+                                                    {expandedGroups[type] === false ? (
+                                                        <ChevronRightIcon className="h-4 w-4 text-gray-400" />
+                                                    ) : (
+                                                        <ChevronDownIcon className="h-4 w-4 text-gray-400" />
                                                     )}
-                                                </div>
-                                            );
-                                        })
+                                                </button>
+                                                {/* Supply items — mặc định mở */}
+                                                {expandedGroups[type] !== false && items.map((supply) => {
+                                                    const selected = formData.supplies.find((s) => s.supplyId === supply.id);
+                                                    return (
+                                                        <div
+                                                            key={supply.id}
+                                                            className="flex items-center justify-between px-3 py-2.5 border-b border-gray-100 last:border-b-0 hover:bg-gray-50"
+                                                        >
+                                                            <label className="flex items-center gap-3 flex-1 cursor-pointer">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={!!selected}
+                                                                    onChange={() => toggleSupply(supply.id)}
+                                                                    className="h-4 w-4 text-teal-600 rounded"
+                                                                />
+                                                                <div className="flex-1">
+                                                                    <p className="text-sm font-medium text-gray-900">{supply.name}</p>
+                                                                    <p className="text-xs text-gray-500">
+                                                                        Có sẵn: {supply.quantity} {supply.unit}
+                                                                    </p>
+                                                                </div>
+                                                            </label>
+                                                            {selected && (
+                                                                <div className="flex items-center gap-2">
+                                                                    <button
+                                                                        onClick={() => updateQuantity(supply.id, -1)}
+                                                                        className="p-1 rounded hover:bg-gray-200"
+                                                                    >
+                                                                        <MinusIcon className="h-4 w-4 text-gray-600" />
+                                                                    </button>
+                                                                    <input
+                                                                        type="number"
+                                                                        min="1"
+                                                                        max={supply.quantity}
+                                                                        value={selected.quantity}
+                                                                        onChange={(e) => {
+                                                                            const val = parseInt(e.target.value, 10);
+                                                                            if (!isNaN(val)) {
+                                                                                setFormData((prev) => ({
+                                                                                    ...prev,
+                                                                                    supplies: prev.supplies.map((s) =>
+                                                                                        s.supplyId === supply.id
+                                                                                            ? { ...s, quantity: Math.max(1, Math.min(supply.quantity, val)) }
+                                                                                            : s
+                                                                                    ),
+                                                                                }));
+                                                                            }
+                                                                        }}
+                                                                        className="w-14 text-center text-sm font-medium border border-gray-300 rounded px-1 py-0.5 focus:ring-1 focus:ring-teal-500 focus:border-teal-500"
+                                                                    />
+                                                                    <button
+                                                                        onClick={() => updateQuantity(supply.id, 1)}
+                                                                        className="p-1 rounded hover:bg-gray-200"
+                                                                        disabled={selected.quantity >= supply.quantity}
+                                                                    >
+                                                                        <PlusIcon className="h-4 w-4 text-gray-600" />
+                                                                    </button>
+                                                                    <span className="text-xs text-gray-500 w-10">
+                                                                        {supply.unit}
+                                                                    </span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        ))
                                     )}
                                 </div>
                             )}
@@ -358,7 +433,7 @@ export default function AssignTaskModal({ request, isOpen, onClose, onSuccess })
 
             {/* Confirmation Dialog — modal nhỏ xác nhận lần cuối */}
             {showConfirmDialog && (
-                <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60] p-4">
+                <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
                     <div className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6">
                         <div className="flex items-center gap-3 mb-4">
                             <div className="flex-shrink-0 w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
@@ -373,10 +448,13 @@ export default function AssignTaskModal({ request, isOpen, onClose, onSuccess })
                             <p>
                                 <strong>Đội:</strong> {selectedTeam?.name || '—'}
                             </p>
-                            {useVehicle && formData.vehicleId && (
+                            {useVehicle && formData.vehicleIds.length > 0 && (
                                 <p>
-                                    <strong>Phương tiện:</strong>{' '}
-                                    {availableVehicles.find((v) => String(v.id) === String(formData.vehicleId))?.name || '—'}
+                                    <strong>Phương tiện ({formData.vehicleIds.length}):</strong>{' '}
+                                    {formData.vehicleIds
+                                        .map((vid) => availableVehicles.find((v) => String(v.id) === vid)?.name)
+                                        .filter(Boolean)
+                                        .join(', ') || '—'}
                                 </p>
                             )}
                             {useSupplies && formData.supplies.length > 0 && (

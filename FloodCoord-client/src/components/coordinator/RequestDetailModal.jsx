@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { XMarkIcon, MapPinIcon, UserIcon, PhoneIcon, ClockIcon, UserGroupIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, MapPinIcon, UserIcon, PhoneIcon, ClockIcon, UserGroupIcon, XCircleIcon } from '@heroicons/react/24/outline';
 import { coordinatorApi } from '../../services/coordinatorApi';
 import StatusBadge from './StatusBadge';
 import PriorityBadge from './PriorityBadge';
@@ -70,7 +70,7 @@ export default function RequestDetailModal({ request, isOpen, onClose, onValidat
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
                 {/* Header — cố định */}
                 <div className="flex-shrink-0 flex items-start justify-between p-5 border-b border-gray-200">
@@ -78,6 +78,11 @@ export default function RequestDetailModal({ request, isOpen, onClose, onValidat
                         <div className="flex items-center gap-2 mb-1.5">
                             <PriorityBadge priority={displayData.emergencyLevel} />
                             <StatusBadge status={displayData.status} />
+                            {displayData.trackingCode && (
+                                <span className="text-xs font-mono text-gray-400 bg-gray-100 px-2 py-0.5 rounded">
+                                    {displayData.trackingCode}
+                                </span>
+                            )}
                         </div>
                         <h2 className="text-lg font-semibold text-gray-900">
                             {displayData.title || 'Chi tiết yêu cầu cứu hộ'}
@@ -95,31 +100,30 @@ export default function RequestDetailModal({ request, isOpen, onClose, onValidat
                     )}
 
                     {/* Thông tin người gửi — ưu tiên lấy từ request (list API) vì detail API có thể không trả về */}
-                    <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
-                        <h3 className="text-sm font-semibold text-blue-900 mb-3">Thông tin người gửi</h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div className="flex items-center gap-2 text-sm text-blue-800">
-                                <UserIcon className="h-4 w-4 flex-shrink-0" />
-                                <span>
-                                    <strong>Người gửi:</strong>{' '}
-                                    {request?.contactName || displayData.contactName || request?.citizenName || displayData.citizenName || 'Không rõ'}
-                                </span>
+                    {(() => {
+                        const senderName = request?.contactName || displayData.contactName || request?.citizenName || displayData.citizenName || 'Không rõ';
+                        const senderPhone = request?.contactPhone || displayData.contactPhone || null;
+                        return (
+                            <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+                                <h3 className="text-sm font-semibold text-blue-900 mb-3">Thông tin người gửi</h3>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div className="flex items-center gap-2 text-sm text-blue-800">
+                                        <UserIcon className="h-4 w-4 flex-shrink-0" />
+                                        <span><strong>Người gửi:</strong> {senderName}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-sm text-blue-800">
+                                        <PhoneIcon className="h-4 w-4 flex-shrink-0" />
+                                        <span>
+                                            <strong>Số điện thoại:</strong>{' '}
+                                            {senderPhone ? (
+                                                <a href={`tel:${senderPhone}`} className="hover:underline">{senderPhone}</a>
+                                            ) : 'Không có'}
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
-                            <div className="flex items-center gap-2 text-sm text-blue-800">
-                                <PhoneIcon className="h-4 w-4 flex-shrink-0" />
-                                <span>
-                                    <strong>Số điện thoại:</strong>{' '}
-                                    {(request?.contactPhone || displayData.contactPhone) ? (
-                                        <a href={`tel:${request?.contactPhone || displayData.contactPhone}`} className="hover:underline">
-                                            {request?.contactPhone || displayData.contactPhone}
-                                        </a>
-                                    ) : (
-                                        'Không có'
-                                    )}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
+                        );
+                    })()}
 
                     {/* Thông tin chính */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -200,7 +204,7 @@ export default function RequestDetailModal({ request, isOpen, onClose, onValidat
                                                 onClick={() => window.open(media.mediaUrl, '_blank')}
                                             />
                                         ) : (
-                                            <video src={media.mediaUrl} controls className="w-full h-full" />
+                                            <video src={media.mediaUrl} controls preload="metadata" className="w-full h-full object-contain bg-black" />
                                         )}
                                     </div>
                                 ))}
@@ -227,6 +231,28 @@ export default function RequestDetailModal({ request, isOpen, onClose, onValidat
                                 <p className="text-xs text-green-700 mt-2">
                                     Ghi chú: {displayData.coordinatorNote}
                                 </p>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Lý do từ chối — chỉ hiển khi REJECTED */}
+                    {displayData.status === 'REJECTED' && (
+                        <div className="bg-rose-50 border border-rose-200 p-4 rounded-lg">
+                            <h3 className="text-sm font-semibold text-rose-900 mb-2 flex items-center gap-2">
+                                <XCircleIcon className="h-4 w-4" />
+                                Lý do từ chối
+                            </h3>
+                            {displayData.rejectReasons && displayData.rejectReasons.length > 0 ? (
+                                <ul className="text-sm text-rose-800 list-disc list-inside space-y-1">
+                                    {displayData.rejectReasons.map((reason, i) => (
+                                        <li key={i}>{reason}</li>
+                                    ))}
+                                </ul>
+                            ) : (
+                                <p className="text-sm text-rose-800">Không có lý do cụ thể</p>
+                            )}
+                            {displayData.rejectNote && (
+                                <p className="text-xs text-rose-700 mt-2">Ghi chú: {displayData.rejectNote}</p>
                             )}
                         </div>
                     )}
