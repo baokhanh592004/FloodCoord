@@ -393,7 +393,29 @@ export default function RequestQueue() {
                 request={selectedRequest}
                 isOpen={showVerifyModal}
                 onClose={() => setShowVerifyModal(false)}
-                onSuccess={loadRequests}
+                onSuccess={(action) => {
+                    // Optimistic update: cập nhật status ngay trong local state
+                    // để UI phản hồi tức thì, không cần chờ backend refresh
+                    if (action === 'rejected' && selectedRequest) {
+                        setRequests((prev) =>
+                            prev.map((r) =>
+                                (r.requestId || r.id) === (selectedRequest.requestId || selectedRequest.id)
+                                    ? { ...r, status: 'REJECTED' }
+                                    : r
+                            )
+                        );
+                    } else if (action === 'verified' && selectedRequest) {
+                        setRequests((prev) =>
+                            prev.map((r) =>
+                                (r.requestId || r.id) === (selectedRequest.requestId || selectedRequest.id)
+                                    ? { ...r, status: 'VERIFIED' }
+                                    : r
+                            )
+                        );
+                    }
+                    // Vẫn gọi loadRequests để đồng bộ đầy đủ từ server
+                    loadRequests();
+                }}
             />
             <AssignTaskModal
                 request={selectedRequest}

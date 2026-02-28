@@ -78,9 +78,9 @@ export default function RequestDetailModal({ request, isOpen, onClose, onValidat
                         <div className="flex items-center gap-2 mb-1.5">
                             <PriorityBadge priority={displayData.emergencyLevel} />
                             <StatusBadge status={displayData.status} />
-                            {displayData.trackingCode && (
+                            {(displayData.trackingCode || request?.trackingCode) && (
                                 <span className="text-xs font-mono text-gray-400 bg-gray-100 px-2 py-0.5 rounded">
-                                    {displayData.trackingCode}
+                                    {displayData.trackingCode || request?.trackingCode}
                                 </span>
                             )}
                         </div>

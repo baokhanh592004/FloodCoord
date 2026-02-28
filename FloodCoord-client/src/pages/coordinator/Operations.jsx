@@ -152,7 +152,7 @@ export default function Operations() {
             {/* Main content — fills remaining viewport */}
             <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-3">
                 {/* ===== BẢN ĐỒ ===== */}
-                <div className="lg:col-span-2 bg-white border border-gray-200 rounded-lg flex flex-col overflow-hidden">
+                <div className="lg:col-span-2 bg-white border border-gray-200 rounded-lg flex flex-col overflow-hidden relative z-0">
                     <div className="flex-shrink-0 flex items-center gap-2 text-gray-700 px-4 py-2.5 border-b border-gray-100">
                         <MapIcon className="h-4 w-4" />
                         <span className="text-xs font-semibold">Bản đồ hoạt động</span>
@@ -226,9 +226,16 @@ export default function Operations() {
                                     }`} />
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium text-gray-900 truncate">
-                                        {req.title || req.trackingCode}
-                                    </p>
+                                    <div className="flex items-center gap-1.5">
+                                        <p className="text-sm font-medium text-gray-900 truncate">
+                                            {req.title || 'Yêu cầu cứu hộ'}
+                                        </p>
+                                        {req.trackingCode && (
+                                            <span className="flex-shrink-0 text-[10px] font-mono text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
+                                                {req.trackingCode}
+                                            </span>
+                                        )}
+                                    </div>
                                     <p className="text-xs text-gray-500">
                                         {statusLabel(req.status)}
                                         {req.assignedTeamName && ` • ${req.assignedTeamName}`}

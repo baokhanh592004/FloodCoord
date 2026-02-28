@@ -92,7 +92,7 @@ export default function VerifyRequestModal({ request, isOpen, onClose, onSuccess
             });
             toast.success('Xác thực yêu cầu thành công!');
             setShowConfirmDialog(false);
-            onSuccess?.();
+            onSuccess?.('verified');
             onClose();
         } catch (error) {
             toast.error('Xác thực thất bại: ' + (error.response?.data?.message || error.message));
@@ -123,7 +123,7 @@ export default function VerifyRequestModal({ request, isOpen, onClose, onSuccess
             });
             toast.success('Đã từ chối yêu cầu');
             setShowRejectDialog(false);
-            onSuccess?.();
+            onSuccess?.('rejected');
             onClose();
         } catch (error) {
             toast.error('Từ chối thất bại: ' + (error.response?.data?.message || error.message));
