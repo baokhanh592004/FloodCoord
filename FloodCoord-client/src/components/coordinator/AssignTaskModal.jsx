@@ -199,7 +199,7 @@ export default function AssignTaskModal({ request, isOpen, onClose, onSuccess })
                                 {sortedTeams.map((team) => (
                                     <option key={team.id} value={team.id} disabled={team.status === 'BUSY'}>
                                         {team.name} — {team.members?.length || 0} thành viên
-                                        {team.experienceYears ? ` — ${team.experienceYears} năm KN` : ''}
+                                        {team.experienceYears ? ` — ${team.experienceYears} năm kinh nghiệm` : ''}
                                         {team.specialization ? ` — ${team.specialization}` : ''}
                                         {team.status === 'BUSY' ? ' (Đang bận)' : ''}
                                     </option>
