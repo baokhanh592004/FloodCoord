@@ -7,6 +7,7 @@ import com.team6.floodcoord.model.Role;
 import com.team6.floodcoord.model.User;
 import com.team6.floodcoord.repository.RoleRepository;
 import com.team6.floodcoord.repository.UserRepository;
+import com.team6.floodcoord.utils.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -23,6 +24,7 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
+    private final UserMapper userMapper;
 
 
     @Override
@@ -95,6 +97,36 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
         return mapToDTO(user);
     }
+
+    @Override
+    public UserResponse getMyProfile(User currentUser) {
+        User user = userRepository.findById(currentUser.getId())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
+        return userMapper.toUserResponse(user);
+    }
+
+    @Override
+    @Transactional
+    public UserResponse updateMyProfile(User currentUser, com.team6.floodcoord.dto.request.ProfileUpdateRequest request) {
+        User user = userRepository.findById(currentUser.getId())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
+
+        // Kiểm tra trùng lặp số điện thoại nếu người dùng đổi số mới
+        if (request.getPhoneNumber() != null && !request.getPhoneNumber().equals(user.getPhoneNumber())) {
+            if (userRepository.existsByPhoneNumber(request.getPhoneNumber())) {
+                throw new IllegalArgumentException("Số điện thoại này đã được sử dụng bởi người khác.");
+            }
+            user.setPhoneNumber(request.getPhoneNumber());
+        }
+
+        // Cập nhật họ tên
+        if (request.getFullName() != null && !request.getFullName().trim().isEmpty()) {
+            user.setFullName(request.getFullName());
+        }
+
+        return userMapper.toUserResponse(userRepository.save(user));
+    }
+
 
     public UserResponse updateUser(Long id, UserUpdateRequest request) {
         User user = userRepository.findById(id)
