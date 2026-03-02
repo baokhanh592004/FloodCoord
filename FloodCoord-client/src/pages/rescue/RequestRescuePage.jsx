@@ -37,6 +37,12 @@ const RequestRescuePage = () => {
     const [successData, setSuccessData] = useState(null);
     const [selectedFiles, setSelectedFiles] = useState([]);
     const [uploadProgress, setUploadProgress] = useState(false);
+    const [locationConfirmed, setLocationConfirmed] = useState(false);
+    const [addressNote, setAddressNote] = useState(''); // Ghi chú thêm (số nhà, hẻm, tầng...)
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState([]);
+    const [searching, setSearching] = useState(false);
+    const [formErrors, setFormErrors] = useState({});
 
     // Thành phần xử lý click chuột trên bản đồ
     const MapEvents = () => {
@@ -58,6 +64,8 @@ const RequestRescuePage = () => {
 
     const updateLocation = async (lat, lng) => {
         setLoading(true);
+        setLocationConfirmed(false); // Reset confirmation on new location pick
+        if (formErrors.location) setFormErrors(prev => ({...prev, location: ''}));
         // Geocoding ngược: Tọa độ -> Địa chỉ (Sử dụng Nominatim miễn phí)
         try {
             const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`);
@@ -85,6 +93,41 @@ const RequestRescuePage = () => {
                 alert("Đã cập nhật vị trí từ GPS của bạn!");
             });
         }
+    };
+
+    // Tìm kiếm địa chỉ bằng text (Nominatim forward geocoding)
+    const searchAddress = async () => {
+        if (!searchQuery.trim()) return;
+        setSearching(true);
+        setSearchResults([]);
+        try {
+            const res = await fetch(
+                `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=5&countrycodes=vn`
+            );
+            const data = await res.json();
+            setSearchResults(data);
+        } catch (err) {
+            console.error('Lỗi tìm kiếm địa chỉ', err);
+        } finally {
+            setSearching(false);
+        }
+    };
+
+    const selectSearchResult = (result) => {
+        const lat = parseFloat(result.lat);
+        const lng = parseFloat(result.lon);
+        setFormData(prev => ({
+            ...prev,
+            location: {
+                ...prev.location,
+                latitude: lat,
+                longitude: lng,
+                addressText: result.display_name
+            }
+        }));
+        setSearchResults([]);
+        setSearchQuery('');
+        setLocationConfirmed(false);
     };
 
     const handleFileChange = (e) => {
@@ -124,6 +167,37 @@ const RequestRescuePage = () => {
    const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // --- Validate tất cả các trường bắt buộc ---
+    const errors = {};
+
+    if (!formData.contactName.trim()) {
+        errors.contactName = 'Vui lòng nhập họ và tên của bạn.';
+    }
+
+    const phoneRegex = /^(0|\+84)[0-9]{9}$/;
+    if (!formData.contactPhone.trim()) {
+        errors.contactPhone = 'Vui lòng nhập số điện thoại.';
+    } else if (!phoneRegex.test(formData.contactPhone.trim())) {
+        errors.contactPhone = 'Số điện thoại không đúng định dạng (VD: 0912345678).';
+    }
+
+    if (!formData.location.addressText.trim()) {
+        errors.location = 'Vui lòng chọn hoặc tìm kiếm địa điểm cần cứu hộ.';
+    } else if (!locationConfirmed) {
+        errors.location = 'Vui lòng nhấn "Xác nhận đây là địa điểm cần cứu hộ" trước khi gửi.';
+    }
+
+    if (Object.keys(errors).length > 0) {
+        setFormErrors(errors);
+        // Cuộn lên trường lỗi đầu tiên
+        const firstErrorKey = Object.keys(errors)[0];
+        const el = document.getElementById(`field-${firstErrorKey}`);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+    }
+
+    setFormErrors({});
+
     if (selectedFiles.length === 0) {
         if (!window.confirm("Bạn chưa đính kèm bằng chứng. Vẫn gửi?")) return;
     }
@@ -143,7 +217,11 @@ const RequestRescuePage = () => {
 
         form.append("location.latitude", formData.location.latitude);
         form.append("location.longitude", formData.location.longitude);
-        form.append("location.addressText", formData.location.addressText);
+        // Ghép ghi chú thêm vào địa chỉ nếu có
+        const fullAddress = addressNote.trim()
+            ? `${formData.location.addressText} (${addressNote.trim()})`
+            : formData.location.addressText;
+        form.append("location.addressText", fullAddress);
         form.append("location.floodDepth", formData.location.floodDepth);
 
         selectedFiles.forEach(file => {
@@ -233,10 +311,18 @@ const RequestRescuePage = () => {
                                             </svg>
                                         </div>
                                         <div>
-                                            <h3 className="font-bold text-gray-800 mb-1">Đánh dấu vị trí</h3>
+                                            <h3 className="font-bold text-gray-800 mb-1">Bước 1: Chọn vị trí</h3>
                                             <p className="text-sm text-gray-600">
-                                                Click vào bản đồ để chọn vị trí chính xác cho đội cứu hộ.
+                                                Click vào bản đồ để ghim vị trí, sau đó <strong>xác nhận địa điểm</strong> trong form bên phải.
                                             </p>
+                                            {locationConfirmed && (
+                                                <div className="mt-2 flex items-center gap-1 text-green-700 text-xs font-semibold">
+                                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                                    </svg>
+                                                    Địa điểm đã xác nhận
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -370,32 +456,59 @@ const RequestRescuePage = () => {
                                             </label>
                                         </div>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div>
+                                            <div id="field-contactName">
                                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                    Họ và tên
+                                                    Họ và tên <span className="text-red-500">*</span>
                                                 </label>
                                                 <input 
                                                     type="text" 
-                                                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition" 
+                                                    className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none transition ${
+                                                        formErrors.contactName
+                                                            ? 'border-red-400 bg-red-50 focus:border-red-500'
+                                                            : 'border-gray-200 focus:border-blue-500'
+                                                    }`}
                                                     value={formData.contactName}
-                                                    onChange={e => setFormData({...formData, contactName: e.target.value})} 
+                                                    onChange={e => {
+                                                        setFormData({...formData, contactName: e.target.value});
+                                                        if (formErrors.contactName) setFormErrors(prev => ({...prev, contactName: ''}));
+                                                    }}
                                                     placeholder="VD: Nguyễn Văn A"
-                                                    required 
                                                 />
+                                                {formErrors.contactName && (
+                                                    <p className="mt-1.5 text-xs text-red-600 flex items-center gap-1">
+                                                        <svg className="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                                        </svg>
+                                                        {formErrors.contactName}
+                                                    </p>
+                                                )}
                                             </div>
-                                            <div>
+                                            <div id="field-contactPhone">
                                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                    Số điện thoại
+                                                    Số điện thoại <span className="text-red-500">*</span>
                                                 </label>
                                                 <input 
                                                     type="tel" 
-                                                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition" 
+                                                    className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none transition ${
+                                                        formErrors.contactPhone
+                                                            ? 'border-red-400 bg-red-50 focus:border-red-500'
+                                                            : 'border-gray-200 focus:border-blue-500'
+                                                    }`}
                                                     value={formData.contactPhone}
-                                                    onChange={e => setFormData({...formData, contactPhone: e.target.value})} 
+                                                    onChange={e => {
+                                                        setFormData({...formData, contactPhone: e.target.value});
+                                                        if (formErrors.contactPhone) setFormErrors(prev => ({...prev, contactPhone: ''}));
+                                                    }}
                                                     placeholder="VD: 0912345678"
-                                                    pattern="^(0|\+84)[0-9]{9}$"
-                                                    required 
                                                 />
+                                                {formErrors.contactPhone && (
+                                                    <p className="mt-1.5 text-xs text-red-600 flex items-center gap-1">
+                                                        <svg className="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                                        </svg>
+                                                        {formErrors.contactPhone}
+                                                    </p>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -468,23 +581,285 @@ const RequestRescuePage = () => {
                                         </div>
                                     </div>
 
-                                    {/* Location Info (Hidden but auto-filled) */}
-                                    {formData.location.addressText && (
-                                        <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
-                                            <div className="flex items-start gap-2">
-                                                <svg className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                                    {/* Location Confirmation Panel */}
+                                    <div id="field-location">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <div className={`w-1 h-5 rounded-full ${formErrors.location ? 'bg-red-500' : 'bg-red-600'}`}></div>
+                                            <label className="font-bold text-gray-900 uppercase text-sm tracking-wide">
+                                                Xác nhận địa điểm cứu hộ <span className="text-red-500">*</span>
+                                            </label>
+                                        </div>
+                                        {formErrors.location && (
+                                            <div className="mb-3 flex items-start gap-2 bg-red-50 border border-red-300 rounded-xl px-4 py-3">
+                                                <svg className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                                                 </svg>
-                                                <div className="flex-1">
-                                                    <div className="font-medium text-blue-900 text-sm mb-1">Vị trí đã chọn:</div>
-                                                    <div className="text-sm text-blue-800">{formData.location.addressText}</div>
-                                                    <div className="text-xs text-blue-600 mt-1">
-                                                        {formData.location.latitude.toFixed(6)}, {formData.location.longitude.toFixed(6)}
+                                                <p className="text-sm text-red-700 font-medium">{formErrors.location}</p>
+                                            </div>
+                                        )}
+
+                                        {!formData.location.addressText ? (
+                                            <div className="space-y-3">
+                                                {/* Search box */}
+                                                <div className="relative">
+                                                    <div className="flex gap-2">
+                                                        <div className="relative flex-1">
+                                                            <input
+                                                                type="text"
+                                                                value={searchQuery}
+                                                                onChange={e => setSearchQuery(e.target.value)}
+                                                                onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), searchAddress())}
+                                                                placeholder="🔍 Tìm kiếm địa chỉ... VD: 123 Nguyễn Huệ, Q.1"
+                                                                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition pr-10"
+                                                            />
+                                                            {searchQuery && (
+                                                                <button type="button" onClick={() => { setSearchQuery(''); setSearchResults([]); }}
+                                                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                                                                    ✕
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={searchAddress}
+                                                            disabled={searching || !searchQuery.trim()}
+                                                            className="px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-semibold rounded-xl transition flex items-center gap-2 whitespace-nowrap"
+                                                        >
+                                                            {searching ? (
+                                                                <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                                                                </svg>
+                                                            ) : (
+                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                                                </svg>
+                                                            )}
+                                                            Tìm
+                                                        </button>
                                                     </div>
+
+                                                    {/* Search results dropdown */}
+                                                    {searchResults.length > 0 && (
+                                                        <div className="absolute top-full left-0 right-0 mt-1 bg-white border-2 border-blue-200 rounded-xl shadow-xl z-50 overflow-hidden">
+                                                            {searchResults.map((r, i) => (
+                                                                <button
+                                                                    key={i}
+                                                                    type="button"
+                                                                    onClick={() => selectSearchResult(r)}
+                                                                    className="w-full text-left px-4 py-3 hover:bg-blue-50 transition border-b border-gray-100 last:border-0"
+                                                                >
+                                                                    <div className="flex items-start gap-2">
+                                                                        <span className="text-blue-500 mt-0.5 flex-shrink-0">📍</span>
+                                                                        <span className="text-sm text-gray-800 leading-snug">{r.display_name}</span>
+                                                                    </div>
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                    {searching === false && searchQuery && searchResults.length === 0 && !searching && (
+                                                        <p className="text-xs text-gray-400 mt-1 px-1">Không tìm thấy. Thử tìm cụ thể hơn hoặc click thẳng lên bản đồ.</p>
+                                                    )}
+                                                </div>
+
+                                                {/* Divider */}
+                                                <div className="flex items-center gap-3">
+                                                    <div className="flex-1 h-px bg-gray-200"/>
+                                                    <span className="text-xs text-gray-400 font-medium">hoặc</span>
+                                                    <div className="flex-1 h-px bg-gray-200"/>
+                                                </div>
+
+                                                {/* Map hint */}
+                                                <div className="border-2 border-dashed border-yellow-400 bg-yellow-50 rounded-xl p-4 text-center">
+                                                    <div className="text-3xl mb-1">📍</div>
+                                                    <p className="font-semibold text-yellow-800 text-sm mb-0.5">Click trực tiếp lên bản đồ</p>
+                                                    <p className="text-xs text-yellow-700">
+                                                        Hoặc nhấn <strong>"Đùng GPS của tôi"</strong> để tự động xác định vị trí.
+                                                    </p>
                                                 </div>
                                             </div>
-                                        </div>
-                                    )}
+                                        ) : (
+                                            <div className={`rounded-xl border-2 overflow-hidden transition-all ${locationConfirmed ? 'border-green-500 shadow-md' : 'border-orange-400'}`}>
+                                                {/* Address display */}
+                                                <div className={`p-4 ${locationConfirmed ? 'bg-green-50' : 'bg-orange-50'}`}>
+                                                    <div className="flex items-start gap-3">
+                                                        <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${locationConfirmed ? 'bg-green-200' : 'bg-orange-200'}`}>
+                                                            <svg className={`w-5 h-5 ${locationConfirmed ? 'text-green-700' : 'text-orange-700'}`} fill="currentColor" viewBox="0 0 20 20">
+                                                                <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                                                            </svg>
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className={`font-semibold text-sm mb-1.5 ${locationConfirmed ? 'text-green-800' : 'text-orange-800'}`}>
+                                                                {locationConfirmed ? '✅ Địa điểm đã xác nhận' : '⚠️ Kiểm tra và chỉnh sửa nếu cần'}
+                                                            </div>
+                                                            {/* Editable address textarea */}
+                                                            <textarea
+                                                                rows={3}
+                                                                value={formData.location.addressText}
+                                                                onChange={e => {
+                                                                    setFormData(prev => ({
+                                                                        ...prev,
+                                                                        location: { ...prev.location, addressText: e.target.value }
+                                                                    }));
+                                                                    setLocationConfirmed(false);
+                                                                }}
+                                                                className="w-full text-sm text-gray-800 bg-white border border-gray-300 rounded-lg px-3 py-2 focus:border-blue-400 focus:outline-none resize-none transition leading-snug"
+                                                                placeholder="Địa chỉ đầy đủ..."
+                                                            />
+                                                            <div className="text-xs text-gray-400 mt-0.5">
+                                                                📌 {formData.location.latitude.toFixed(6)}, {formData.location.longitude.toFixed(6)}
+                                                            </div>
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setLocationConfirmed(false);
+                                                                setFormData(prev => ({
+                                                                    ...prev,
+                                                                    location: {
+                                                                        ...prev.location,
+                                                                        addressText: '',
+                                                                        latitude: 10.8231,
+                                                                        longitude: 106.6297
+                                                                    }
+                                                                }));
+                                                            }}
+                                                            className="text-gray-400 hover:text-red-500 transition flex-shrink-0 text-lg leading-none"
+                                                            title="Chọn lại vị trí"
+                                                        >
+                                                            ✕
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                {/* Flood depth + confirm */}
+                                                <div className="px-4 py-4 bg-white border-t border-gray-100 space-y-4">
+                                                    {/* Address note */}
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                            Thông tin bổ sung địa điểm
+                                                            <span className="ml-1 text-gray-400 font-normal">(tùy chọn)</span>
+                                                        </label>
+                                                        <input
+                                                            type="text"
+                                                            value={addressNote}
+                                                            onChange={e => {
+                                                                setAddressNote(e.target.value);
+                                                                setLocationConfirmed(false);
+                                                            }}
+                                                            placeholder="VD: Số nhà 15, Hẻm 23, Tầng 2, Gần trường tiểu học..."
+                                                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition text-sm"
+                                                        />
+                                                        <p className="text-xs text-gray-400 mt-1">
+                                                            Giúp đội cứu hộ tìm đến chính xác hơn (số nhà, hẻm, tầng, mốc nổi tiếng gần đó...)
+                                                        </p>
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                            Độ sâu nước ngập tại vị trí <span className="text-gray-400">(ước tính)</span>
+                                                        </label>
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="relative flex-1">
+                                                                <input
+                                                                    type="number"
+                                                                    min="0"
+                                                                    step="0.1"
+                                                                    className="w-full px-4 py-3 pr-14 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition"
+                                                                    value={formData.location.floodDepth}
+                                                                    onChange={e => {
+                                                                        const val = parseFloat(e.target.value) || 0;
+                                                                        setFormData(prev => ({
+                                                                            ...prev,
+                                                                            location: { ...prev.location, floodDepth: val }
+                                                                        }));
+                                                                        setLocationConfirmed(false);
+                                                                    }}
+                                                                    placeholder="VD: 0.5"
+                                                                />
+                                                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 font-medium text-sm pointer-events-none">
+                                                                    mét
+                                                                </span>
+                                                            </div>
+                                                            {/* Flood depth quick-select badges */}
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {[0.3, 0.5, 1.0, 1.5].map(d => (
+                                                                    <button
+                                                                        key={d}
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            setFormData(prev => ({
+                                                                                ...prev,
+                                                                                location: { ...prev.location, floodDepth: d }
+                                                                            }));
+                                                                            setLocationConfirmed(false);
+                                                                        }}
+                                                                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${
+                                                                            formData.location.floodDepth === d
+                                                                                ? 'bg-blue-600 text-white border-blue-600'
+                                                                                : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'
+                                                                        }`}
+                                                                    >
+                                                                        {d}m
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                        {/* Depth level hint */}
+                                                        <div className="mt-2 flex items-center gap-2">
+                                                            {formData.location.floodDepth <= 0 && (
+                                                                <span className="text-xs text-gray-400">Nhập 0 nếu không xác định được</span>
+                                                            )}
+                                                            {formData.location.floodDepth > 0 && formData.location.floodDepth <= 0.3 && (
+                                                                <span className="inline-flex items-center gap-1 text-xs text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full">💧 Nước nông (&lt;= 30cm)</span>
+                                                            )}
+                                                            {formData.location.floodDepth > 0.3 && formData.location.floodDepth <= 0.7 && (
+                                                                <span className="inline-flex items-center gap-1 text-xs text-yellow-700 bg-yellow-50 px-2 py-0.5 rounded-full">🌊 Ngập vừa (30–70cm)</span>
+                                                            )}
+                                                            {formData.location.floodDepth > 0.7 && formData.location.floodDepth <= 1.2 && (
+                                                                <span className="inline-flex items-center gap-1 text-xs text-orange-700 bg-orange-50 px-2 py-0.5 rounded-full">⚠️ Ngập sâu (70cm–1.2m)</span>
+                                                            )}
+                                                            {formData.location.floodDepth > 1.2 && (
+                                                                <span className="inline-flex items-center gap-1 text-xs text-red-700 bg-red-50 px-2 py-0.5 rounded-full">🚨 Nguy hiểm (&gt; 1.2m)</span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Confirm button */}
+                                                    {!locationConfirmed ? (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setLocationConfirmed(true);
+                                                                setFormErrors(prev => ({...prev, location: ''}));
+                                                            }}
+                                                            className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-4 rounded-xl transition flex items-center justify-center gap-2"
+                                                        >
+                                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                            </svg>
+                                                            Xác nhận đây là địa điểm cần cứu hộ
+                                                        </button>
+                                                    ) : (
+                                                        <div className="flex items-center justify-between bg-green-50 border border-green-300 rounded-xl px-4 py-3">
+                                                            <div className="flex items-center gap-2 text-green-700 font-semibold">
+                                                                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                                                </svg>
+                                                                Đã xác nhận địa điểm cứu hộ
+                                                            </div>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setLocationConfirmed(false)}
+                                                                className="text-xs text-gray-500 hover:text-red-500 underline transition"
+                                                            >
+                                                                Thay đổi
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
 
                                     {/* Evidence Upload */}
                                     <div>
@@ -569,8 +944,12 @@ const RequestRescuePage = () => {
                                     {/* Submit Button */}
                                     <button 
                                         type="submit" 
-                                        disabled={loading}
-                                        className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-6 rounded-xl transition shadow-lg hover:shadow-xl disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-3 text-lg"
+                                        disabled={loading || !locationConfirmed}
+                                        className={`w-full font-bold py-4 px-6 rounded-xl transition shadow-lg hover:shadow-xl disabled:cursor-not-allowed flex items-center justify-center gap-3 text-lg ${
+                                            locationConfirmed
+                                                ? 'bg-red-600 hover:bg-red-700 text-white'
+                                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                        }`}
                                     >
                                         {uploadProgress ? (
                                             <>
@@ -593,7 +972,7 @@ const RequestRescuePage = () => {
                                                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                                                 </svg>
-                                                GỬI YÊU CẦU KHẨN CẤP
+                                                {locationConfirmed ? 'GỬI YÊU CẦU KHẨN CẤP' : '⚠️ CHƯA XÁC NHẬN ĐỊA ĐIỂM'}
                                             </>
                                         )}
                                     </button>
