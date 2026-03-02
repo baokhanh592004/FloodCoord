@@ -6,6 +6,7 @@ import MainLayout from '../layouts/MainLayout'
 import CoordinatorLayout from '../layouts/CoordinatorLayout'
 import ManagerLayout from '../layouts/ManagerLayout'
 import AdminLayout from '../layouts/AdminLayout'
+import RescueTeamLayout from '../layouts/RescueTeamLayout'
 
 /* Public pages */
 import HomePage from '../pages/HomePage'
@@ -36,7 +37,8 @@ import RequestQueue from '../pages/coordinator/RequestQueue'
 import Operations from '../pages/coordinator/Operations'
 
 /* Rescue Team */
-import RescueTeamDashboard from '../pages/rescue/RescueTeamDashboard'
+import RescueTeamDashboard from '../pages/rescueteam/RescueTeamDashboard'
+import MissionsPage from '../pages/rescueteam/MissionsPage';
 
 export default function AppRoutes() {
   return (
@@ -98,15 +100,19 @@ export default function AppRoutes() {
         <Route path="operations" element={<Operations />} />
       </Route>
 
-      {/* ================= RESCUE TEAM ================= */}
-      <Route
-        path="/rescue-team/dashboard"
+{/* ================= RESCUE TEAM (WITH SIDEBAR) ================= */}
+    <Route
+        path="/rescue-team"
         element={
-          <RoleBasedRoute allowedRoles={['RESCUE_TEAM', 'TEAM_MEMBER']}>
-            <RescueTeamDashboard />
+          <RoleBasedRoute allowedRoles={["RESCUE_TEAM", "TEAM_MEMBER"]}>
+            <RescueTeamLayout />
           </RoleBasedRoute>
         }
-      />
+      >
+        <Route path="" element={<RescueTeamDashboard />} />
+        <Route path="dashboard" element={<RescueTeamDashboard />} />
+        <Route path="missions" element={<MissionsPage />} />
+      </Route>
 
       {/* ================= 404 ================= */}
       <Route
