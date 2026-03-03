@@ -8,7 +8,7 @@ export default function MainLayout() {
   return (
     <div className="flex flex-col min-h-screen justify-between">
       <Header/>
-      <main >
+      <main className="pt-[73px]">
         <Outlet />
       </main>
     <Footer/>

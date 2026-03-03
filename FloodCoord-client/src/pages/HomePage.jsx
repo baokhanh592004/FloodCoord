@@ -56,7 +56,7 @@ const HomePage = () => {
 return (
     <main>
       {/* HERO */}
-           <section className="pt-32 pb-20 lg:pt-48 lg:pb-32 bg-gradient-to-br from-blue-50 via-sky-50 to-white overflow-hidden">
+           <section className="pt-8 pb-20 lg:pt-16 lg:pb-32 bg-gradient-to-br from-blue-50 via-sky-50 to-white overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col lg:flex-row items-center gap-16">
             <div className="lg:w-1/2 space-y-8 animate-in fade-in slide-in-from-left duration-1000">

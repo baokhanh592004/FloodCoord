@@ -76,7 +76,7 @@ export default function LoginPage() {
 
   return (
     // Chiều cao = 100vh - Header (~85px) - Footer (~50px) = 100vh - 135px
-    <div className="flex h-[calc(100vh-135px)] w-full overflow-hidden">
+    <div className="flex h-[calc(100vh-73px)] w-full overflow-hidden">
             
             {/* Bên trái: Ảnh (Giữ nguyên logic chia đôi) */}
             <div className="hidden md:flex md:w-1/2 relative h-full">
