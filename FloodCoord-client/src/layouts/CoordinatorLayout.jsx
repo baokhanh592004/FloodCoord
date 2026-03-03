@@ -6,11 +6,12 @@ import {
   MapIcon,
   ArrowRightOnRectangleIcon,
   ShieldCheckIcon,
+  UserCircleIcon,
 } from '@heroicons/react/24/outline'
 import { useAuth } from '../context/AuthContext'
 
 export default function CoordinatorLayout() {
-  const { user, logout } = useAuth()
+  const { user, logout, profileName } = useAuth()
   const navigate = useNavigate()
 
   const handleLogout = () => {
@@ -25,7 +26,7 @@ export default function CoordinatorLayout() {
   ]
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
+    <div className="flex overflow-hidden min-h-screen bg-gray-100">
       {/* Sidebar */}
       <aside className="w-64 bg-white text-gray-900 flex flex-col border-r border-gray-200 shadow-sm">
 
@@ -41,21 +42,18 @@ export default function CoordinatorLayout() {
         </div>
 
         {/* User Info */}
-        <div className="px-6 py-4 border-b border-gray-200">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold">
-              {user?.email?.charAt(0).toUpperCase() || 'C'}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-gray-800 truncate">
-                {user?.fullName || 'Coordinator'}
-              </p>
-              <p className="text-xs text-gray-500 truncate">
-                {user?.email}
-              </p>
-            </div>
+        <Link to="/profile" className="px-6 py-4 border-b border-gray-200 flex items-center gap-3 hover:bg-blue-50 transition-colors group">
+          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold shrink-0">
+            {user?.email?.charAt(0).toUpperCase() || 'C'}
           </div>
-        </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-gray-800 truncate group-hover:text-blue-600">
+              {profileName || user?.fullName || 'Coordinator'}
+            </p>
+            <p className="text-xs text-blue-400">Xem hồ sơ cá nhân</p>
+          </div>
+          <UserCircleIcon className="h-4 w-4 text-gray-400 group-hover:text-blue-500 shrink-0" />
+        </Link>
 
         {/* Menu */}
         <nav className="flex-1 px-3 py-4 space-y-1">
@@ -88,7 +86,7 @@ export default function CoordinatorLayout() {
       </aside>
 
       {/* Main */}
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-hidden">
         <Outlet />
       </main>
     </div>

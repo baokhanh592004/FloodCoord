@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { jwtDecode } from 'jwt-decode';
+import { profileApi } from '../services/profileApi';
 
 const AuthContext = createContext();
 
@@ -7,6 +8,7 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [role, setRole] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [profileName, setProfileName] = useState(null);
 
     // Decode token and extract user info including role
     const decodeToken = (token) => {
@@ -35,6 +37,16 @@ export const AuthProvider = ({ children }) => {
         return 'CITIZEN';
     };
 
+    // Fetch profile name from API
+    const fetchProfileName = async () => {
+        try {
+            const data = await profileApi.getProfile();
+            setProfileName(data?.fullName || data?.name || null);
+        } catch (error) {
+            console.error('Error fetching profile:', error);
+        }
+    };
+
     // Initialize auth state from localStorage
     useEffect(() => {
         const accessToken = localStorage.getItem('accessToken');
@@ -50,6 +62,7 @@ export const AuthProvider = ({ children }) => {
                     ...decoded,
                 });
                 setRole(userRole);
+                fetchProfileName();
             }
         }
         setLoading(false);
@@ -71,10 +84,12 @@ export const AuthProvider = ({ children }) => {
                         ...decoded,
                     });
                     setRole(userRole);
+                    fetchProfileName();
                 }
             } else {
                 setUser(null);
                 setRole(null);
+                setProfileName(null);
             }
         };
 
@@ -96,6 +111,7 @@ export const AuthProvider = ({ children }) => {
                 ...decoded,
             });
             setRole(userRole);
+            fetchProfileName();
         }
     };
 
@@ -104,6 +120,7 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem('refreshToken');
         setUser(null);
         setRole(null);
+        setProfileName(null);
     };
 
     const isAuthenticated = !!user && !!localStorage.getItem('accessToken');
@@ -115,6 +132,8 @@ export const AuthProvider = ({ children }) => {
                 role,
                 loading,
                 isAuthenticated,
+                profileName,
+                setProfileName,
                 login,
                 logout,
             }}

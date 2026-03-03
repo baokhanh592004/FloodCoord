@@ -7,6 +7,7 @@ import {
     ClockIcon,
     ArrowPathIcon,
     CheckBadgeIcon,
+    XCircleIcon,
 } from '@heroicons/react/24/outline';
 import {
     LineChart, Line, BarChart, Bar,
@@ -54,6 +55,7 @@ export default function CoordinatorDashboard() {
         validated: requests.filter((r) => r.status === 'VERIFIED' || r.status === 'VALIDATED').length,
         inProgress: requests.filter((r) => ['IN_PROGRESS', 'MOVING', 'ARRIVED', 'RESCUING'].includes(r.status)).length,
         completed: requests.filter((r) => r.status === 'COMPLETED').length,
+        rejected: requests.filter((r) => r.status === 'REJECTED').length,
     }), [requests]);
 
     // ====== LINE CHART: Số yêu cầu nhận theo thời gian ======
@@ -125,6 +127,7 @@ export default function CoordinatorDashboard() {
                 case 'validated': return r.status === 'VERIFIED' || r.status === 'VALIDATED';
                 case 'in_progress': return ['IN_PROGRESS', 'MOVING', 'ARRIVED', 'RESCUING'].includes(r.status);
                 case 'completed': return r.status === 'COMPLETED';
+                case 'rejected': return r.status === 'REJECTED';
                 default: return true;
             }
         };
@@ -179,8 +182,8 @@ export default function CoordinatorDashboard() {
                 </button>
             </div>
 
-            {/* 4 Stat Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* 5 Stat Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                 <StatCard
                     icon={<ExclamationTriangleIcon className="h-6 w-6" />}
                     count={stats.pending}
@@ -204,6 +207,12 @@ export default function CoordinatorDashboard() {
                     count={stats.completed}
                     label="Hoàn thành"
                     color="green"
+                />
+                <StatCard
+                    icon={<XCircleIcon className="h-6 w-6" />}
+                    count={stats.rejected}
+                    label="Không duyệt"
+                    color="rose"
                 />
             </div>
 
@@ -289,6 +298,7 @@ export default function CoordinatorDashboard() {
                             { key: 'validated', label: 'Đã xác thực' },
                             { key: 'in_progress', label: 'Đang thực thi' },
                             { key: 'completed', label: 'Hoàn thành' },
+                            { key: 'rejected', label: 'Không duyệt' },
                         ].map((opt) => (
                             <button
                                 key={opt.key}
@@ -322,6 +332,82 @@ export default function CoordinatorDashboard() {
                         )}
                     </div>
                 </div>
+            </div>
+
+            {/* ===== WEATHER & FLOOD STATUS ===== */}
+            <div className="bg-white border border-gray-200 rounded-lg p-5">
+                <div className="flex items-center justify-between mb-4">
+                    <div>
+                        <h2 className="text-lg font-semibold text-gray-900">🌊 Thời tiết & Mực nước</h2>
+                        <p className="text-xs text-gray-500">Thông tin thời tiết và cảnh báo lũ lụt hiện tại</p>
+                    </div>
+                    <span className="text-[10px] text-gray-400 bg-gray-100 px-2 py-1 rounded-full">⚠️ Dữ liệu mẫu</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {/* Nhiệt độ */}
+                    <div className="bg-sky-50 border border-sky-200 rounded-lg p-4">
+                        <div className="flex items-center gap-2 mb-1">
+                            <span className="text-lg">🌡️</span>
+                            <p className="text-xs font-semibold text-sky-700">Nhiệt độ</p>
+                        </div>
+                        <p className="text-2xl font-bold text-sky-900">28°C</p>
+                        <p className="text-xs text-sky-600 mt-1">Nhiều mây, ẩm cao</p>
+                    </div>
+
+                    {/* Lượng mưa */}
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div className="flex items-center gap-2 mb-1">
+                            <span className="text-lg">🌧️</span>
+                            <p className="text-xs font-semibold text-blue-700">Lượng mưa</p>
+                        </div>
+                        <p className="text-2xl font-bold text-blue-900">45 mm/h</p>
+                        <p className="text-xs text-blue-600 mt-1">Mưa vừa đến to</p>
+                    </div>
+
+                    {/* Mực nước */}
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                        <div className="flex items-center gap-2 mb-1">
+                            <span className="text-lg">🌊</span>
+                            <p className="text-xs font-semibold text-amber-700">Mực nước sông</p>
+                        </div>
+                        <p className="text-2xl font-bold text-amber-900">2.1 m</p>
+                        <p className="text-xs text-amber-600 mt-1">⚠️ Trên mức cảnh báo I</p>
+                    </div>
+
+                    {/* Cảnh báo */}
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                        <div className="flex items-center gap-2 mb-1">
+                            <span className="text-lg">🚨</span>
+                            <p className="text-xs font-semibold text-red-700">Cảnh báo</p>
+                        </div>
+                        <p className="text-sm font-bold text-red-900">Cảnh báo lũ cấp 2</p>
+                        <p className="text-xs text-red-600 mt-1">Nguy cơ ngập úng vùng trũng</p>
+                    </div>
+                </div>
+
+                {/* Dự báo ngắn hạn */}
+                <div className="mt-4 bg-gray-50 rounded-lg p-3">
+                    <h3 className="text-xs font-semibold text-gray-700 mb-2">📋 Dự báo 24h tới</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                        <div className="flex items-start gap-2">
+                            <span className="text-gray-400 font-medium min-w-[60px]">06:00</span>
+                            <span className="text-gray-700">🌧️ Mưa to, gió mạnh cấp 4-5. Lượng mưa dự kiến 30-50mm.</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                            <span className="text-gray-400 font-medium min-w-[60px]">12:00</span>
+                            <span className="text-gray-700">⛈️ Mưa rất to cục bộ. Mực nước có thể tăng thêm 0.3-0.5m.</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                            <span className="text-gray-400 font-medium min-w-[60px]">18:00</span>
+                            <span className="text-gray-700">🌦️ Mưa giảm dần. Mực nước dự kiến đạt đỉnh rồi rút chậm.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <p className="text-[10px] text-gray-400 mt-3 text-center italic">
+                    Dữ liệu mẫu — sẽ tích hợp API thời tiết (OpenWeatherMap / Trung tâm KTTV Quốc gia) trong phiên bản tới
+                </p>
             </div>
         </div>
     );

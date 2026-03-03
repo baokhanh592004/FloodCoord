@@ -64,7 +64,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-135px)] w-full overflow-hidden">
+    <div className="flex h-[calc(100vh-73px)] w-full overflow-hidden">
             
             {/* Bên trái: Ảnh */}
             <div className="hidden md:flex md:w-1/2 relative h-full">
