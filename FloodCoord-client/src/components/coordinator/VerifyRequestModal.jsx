@@ -126,7 +126,12 @@ export default function VerifyRequestModal({ request, isOpen, onClose, onSuccess
             onSuccess?.('rejected');
             onClose();
         } catch (error) {
-            toast.error('Từ chối thất bại: ' + (error.response?.data?.message || error.message));
+            // Spring Boot trả error dạng {message:...}, {error:...}, hoặc plain string
+            const errData = error.response?.data;
+            const errMsg = typeof errData === 'string'
+                ? errData
+                : errData?.message || errData?.error || error.message;
+            toast.error('Từ chối thất bại: ' + errMsg);
         } finally {
             setLoading(false);
         }
