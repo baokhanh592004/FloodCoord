@@ -12,6 +12,7 @@ import com.team6.floodcoord.utils.RescueRequestMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -36,6 +37,7 @@ public class RescueRequestServiceImpl implements RescueRequestService {
     private final RequestSupplyRepository requestSupplyRepo;
     private final CloudinaryService cloudinaryService;
     private final RescueRequestMapper requestMapper;
+    private final UserRepository userRepo;
 
 
     @Override
@@ -434,6 +436,53 @@ public class RescueRequestServiceImpl implements RescueRequestService {
     public Page<RescueRequestSummaryResponse> getAllRequestsForAdmin(RequestStatus status, Pageable pageable) {
         return requestRepo.findAllByStatusOptional(status, pageable)
                 .map(requestMapper::toSummaryResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<RescueRequestLeaderDTO> getMyAssignedRescueRequests() {
+
+        // 1️⃣ Lấy email từ security
+        String email = SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getName();
+
+        User currentUser = userRepo.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // 2️⃣ Check có team không
+        RescueTeam team = currentUser.getRescueTeam();
+        if (team == null) {
+            throw new RuntimeException("You are not assigned to any team");
+        }
+
+//        // 3️⃣ Check có phải leader không
+//        if (!team.getLeader().getId().equals(currentUser.getId())) {
+//            throw new RuntimeException("You are not the leader of this team");
+//        }
+
+        // 4️⃣ Lấy rescue request của team
+        return requestRepo
+                .findByAssignedTeam_IdAndStatusIn(
+                        team.getId(),
+                        List.of(
+                                RequestStatus.IN_PROGRESS,
+                                RequestStatus.MOVING,
+                                RequestStatus.ARRIVED,
+                                RequestStatus.RESCUING
+                        )
+                )
+                .stream()
+                .map(r -> RescueRequestLeaderDTO.builder()
+                        .requestId(r.getRequestId())
+                        .title(r.getTitle())
+                        .emergencyLevel(r.getEmergencyLevel())
+                        .status(r.getStatus())
+                        .contactName(r.getContactName())
+                        .contactPhone(r.getContactPhone())
+                        .createdAt(r.getCreatedAt())
+                        .build())
+                .toList();
     }
 
     // Hàm kiểm tra logic chuyển trạng thái
