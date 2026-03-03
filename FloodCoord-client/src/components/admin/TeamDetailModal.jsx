@@ -1,7 +1,7 @@
 import React from 'react';
 import { X, Shield, Users, UserMinus, Mail, Phone } from 'lucide-react';
 
-export default function TeamDetailModal({ team, onClose, onRemoveMember }) {
+export default function TeamDetailModal({ team, onClose, onRemoveMember, readonly = false }) {
     if (!team) return null;
 
     const handleRemoveMember = (userId, userName) => {
@@ -131,7 +131,7 @@ export default function TeamDetailModal({ team, onClose, onRemoveMember }) {
                                                 LEADER
                                             </span>
                                         )}
-                                        {!member.isTeamLeader && (
+                                        {!member.isTeamLeader && !readonly && (
                                             <button
                                                 onClick={() => handleRemoveMember(member.id, member.fullName || member.email)}
                                                 className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"

@@ -6,6 +6,7 @@ import {
   ArrowLeft, Edit, Trash2, AlertCircle, 
   X, Info, LayoutGrid
 } from 'lucide-react';
+import TeamDetailModal from '../../components/admin/TeamDetailModal';
 
 export default function RescueTeamManagement() {
     const navigate = useNavigate();
@@ -15,6 +16,8 @@ export default function RescueTeamManagement() {
     const [showModal, setShowModal] = useState(false);
     const [editingTeam, setEditingTeam] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [showDetailModal, setShowDetailModal] = useState(false);
+    const [selectedTeam, setSelectedTeam] = useState(null);
     
     const [formData, setFormData] = useState({
         name: '',
@@ -86,6 +89,22 @@ export default function RescueTeamManagement() {
             memberIds: team.members?.map(m => m.id) || []
         });
         setShowModal(true);
+    };
+
+    const handleViewDetails = async (team) => {
+        try {
+            const detailData = await teamApi.getTeamById(team.id);
+            setSelectedTeam(detailData);
+            setShowDetailModal(true);
+        } catch (err) {
+            setError('Không thể tải chi tiết đội');
+            console.error(err);
+        }
+    };
+
+    const handleCloseDetailModal = () => {
+        setShowDetailModal(false);
+        setSelectedTeam(null);
     };
 
     const resetForm = () => {
@@ -200,13 +219,25 @@ export default function RescueTeamManagement() {
 
                                 <div className="flex items-center justify-between mt-auto relative z-10">
                                     <span className="text-xs font-bold uppercase tracking-widest text-slate-400">ID: TEAM-{team.id}</span>
-                                    <button className="text-xs font-bold text-blue-600 hover:underline">Chi tiết hồ sơ</button>
+                                    <button
+                                        onClick={() => handleViewDetails(team)}
+                                        className="text-xs font-bold text-blue-600 hover:underline"
+                                    >
+                                        Chi tiết hồ sơ →
+                                    </button>
                                 </div>
                             </div>
                         ))}
                     </div>
                 )}
             </div>
+
+            {/* Detail Modal (view-only) */}
+            <TeamDetailModal
+                team={selectedTeam}
+                onClose={handleCloseDetailModal}
+                readonly={true}
+            />
 
             {/* 4. Modal Design */}
             {showModal && (
