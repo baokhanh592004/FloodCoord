@@ -2,11 +2,13 @@ package com.team6.floodcoord.controller;
 
 
 import com.team6.floodcoord.dto.request.AttendanceRequestDTO;
+import com.team6.floodcoord.dto.request.UpdateRescueStatusRequest;
 import com.team6.floodcoord.service.RescueRequestService;
 import com.team6.floodcoord.service.TeamLeaderService;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -42,5 +44,13 @@ public class TeamLeaderController {
         return ResponseEntity.ok(
                 rescueRequestService.getMyAssignedRescueRequests()
         );
+    }
+    @PutMapping("/rescue-request/{id}/status")
+    public ResponseEntity<String> updateStatus(
+            @PathVariable UUID id,
+            @RequestBody UpdateRescueStatusRequest request) {
+
+        teamLeaderService.updateRescueStatus(id, request.getStatus());
+        return ResponseEntity.ok("Status updated successfully");
     }
 }

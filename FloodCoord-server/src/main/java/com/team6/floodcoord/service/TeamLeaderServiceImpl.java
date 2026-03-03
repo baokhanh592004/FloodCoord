@@ -7,6 +7,7 @@ import com.team6.floodcoord.model.Attendance;
 import com.team6.floodcoord.model.RescueRequest;
 import com.team6.floodcoord.model.RescueTeam;
 import com.team6.floodcoord.model.User;
+import com.team6.floodcoord.model.enums.RequestStatus;
 import com.team6.floodcoord.model.enums.TeamStatus;
 import com.team6.floodcoord.repository.AttendanceRepository;
 import com.team6.floodcoord.repository.RescueRequestRepository;
@@ -111,5 +112,71 @@ public class TeamLeaderServiceImpl implements TeamLeaderService {
                         .build()
                 )
                 .toList();
+    }
+
+    @Override
+    @Transactional
+    public void updateRescueStatus(UUID requestId, RequestStatus newStatus) {
+
+        String email = SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getName();
+
+        User currentUser = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        RescueTeam team = currentUser.getRescueTeam();
+
+        if (team == null ||
+                !team.getLeader().getId().equals(currentUser.getId())) {
+            throw new RuntimeException("Only team leader can update status");
+        }
+
+        RescueRequest request = rescueRequestRepository.findById(requestId)
+                .orElseThrow(() -> new RuntimeException("Rescue request not found"));
+
+
+        if (request.getAssignedTeam() == null ||
+                !request.getAssignedTeam().getId().equals(team.getId())) {
+            throw new RuntimeException("This request is not assigned to your team");
+        }
+
+        validateTransition(request.getStatus(), newStatus);
+
+        request.setStatus(newStatus);
+        rescueRequestRepository.save(request);
+
+        // Nếu completed thì trả team về available
+        if (newStatus == RequestStatus.COMPLETED) {
+            team.setStatus(TeamStatus.AVAILABLE);
+            rescueTeamRepository.save(team);
+        }
+    }
+    private void validateTransition(RequestStatus current, RequestStatus next) {
+
+        switch (current) {
+
+            case IN_PROGRESS -> {
+                if (next != RequestStatus.MOVING)
+                    throw new RuntimeException("Invalid transition");
+            }
+
+            case MOVING -> {
+                if (next != RequestStatus.ARRIVED)
+                    throw new RuntimeException("Invalid transition");
+            }
+
+            case ARRIVED -> {
+                if (next != RequestStatus.RESCUING)
+                    throw new RuntimeException("Invalid transition");
+            }
+
+            case RESCUING -> {
+                if (next != RequestStatus.COMPLETED)
+                    throw new RuntimeException("Invalid transition");
+            }
+
+            default -> throw new RuntimeException("Cannot update from this status");
+        }
     }
 }
