@@ -6,6 +6,7 @@ import StatCard from '../../components/manager/StatCard';
 import EmptyState from '../../components/manager/EmptyState';
 import SupplyCard from '../../components/manager/SupplyCard';
 import SupplyFormModal from '../../components/manager/SupplyFormModal';
+import SupplyDetailModal from '../../components/manager/SupplyDetailModal';
 
 export default function SupplyManagement() {
     const navigate = useNavigate();
@@ -14,6 +15,8 @@ export default function SupplyManagement() {
     const [error, setError] = useState('');
     const [showModal, setShowModal] = useState(false);
     const [editingSupply, setEditingSupply] = useState(null);
+    const [showDetailModal, setShowDetailModal] = useState(false);
+    const [selectedSupply, setSelectedSupply] = useState(null);
     const [formData, setFormData] = useState({
         name: '',
         type: 'FOOD_WATER',
@@ -173,6 +176,16 @@ export default function SupplyManagement() {
         resetForm();
     };
 
+    const handleViewDetail = (supply) => {
+        setSelectedSupply(supply);
+        setShowDetailModal(true);
+    };
+
+    const handleCloseDetailModal = () => {
+        setShowDetailModal(false);
+        setSelectedSupply(null);
+    };
+
     return (
         <div className="min-h-screen bg-slate-50">
             <div className="max-w-7xl mx-auto px-6 py-8">
@@ -231,6 +244,7 @@ export default function SupplyManagement() {
                                 supply={supply}
                                 onEdit={handleEdit}
                                 onDelete={handleDelete}
+                                onViewDetail={handleViewDetail}
                             />
                         ))}
                     </div>
@@ -245,6 +259,13 @@ export default function SupplyManagement() {
                 onInputChange={handleInputChange}
                 onSubmit={handleSubmit}
                 onClose={handleCloseModal}
+            />
+
+            {/* Detail Modal */}
+            <SupplyDetailModal
+                supply={selectedSupply}
+                onClose={handleCloseDetailModal}
+                onEdit={(supply) => { handleCloseDetailModal(); handleEdit(supply); }}
             />
         </div>
     );

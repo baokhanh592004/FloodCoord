@@ -1,7 +1,7 @@
 import React from 'react';
-import { Edit, Trash2, Apple, Pill, Wrench, Box, Package, Calendar, AlertTriangle, CheckCircle, TruckIcon } from 'lucide-react';
+import { Edit, Trash2, Apple, Pill, Wrench, Box, Package, Calendar, AlertTriangle, CheckCircle, TruckIcon, Eye } from 'lucide-react';
 
-export default function SupplyCard({ supply, onEdit, onDelete }) {
+export default function SupplyCard({ supply, onEdit, onDelete, onViewDetail }) {
     const getTypeIconComponent = (type) => {
         const iconProps = { size: 22, strokeWidth: 1.5 };
         switch(type) {
@@ -159,6 +159,13 @@ export default function SupplyCard({ supply, onEdit, onDelete }) {
 
             {/* Actions */}
             <div className="flex-shrink-0 flex items-center gap-1">
+                <button
+                    onClick={() => onViewDetail(supply)}
+                    className="p-1.5 hover:bg-emerald-50 text-slate-400 hover:text-emerald-600 rounded-lg transition-colors"
+                    title="Xem chi tiết"
+                >
+                    <Eye size={16} />
+                </button>
                 <button
                     onClick={() => onEdit(supply)}
                     className="p-1.5 hover:bg-blue-50 text-slate-400 hover:text-blue-600 rounded-lg transition-colors"
