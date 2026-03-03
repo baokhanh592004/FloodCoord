@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { NavLink, Link, Outlet, useNavigate } from 'react-router-dom'
 import {
   HomeIcon,
   UserGroupIcon,
@@ -7,11 +7,12 @@ import {
   ChartBarIcon,
   ArrowRightOnRectangleIcon,
   ShieldCheckIcon,
+  UserCircleIcon,
 } from '@heroicons/react/24/outline'
 import { useAuth } from '../context/AuthContext'
 
 export default function AdminLayout() {
-  const { logout, user } = useAuth()
+  const { logout, user, profileName } = useAuth()
   const navigate = useNavigate()
 
   const handleLogout = () => {
@@ -40,19 +41,18 @@ export default function AdminLayout() {
         </div>
 
         {/* User Info */}
-        <div className="px-6 py-4 border-b border-gray-200">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold">
-              {user?.email?.charAt(0).toUpperCase() || 'A'}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-gray-800 truncate">
-                {user?.fullName || 'Admin'}
-              </p>
-              <p className="text-xs text-gray-500 truncate">{user?.email}</p>
-            </div>
+        <Link to="/profile" className="px-6 py-4 border-b border-gray-200 flex items-center gap-3 hover:bg-blue-50 transition-colors group">
+          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold shrink-0">
+            {user?.email?.charAt(0).toUpperCase() || 'A'}
           </div>
-        </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-gray-800 truncate group-hover:text-blue-600">
+              {profileName || user?.fullName || 'Admin'}
+            </p>
+            <p className="text-xs text-blue-400">Xem hồ sơ cá nhân</p>
+          </div>
+          <UserCircleIcon className="h-4 w-4 text-gray-400 group-hover:text-blue-500 shrink-0" />
+        </Link>
 
         <nav className="flex-1 px-3 py-4 space-y-1">
           {menu.map((item) => (

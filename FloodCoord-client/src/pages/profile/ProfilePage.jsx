@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { UserCircleIcon, PencilSquareIcon, CheckIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { useNavigate } from 'react-router-dom'
+import { UserCircleIcon, PencilSquareIcon, CheckIcon, XMarkIcon, ArrowLeftIcon } from '@heroicons/react/24/outline'
 import { profileApi } from '../../services/profileApi'
 import { useAuth } from '../../context/AuthContext'
 import toast from 'react-hot-toast'
@@ -14,6 +15,7 @@ const ROLE_LABELS = {
 }
 
 export default function ProfilePage() {
+  const navigate = useNavigate()
   const { role, setProfileName } = useAuth()
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -89,7 +91,15 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-teal-50 flex items-start justify-center py-12 px-4">
       <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl overflow-hidden">
         {/* Header banner */}
-        <div className="h-24 bg-gradient-to-r from-blue-500 to-teal-500" />
+        <div className="relative h-24 bg-gradient-to-r from-blue-500 to-teal-500">
+          <button
+            onClick={() => navigate(-1)}
+            className="absolute top-4 left-4 flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-white/20 hover:bg-white/35 rounded-lg transition-colors"
+          >
+            <ArrowLeftIcon className="w-4 h-4" />
+            Quay lại
+          </button>
+        </div>
 
         <div className="px-8 pb-8">
           {/* Avatar */}
