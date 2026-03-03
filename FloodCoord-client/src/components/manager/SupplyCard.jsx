@@ -1,9 +1,9 @@
 import React from 'react';
-import { Edit, Trash2, Apple, Pill, Wrench, Box, Package, Calendar, AlertTriangle, CheckCircle, TruckIcon } from 'lucide-react';
+import { Edit, Trash2, Apple, Pill, Wrench, Box, Package, Calendar, AlertTriangle, CheckCircle, TruckIcon, Eye } from 'lucide-react';
 
-export default function SupplyCard({ supply, onEdit, onDelete }) {
+export default function SupplyCard({ supply, onEdit, onDelete, onViewDetail }) {
     const getTypeIconComponent = (type) => {
-        const iconProps = { size: 32, strokeWidth: 1.5 };
+        const iconProps = { size: 22, strokeWidth: 1.5 };
         switch(type) {
             case 'FOOD_WATER': return <Apple {...iconProps} className="text-green-600" />;
             case 'MEDICAL': return <Pill {...iconProps} className="text-red-600" />;
@@ -84,109 +84,101 @@ export default function SupplyCard({ supply, onEdit, onDelete }) {
     };
 
     return (
-        <div className="group bg-white/70 backdrop-blur-xl border border-white/50 rounded-2xl p-6 shadow-sm hover:shadow-xl hover:scale-[1.02] transition-all duration-300 relative overflow-hidden">
-            {/* Decorative gradient blob inside card */}
-            <div className="absolute -right-6 -top-6 w-24 h-24 bg-gradient-to-br from-green-100 to-transparent rounded-full opacity-50 group-hover:scale-150 transition-transform duration-500" />
-
-            <div className="flex justify-between items-start mb-6 relative z-10">
-                <div className="p-3 bg-white rounded-xl shadow-sm border border-slate-100">
-                    {getTypeIconComponent(supply.type)}
-                </div>
-                <div className="flex gap-2">
-                    <button 
-                        onClick={() => onEdit(supply)} 
-                        className="p-2 hover:bg-blue-50 text-slate-400 hover:text-blue-600 rounded-lg transition-colors"
-                    >
-                        <Edit size={18} />
-                    </button>
-                    <button 
-                        onClick={() => onDelete(supply.id)} 
-                        className="p-2 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-lg transition-colors"
-                    >
-                        <Trash2 size={18} />
-                    </button>
-                </div>
+        <div className="group bg-white border border-slate-100 rounded-xl px-5 py-3.5 shadow-sm hover:shadow-md hover:border-emerald-200 transition-all duration-200 flex items-center gap-4">
+            {/* Icon */}
+            <div className="flex-shrink-0 p-2.5 bg-slate-50 rounded-xl border border-slate-100">
+                {getTypeIconComponent(supply.type)}
             </div>
 
-            <div className="mb-4 relative z-10">
-                <div className="flex items-start justify-between mb-2">
-                    <h3 className="text-xl font-bold text-slate-800 group-hover:text-[#059669] transition-colors">
+            {/* Name + type + description */}
+            <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-sm font-bold text-slate-800 group-hover:text-[#059669] transition-colors truncate">
                         {supply.name}
                     </h3>
-                    <span className="text-xs text-slate-400 font-mono">Lô #{supply.id}</span>
+                    <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0 ${getTypeColor(supply.type)}`}>
+                        {getTypeLabel(supply.type)}
+                    </span>
+                    {supply.exportedDate && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 flex-shrink-0">
+                            <TruckIcon size={11} /> Đã xuất kho
+                        </span>
+                    )}
                 </div>
-                <span className={`inline-block px-2 py-1 rounded-full text-xs font-semibold ${getTypeColor(supply.type)}`}>
-                    {getTypeLabel(supply.type)}
+                {supply.description && (
+                    <p className="text-xs text-slate-400 mt-0.5 truncate italic">{supply.description}</p>
+                )}
+            </div>
+
+            {/* Quantity */}
+            <div className="flex-shrink-0 text-center hidden sm:block w-24">
+                <p className="text-xs text-slate-400 mb-0.5">Số lượng</p>
+                <span className="text-sm font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">
+                    {supply.quantity} {supply.unit}
                 </span>
             </div>
 
-            <div className="space-y-3 mb-6 relative z-10">
-                <div className="flex justify-between text-sm items-center py-2 border-b border-slate-100/50">
-                    <span className="text-slate-500">Số lượng</span>
-                    <span className="font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">
-                        {supply.quantity} {supply.unit}
-                    </span>
-                </div>
-                
-                {supply.description && (
-                    <div className="text-sm py-2 border-b border-slate-100/50">
-                        <span className="text-slate-500 block mb-1">Ghi chú lô</span>
-                        <span className="text-slate-700 italic">{supply.description}</span>
-                    </div>
-                )}
-
-                <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-500 flex items-center gap-1">
-                        <Calendar size={14} className="text-blue-500" />
-                        Nhập kho
-                    </span>
-                    <span className="font-semibold text-slate-700 text-xs">
-                        {formatDate(supply.importedDate)}
-                    </span>
-                </div>
-                
-                <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-500 flex items-center gap-1">
-                        {isExpired(supply.expiryDate) ? (
-                            <AlertTriangle size={14} className="text-red-500" />
-                        ) : isExpiringSoon(supply.expiryDate) ? (
-                            <AlertTriangle size={14} className="text-yellow-500" />
-                        ) : (
-                            <CheckCircle size={14} className="text-green-500" />
-                        )}
-                        Hạn dùng
-                    </span>
-                    <span className={`font-semibold text-xs ${
-                        isExpired(supply.expiryDate) ? 'text-red-600' :
-                        isExpiringSoon(supply.expiryDate) ? 'text-yellow-600' :
-                        'text-slate-700'
-                    }`}>
-                        {formatDate(supply.expiryDate)}
-                    </span>
-                </div>
-
-                {/* Export Date */}
-                {supply.exportedDate && (
-                    <div className="flex items-center justify-between text-sm bg-blue-50 px-3 py-2 rounded-lg">
-                        <span className="text-blue-700 flex items-center gap-1 font-semibold">
-                            <TruckIcon size={14} />
-                            Đã xuất kho
-                        </span>
-                        <span className="font-semibold text-blue-700 text-xs">
-                            {formatDate(supply.exportedDate)}
-                        </span>
-                    </div>
-                )}
+            {/* Imported date */}
+            <div className="flex-shrink-0 text-center hidden md:block w-32">
+                <p className="text-xs text-slate-400 mb-0.5 flex items-center justify-center gap-1">
+                    <Calendar size={11} className="text-blue-400" /> Nhập kho
+                </p>
+                <span className="text-xs font-medium text-slate-600">{formatDate(supply.importedDate)}</span>
             </div>
 
-            <div className="flex items-center justify-between mt-auto relative z-10">
+            {/* Expiry date */}
+            <div className="flex-shrink-0 text-center hidden md:block w-32">
+                <p className="text-xs text-slate-400 mb-0.5 flex items-center justify-center gap-1">
+                    {isExpired(supply.expiryDate) ? (
+                        <AlertTriangle size={11} className="text-red-400" />
+                    ) : isExpiringSoon(supply.expiryDate) ? (
+                        <AlertTriangle size={11} className="text-yellow-400" />
+                    ) : (
+                        <CheckCircle size={11} className="text-green-400" />
+                    )}
+                    Hạn dùng
+                </p>
+                <span className={`text-xs font-medium ${
+                    isExpired(supply.expiryDate) ? 'text-red-600' :
+                    isExpiringSoon(supply.expiryDate) ? 'text-yellow-600' :
+                    'text-slate-600'
+                }`}>
+                    {formatDate(supply.expiryDate)}
+                </span>
+            </div>
+
+            {/* Status badge */}
+            <div className="flex-shrink-0 hidden lg:block">
                 {getStatusBadge()}
+            </div>
+
+            {/* ID */}
+            <div className="flex-shrink-0 hidden lg:block">
+                <span className="text-xs text-slate-400 font-mono">Lô #{supply.id}</span>
+            </div>
+
+            {/* Actions */}
+            <div className="flex-shrink-0 flex items-center gap-1">
+                <button
+                    onClick={() => onViewDetail(supply)}
+                    className="p-1.5 hover:bg-emerald-50 text-slate-400 hover:text-emerald-600 rounded-lg transition-colors"
+                    title="Xem chi tiết"
+                >
+                    <Eye size={16} />
+                </button>
                 <button
                     onClick={() => onEdit(supply)}
-                    className="text-xs text-blue-600 hover:text-blue-800 font-semibold hover:underline"
-                    title="Cập nhật lô hàng"
+                    className="p-1.5 hover:bg-blue-50 text-slate-400 hover:text-blue-600 rounded-lg transition-colors"
+                    title="Chỉnh sửa"
                 >
-                    Cập nhật →
+                    <Edit size={16} />
+                </button>
+                <button
+                    onClick={() => onDelete(supply.id)}
+                    className="p-1.5 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-lg transition-colors"
+                    title="Xóa"
+                >
+                    <Trash2 size={16} />
                 </button>
             </div>
         </div>

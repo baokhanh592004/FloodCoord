@@ -19,9 +19,11 @@ import {
   ShieldExclamationIcon,
   UserGroupIcon,
   InformationCircleIcon,
+  UserCircleIcon,
 } from '@heroicons/react/24/outline'
 import { ChevronDownIcon, PhoneIcon } from '@heroicons/react/20/solid'
 import { loginApi } from '../services/authApi'
+import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
 import logo from '../assets/images/logo.png'
 
@@ -41,6 +43,7 @@ export default function Header() {
   const navigate = useNavigate()
   const [setMobileMenuOpen] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const { profileName } = useAuth()
 
   // Kiểm tra trạng thái đăng nhập
   useEffect(() => {
@@ -156,14 +159,23 @@ export default function Header() {
         </PopoverGroup>
 
         {/* Desktop Login/Logout */}
-        <div className="hidden lg:flex lg:flex-1 lg:justify-end">
+        <div className="hidden lg:flex lg:flex-1 lg:justify-end lg:items-center lg:gap-x-4">
           {isLoggedIn ? (
-            <button
-              onClick={handleLogout}
-              className="text-sm/6 font-semibold text-black hover:text-blue-100 transition-colors "
-            >
-              Đăng xuất <span aria-hidden="true">&rarr;</span>
-            </button>
+            <>
+              <Link
+                to="/profile"
+                className="flex items-center gap-x-2 text-sm/6 font-semibold text-black hover:text-blue-600 transition-colors"
+              >
+                <UserCircleIcon className="size-6 text-blue-500" />
+                <span>{profileName || 'Tài khoản'}</span>
+              </Link>
+              <button
+                onClick={handleLogout}
+                className="text-sm/6 font-semibold text-black hover:text-blue-100 transition-colors"
+              >
+                Đăng xuất <span aria-hidden="true">&rarr;</span>
+              </button>
+            </>
           ) : (
             <Link to="/login" className="text-sm/6 font-semibold text-black hover:text-blue-100 transition-colors bg-white/20 hover:bg-white/30 px-27 py-2 rounded-lg">
               Đăng nhập <span aria-hidden="true">&rarr;</span>

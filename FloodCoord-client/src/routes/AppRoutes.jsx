@@ -16,9 +16,11 @@ import ForgotPasswordPage from '../pages/auth/ForgotPasswordPage'
 import ResetPasswordPage from '../pages/auth/ResetPasswordPage'
 import RequestRescuePage from '../pages/rescue/RequestRescuePage'
 import TrackRescuePage from '../pages/rescue/TrackRescuePage'
+import ProfilePage from '../pages/profile/ProfilePage'
 
 /* Route guards */
 import RoleBasedRoute from './RoleBasedRoute'
+import PrivateRoute from './PrivateRoute'
 
 /* Admin */
 import AdminDashboard from '../pages/admin/AdminDashboard'
@@ -52,6 +54,14 @@ export default function AppRoutes() {
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/request-rescue" element={<RequestRescuePage />} />
         <Route path="/track-rescue" element={<TrackRescuePage />} />
+        <Route
+          path="/profile"
+          element={
+            <PrivateRoute>
+              <ProfilePage />
+            </PrivateRoute>
+          }
+        />
       </Route>
 
       {/* ================= ADMIN (WITH SIDEBAR) ================= */}

@@ -15,6 +15,10 @@ export default function SupplyFormModal({
         { value: 'OTHER', label: 'Khác' }
     ];
 
+    const unitOptions = ['Thùng', 'Hộp', 'Túi', 'Gói', 'Kg', 'Lít', 'Chai', 'Cái', 'Bộ', 'Chiếc', 'Cuộn', 'Tấm'];
+    // Nếu đơn vị hiện tại không nằm trong danh sách cố định thì vẫn hiển thị được
+    const currentUnitInList = !formData.unit || unitOptions.includes(formData.unit);
+
     if (!showModal) return null;
 
     return (
@@ -81,15 +85,23 @@ export default function SupplyFormModal({
                             <label className="block text-sm font-semibold text-slate-700 mb-2">
                                 Đơn vị *
                             </label>
-                            <input
-                                type="text"
+                            
+                            <select
                                 name="unit"
                                 value={formData.unit}
                                 onChange={onInputChange}
                                 className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-                                placeholder="VD: Thùng, Hộp, Cái..."
                                 required
-                            />
+                            >
+                                <option value="">-- Chọn đơn vị --</option>
+                                {/* Nếu đơn vị cũ không có trong danh sách, vẫn giữ lại để không mất giá trị */}
+                                {!currentUnitInList && (
+                                    <option value={formData.unit}>{formData.unit}</option>
+                                )}
+                                {unitOptions.map(u => (
+                                    <option key={u} value={u}>{u}</option>
+                                ))}
+                            </select>
                         </div>
 
                         <div className="col-span-2">
@@ -134,6 +146,7 @@ export default function SupplyFormModal({
                                 name="importedDate"
                                 value={formData.importedDate}
                                 onChange={onInputChange}
+                                min={new Date().toISOString().slice(0, 16)}
                                 className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
                             />
                         </div>
