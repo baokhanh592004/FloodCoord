@@ -7,6 +7,7 @@ export default function StatCard({ icon, count, label, color = 'blue' }) {
         yellow: 'bg-yellow-50 text-yellow-600 border-yellow-200',
         green: 'bg-green-50 text-green-600 border-green-200',
         cyan: 'bg-cyan-50 text-cyan-600 border-cyan-200',
+        rose: 'bg-rose-50 text-rose-600 border-rose-200',
     };
 
     const iconBgClasses = {
@@ -15,6 +16,7 @@ export default function StatCard({ icon, count, label, color = 'blue' }) {
         yellow: 'bg-yellow-100',
         green: 'bg-green-100',
         cyan: 'bg-cyan-100',
+        rose: 'bg-rose-100',
     };
 
     return (

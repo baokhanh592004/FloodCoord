@@ -101,8 +101,10 @@ export default function Operations() {
         return map[status] || status;
     };
 
+    // Đảm bảo toàn bộ trang có thể cuộn nếu nội dung vượt quá chiều cao màn hình
+    // Sử dụng overflow-auto ở root div để tránh bị che mất nội dung trên màn hình nhỏ
     return (
-        <div className="h-full flex flex-col p-4 gap-3">
+        <div className="h-full flex flex-col p-4 gap-3 overflow-auto">
             {/* Header — compact */}
             <div className="flex-shrink-0 flex items-center justify-between">
                 <div>
@@ -133,7 +135,7 @@ export default function Operations() {
                     </button>
                 </div>
             </div>
-
+            
             {/* Summary cards */}
             <div className="flex-shrink-0 grid grid-cols-4 gap-3">
                 {[

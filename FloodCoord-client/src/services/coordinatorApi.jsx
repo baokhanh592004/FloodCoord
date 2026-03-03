@@ -40,8 +40,8 @@ export const coordinatorApi = {
     },
 
     // Verify a pending request (PENDING -> VERIFIED / REJECTED)
-    // Body: { emergencyLevel: string, note: string, approved: boolean }
-    // approved=true → VERIFIED, approved=false → REJECTED
+    // Body: { emergencyLevel: string, note: string, isApproved: boolean }
+    // isApproved=true → VERIFIED, isApproved=false → REJECTED
     verifyRequest: async (requestId, data) => {
         try {
             const response = await axiosClient.put(
@@ -102,7 +102,7 @@ export const coordinatorApi = {
         try {
             const response = await axiosClient.put(
                 `/api/coordinator/requests/${requestId}/verify`,
-                { ...data, approved: false }
+                { ...data, isApproved: false }
             );
             return response.data;
         } catch (error) {
