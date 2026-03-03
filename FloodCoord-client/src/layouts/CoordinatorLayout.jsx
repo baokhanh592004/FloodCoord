@@ -26,7 +26,7 @@ export default function CoordinatorLayout() {
   ]
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
+    <div className="flex overflow-hidden min-h-screen bg-gray-100">
       {/* Sidebar */}
       <aside className="w-64 bg-white text-gray-900 flex flex-col border-r border-gray-200 shadow-sm">
 
@@ -86,7 +86,7 @@ export default function CoordinatorLayout() {
       </aside>
 
       {/* Main */}
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-hidden">
         <Outlet />
       </main>
     </div>
