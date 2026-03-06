@@ -15,11 +15,12 @@ public class RequestMedia {
     @GeneratedValue
     private UUID mediaId;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY) //mới thêm để test nếu có lỗi còn xóa
     @JoinColumn(name = "request_id")
     private RescueRequest request;
 
     private String mediaType;
+    @Column(nullable = false, length = 1000)
     private String mediaUrl;
 
     private LocalDateTime uploadedAt;

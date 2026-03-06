@@ -1,20 +1,26 @@
 package com.team6.floodcoord.service;
 
 import com.team6.floodcoord.dto.request.*;
-import com.team6.floodcoord.dto.response.CreateRequestResponse;
-import com.team6.floodcoord.dto.response.RescueRequestResponse;
+import com.team6.floodcoord.dto.response.*;
 import com.team6.floodcoord.model.*;
 import com.team6.floodcoord.model.enums.RequestStatus;
 import com.team6.floodcoord.model.enums.TeamStatus;
 import com.team6.floodcoord.model.enums.VehicleStatus;
 import com.team6.floodcoord.repository.*;
 
+import com.team6.floodcoord.utils.RescueRequestMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -29,6 +35,10 @@ public class RescueRequestServiceImpl implements RescueRequestService {
     private final VehicleRepository vehicleRepo;
     private final SupplyRepository supplyRepo;
     private final RequestSupplyRepository requestSupplyRepo;
+    private final CloudinaryService cloudinaryService;
+    private final RescueRequestMapper requestMapper;
+    private final UserRepository userRepo;
+
 
     @Override
     public CreateRequestResponse createRescueRequest(CreateRescueRequestDTO dto, User currentUser) {
@@ -90,13 +100,23 @@ public class RescueRequestServiceImpl implements RescueRequestService {
         }
 
         // 6. Lưu Media (Hình ảnh/Video)
-        if (dto.getMediaUrls() != null && !dto.getMediaUrls().isEmpty()) {
-            for (MediaDTO m : dto.getMediaUrls()) {
+        if (dto.getFiles() != null && dto.getFiles().length > 0) {
+
+            for (MultipartFile file : dto.getFiles()) {
+
+                String imageUrl = null;
+                try {
+                    imageUrl = cloudinaryService.uploadMedia(file);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+
                 RequestMedia media = new RequestMedia();
                 media.setRequest(request);
-                media.setMediaType(m.getMediaType());
-                media.setMediaUrl(m.getMediaUrl());
+                media.setMediaType("IMAGE");
+                media.setMediaUrl(imageUrl);
                 media.setUploadedAt(LocalDateTime.now());
+
                 mediaRepo.save(media);
             }
         }
@@ -207,19 +227,21 @@ public class RescueRequestServiceImpl implements RescueRequestService {
             throw new IllegalStateException("Request can only be verified when status is PENDING. Current: " + request.getStatus());
         }
 
-        // 3. Cập nhật thông tin xác minh
-        request.setStatus(RequestStatus.VERIFIED); // Chuyển sang đã xác minh
-        request.setVerifiedBy(coordinator);        // Lưu người duyệt
-
-        if (dto.getEmergencyLevel() != null) {
-            request.setEmergencyLevel(dto.getEmergencyLevel());
+        // Xử lý Duyệt hoặc Từ chối
+        if (dto.isApproved()) {
+            request.setStatus(RequestStatus.VERIFIED);
+            if (dto.getEmergencyLevel() != null) {
+                request.setEmergencyLevel(dto.getEmergencyLevel());
+            }
+        } else {
+            request.setStatus(RequestStatus.REJECTED); // Đảm bảo bạn đã thêm REJECTED vào RequestStatus.java
+            if (dto.getNote() == null || dto.getNote().isBlank()) {
+                throw new IllegalArgumentException("Vui lòng nhập lý do từ chối vào phần ghi chú.");
+            }
         }
 
-        // Cập nhật ghi chú (Nếu có gửi lên)
-        if (dto.getNote() != null && !dto.getNote().isEmpty()) {
-            request.setCoordinatorNote(dto.getNote());
-        }
-
+        request.setVerifiedBy(coordinator);
+        request.setCoordinatorNote(dto.getNote());
         requestRepo.save(request);
     }
 
@@ -359,6 +381,110 @@ public class RescueRequestServiceImpl implements RescueRequestService {
                 .build();
     }
 
+    @Override
+    public List<RescueRequestSummaryResponse> getAllRescueRequests() {
+        return requestRepo.findAll().stream()
+                .map(this::mapToSummary)
+                .toList();
+    }
+
+    @Override
+    public RescueRequestDetailResponse getRequestDetail(UUID requestId) {
+        RescueRequest request = requestRepo.findById(requestId)
+                .orElseThrow(() -> new RuntimeException("Rescue request not found"));
+
+        RescueRequestDetailResponse dto = new RescueRequestDetailResponse();
+        dto.setRequestId(request.getRequestId());
+        dto.setTitle(request.getTitle());
+        dto.setDescription(request.getDescription());
+        dto.setEmergencyLevel(request.getEmergencyLevel());
+        dto.setStatus(request.getStatus().toString());
+        dto.setPeopleCount(request.getPeopleCount());
+        dto.setCreatedAt(request.getCreatedAt());
+        dto.setCitizenName(
+                request.getCitizen() != null ? request.getCitizen().getFullName() : null
+        );
+
+        // 📍 Location
+        if (request.getLocation() != null) {
+            RequestLocationResponse loc = new RequestLocationResponse();
+            loc.setLatitude(request.getLocation().getLatitude());
+            loc.setLongitude(request.getLocation().getLongitude());
+            loc.setAddressText(request.getLocation().getAddressText());
+            loc.setFloodDepth(request.getLocation().getFloodDepth());
+            dto.setLocation(loc);
+        }
+
+        // 🖼️ Media
+        if (request.getMediaList() != null) {
+            List<RequestMediaResponse> mediaList = request.getMediaList().stream().map(m -> {
+                RequestMediaResponse media = new RequestMediaResponse();
+                media.setMediaId(m.getMediaId());
+                media.setMediaType(m.getMediaType());
+                media.setMediaUrl(m.getMediaUrl());
+                media.setUploadedAt(m.getUploadedAt());
+                return media;
+            }).toList();
+
+            dto.setMedia(mediaList);
+        }
+
+        return dto;
+    }
+
+    @Override
+    public Page<RescueRequestSummaryResponse> getAllRequestsForAdmin(RequestStatus status, Pageable pageable) {
+        return requestRepo.findAllByStatusOptional(status, pageable)
+                .map(requestMapper::toSummaryResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<RescueRequestLeaderDTO> getMyAssignedRescueRequests() {
+
+        // 1️⃣ Lấy email từ security
+        String email = SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getName();
+
+        User currentUser = userRepo.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // 2️⃣ Check có team không
+        RescueTeam team = currentUser.getRescueTeam();
+        if (team == null) {
+            throw new RuntimeException("You are not assigned to any team");
+        }
+
+//        // 3️⃣ Check có phải leader không
+//        if (!team.getLeader().getId().equals(currentUser.getId())) {
+//            throw new RuntimeException("You are not the leader of this team");
+//        }
+
+        // 4️⃣ Lấy rescue request của team
+        return requestRepo
+                .findByAssignedTeam_IdAndStatusIn(
+                        team.getId(),
+                        List.of(
+                                RequestStatus.IN_PROGRESS,
+                                RequestStatus.MOVING,
+                                RequestStatus.ARRIVED,
+                                RequestStatus.RESCUING
+                        )
+                )
+                .stream()
+                .map(r -> RescueRequestLeaderDTO.builder()
+                        .requestId(r.getRequestId())
+                        .title(r.getTitle())
+                        .emergencyLevel(r.getEmergencyLevel())
+                        .status(r.getStatus())
+                        .contactName(r.getContactName())
+                        .contactPhone(r.getContactPhone())
+                        .createdAt(r.getCreatedAt())
+                        .build())
+                .toList();
+    }
+
     // Hàm kiểm tra logic chuyển trạng thái
     private void validateStatusTransition(RequestStatus currentStatus, RequestStatus newStatus) {
         // Không được chuyển về trạng thái cũ hoặc nhảy cóc quá xa (tùy độ chặt chẽ bạn muốn)
@@ -410,5 +536,17 @@ public class RescueRequestServiceImpl implements RescueRequestService {
                 teamRepo.save(team);
             }
         }
+    }
+    private RescueRequestSummaryResponse mapToSummary(RescueRequest request) {
+        RescueRequestSummaryResponse dto = new RescueRequestSummaryResponse();
+        dto.setRequestId(request.getRequestId());
+        dto.setTitle(request.getTitle());
+        dto.setEmergencyLevel(request.getEmergencyLevel());
+        dto.setStatus(request.getStatus().toString());
+        dto.setPeopleCount(request.getPeopleCount());
+        dto.setCreatedAt(request.getCreatedAt());
+        dto.setContactName(request.getContactName());
+        dto.setContactPhone(request.getContactPhone());
+        return dto;
     }
 }

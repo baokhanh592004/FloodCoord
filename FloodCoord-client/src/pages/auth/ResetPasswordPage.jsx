@@ -50,7 +50,7 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-135px)] w-full overflow-hidden">
+    <div className="flex h-[calc(100vh-73px)] w-full overflow-hidden">
       {/* Left image */}
       <div className="hidden md:flex md:w-1/2 h-full">
         <img

@@ -1,14 +1,20 @@
 import axiosClient from "../api/axiosClient";
 
 export const rescueApi = {
-    // Không cần accessToken ở tham số đầu vào
-    requestRescue: async (data) => {
+    // Tạo yêu cầu cứu hộ (không cần login)
+    requestRescue: async (formData) => {
+    return axiosClient.post('/api/rescue-requests', formData);
+    },
+
+    // Tra cứu trạng thái đơn bằng tracking code (không cần login)
+    trackRequest: async (code) => {
         try {
-            // Backend cần cấu hình endpoint này là Public (permitAny)
-            const response = await axiosClient.post('/api/rescue-requests', data);
+            const response = await axiosClient.get('/api/rescue-requests/track', {
+                params: { code }
+            });
             return response.data;
         } catch (error) {
-            console.error("Gửi yêu cầu cứu trợ thất bại:", error);
+            console.error("Tra cứu tracking code thất bại:", error);
             throw error;
         }
     }
