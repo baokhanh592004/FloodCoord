@@ -106,7 +106,21 @@ public class RescueTeamServiceImpl implements RescueTeamService{
         RescueTeam team = teamRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Team not found"));
 
-        // Logic: Giải phóng các thành viên trước khi xóa đội
+        // Không cho xóa nếu đội đang thực hiện nhiệm vụ (IN_PROGRESS / BUSY)
+        if (team.getStatus() == com.team6.floodcoord.model.enums.TeamStatus.BUSY) {
+            throw new IllegalArgumentException("Không thể xóa đội đang thực hiện nhiệm vụ. Vui lòng hoàn thành hoặc hủy nhiệm vụ trước.");
+        }
+
+        // Gỡ FK từ RescueRequest → team (tránh constraint violation)
+        List<RescueRequest> linkedRequests = requestRepo.findByAssignedTeam_Id(id);
+        if (linkedRequests != null && !linkedRequests.isEmpty()) {
+            for (RescueRequest req : linkedRequests) {
+                req.setAssignedTeam(null);
+            }
+            requestRepo.saveAll(linkedRequests);
+        }
+
+        // Giải phóng các thành viên trước khi xóa đội
         List<User> members = team.getMembers();
         if (members != null) {
             for (User u : members) {
