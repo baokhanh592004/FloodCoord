@@ -429,6 +429,33 @@ public class RescueRequestServiceImpl implements RescueRequestService {
             dto.setMedia(mediaList);
         }
 
+        if (request.getAssignedTeam() != null) {
+            dto.setAssignedTeamId(request.getAssignedTeam().getId());
+            dto.setAssignedTeamName(request.getAssignedTeam().getName());
+
+            if (request.getAssignedTeam().getLeader() != null) {
+                dto.setAssignedTeamLeaderPhone(request.getAssignedTeam().getLeader().getPhoneNumber());
+            }
+        }
+
+        if (request.getAssignedVehicle() != null) {
+            dto.setAssignedVehicleId(request.getAssignedVehicle().getId());
+            dto.setAssignedVehicleName(request.getAssignedVehicle().getName());
+        }
+
+        if (request.getSupplies() != null && !request.getSupplies().isEmpty()) {
+            List<AssignedSupplyResponse> supplyList = request.getSupplies().stream()
+                    .map(rs -> new AssignedSupplyResponse(
+                            rs.getSupply().getId(),
+                            rs.getSupply().getName(),
+                            rs.getQuantity(),
+                            rs.getSupply().getUnit()
+                    ))
+                    .toList();
+
+            dto.setAssignedSupplies(supplyList);
+        }
+
         return dto;
     }
 

@@ -21,4 +21,13 @@ public class RescueRequestDetailResponse {
 
     private RequestLocationResponse location;
     private List<RequestMediaResponse> media;
+
+    private Long assignedTeamId;
+    private String assignedTeamName;
+    private String assignedTeamLeaderPhone;
+
+    private Long assignedVehicleId;
+    private String assignedVehicleName;
+
+    private List<AssignedSupplyResponse> assignedSupplies;
 }
