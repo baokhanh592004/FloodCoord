@@ -1,12 +1,19 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { supplyApi } from '../../services/supplyApi';
 import { useNavigate } from 'react-router-dom';
-import { Package, Plus, AlertCircle, Clock, Apple, Pill, Search, Wrench, Box, X } from 'lucide-react';
-import StatCard from '../../components/manager/StatCard';
-import EmptyState from '../../components/manager/EmptyState';
+import { Package, Plus, AlertCircle, Clock, Apple, Pill, Wrench, Box, X } from 'lucide-react';
+import StatCard from '../../components/coordinator/StatCard';
 import SupplyCard from '../../components/manager/SupplyCard';
 import SupplyFormModal from '../../components/manager/SupplyFormModal';
 import SupplyDetailModal from '../../components/manager/SupplyDetailModal';
+import {
+    ArchiveBoxIcon,
+    ClockIcon,
+    ExclamationTriangleIcon,
+    MagnifyingGlassIcon,
+    XMarkIcon,
+    PlusIcon,
+} from '@heroicons/react/24/outline';
 
 export default function SupplyManagement() {
     const navigate = useNavigate();
@@ -199,124 +206,118 @@ export default function SupplyManagement() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50">
-            <div className="max-w-7xl mx-auto px-6 py-8">
-                
-                {/* Header */}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-                    <div>
-                        <h1 className="text-3xl font-extrabold text-[#059669] tracking-tight">Quản lý Vật tư (Lô hàng)</h1>
-                        <p className="text-slate-500 mt-1 flex items-center gap-2">
-                            <span className="inline-block w-2 h-2 bg-emerald-500 rounded-full"></span>
-                            Quản lý tồn kho theo từng lô hàng - Cho phép cùng tên nhưng khác hạn sử dụng
-                        </p>
-                    </div>
-                    <div className="flex gap-3">
-                        <button 
-                            onClick={openCreateModal}
-                            className="px-5 py-2.5 rounded-xl bg-[#059669] text-white shadow-lg shadow-emerald-900/20 hover:bg-emerald-700 hover:scale-105 hover:shadow-emerald-900/30 transition-all duration-300 flex items-center gap-2 font-medium"
-                        >
-                            <Plus size={18} /> Nhập lô hàng mới
-                        </button>
-                    </div>
+        <div className="p-6 space-y-6 overflow-y-auto h-full">
+            {/* Header */}
+            <div className="flex items-start justify-between">
+                <div>
+                    <h1 className="text-2xl font-bold text-gray-900">Quản lý Vật tư</h1>
+                    <p className="text-sm text-gray-500">Quản lý tồn kho theo từng lô hàng cứu trợ.</p>
                 </div>
-
-                {/* Statistics */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
-                    <StatCard label="Tổng lô hàng" count={stats.total} icon={Package} color="text-slate-600" />
-                    <StatCard label="Đồ ăn & Nước" count={stats.foodWater} icon={Apple} color="text-green-600" />
-                    <StatCard label="Y tế" count={stats.medical} icon={Pill} color="text-red-600" />
-                    <StatCard label="Sắp hết hạn" count={stats.expiringSoon} icon={Clock} color="text-yellow-500" />
-                </div>
-
-                {/* Filter & Search */}
-                <div className="flex flex-col sm:flex-row gap-3 mb-5">
-                    {/* Search */}
-                    <div className="relative flex-1">
-                        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                        <input
-                            type="text"
-                            placeholder="Tìm tên vật tư, ghi chú..."
-                            value={searchTerm}
-                            onChange={e => setSearchTerm(e.target.value)}
-                            className="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-400 transition-all"
-                        />
-                        {searchTerm && (
-                            <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                                <X size={15} />
-                            </button>
-                        )}
-                    </div>
-                    {/* Type filter buttons */}
-                    <div className="flex gap-2 flex-wrap">
-                        {[
-                            { value: 'ALL',        label: 'Tất cả',          icon: Package, cls: 'text-slate-600 bg-slate-100 hover:bg-slate-200', active: 'bg-slate-700 text-white' },
-                            { value: 'FOOD_WATER', label: 'Đồ ăn & Nước',     icon: Apple,   cls: 'text-green-700 bg-green-50 hover:bg-green-100',  active: 'bg-green-600 text-white' },
-                            { value: 'MEDICAL',    label: 'Y tế',             icon: Pill,    cls: 'text-red-700 bg-red-50 hover:bg-red-100',           active: 'bg-red-600 text-white' },
-                            { value: 'EQUIPMENT',  label: 'Thiết bị',        icon: Wrench,  cls: 'text-blue-700 bg-blue-50 hover:bg-blue-100',        active: 'bg-blue-600 text-white' },
-                            { value: 'OTHER',      label: 'Khác',             icon: Box,     cls: 'text-gray-700 bg-gray-100 hover:bg-gray-200',        active: 'bg-gray-600 text-white' },
-                        ].map(({ value, label, icon: Icon, cls, active }) => (
-                            <button
-                                key={value}
-                                onClick={() => setFilterType(value)}
-                                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-all ${
-                                    filterType === value ? active : cls
-                                }`}
-                            >
-                                <Icon size={14} />{label}
-                                <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${
-                                    filterType === value ? 'bg-white/25 text-white' : 'bg-white/80 text-slate-600'
-                                }`}>
-                                    {value === 'ALL' ? supplies.length : supplies.filter(s => s.type === value).length}
-                                </span>
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Main Content */}
-                {error && (
-                    <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-100 text-red-700 flex items-center gap-3">
-                        <AlertCircle size={20} /> {error}
-                    </div>
-                )}
-
-                {loading ? (
-                    <div className="flex justify-center items-center h-64">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#059669]"></div>
-                    </div>
-                ) : supplies.length === 0 ? (
-                    <EmptyState 
-                        onAdd={openCreateModal}
-                        icon={Package}
-                        title="Chưa có lô hàng nào"
-                        description="Hệ thống chưa ghi nhận lô hàng cứu trợ nào. Hãy nhập lô hàng đầu tiên để bắt đầu quản lý kho."
-                        buttonText="+ Nhập lô hàng đầu tiên"
-                    />
-                ) : filteredSupplies.length === 0 ? (
-                    <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-slate-200">
-                        <Search size={36} className="mx-auto text-slate-300 mb-3" />
-                        <p className="text-slate-500 font-medium">Không tìm thấy lô hàng nào</p>
-                        <button onClick={() => { setFilterType('ALL'); setSearchTerm(''); }} className="mt-3 text-sm text-emerald-600 hover:underline font-semibold">
-                            Xóa bộ lọc
-                        </button>
-                    </div>
-                ) : (
-                    <div className="flex flex-col gap-2">
-                        {filteredSupplies.map(supply => (
-                            <SupplyCard
-                                key={supply.id}
-                                supply={supply}
-                                onEdit={handleEdit}
-                                onDelete={handleDelete}
-                                onViewDetail={handleViewDetail}
-                            />
-                        ))}
-                    </div>
-                )}
+                <button
+                    onClick={openCreateModal}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors"
+                >
+                    <PlusIcon className="h-4 w-4" /> Nhập lô hàng mới
+                </button>
             </div>
 
-            {/* Modal */}
+            {/* Stat Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatCard icon={<ArchiveBoxIcon className="h-6 w-6" />} count={stats.total} label="Tổng lô hàng" color="blue" />
+                <StatCard icon={<Apple size={24} />} count={stats.foodWater} label="Đồ ăn &amp; Nước" color="green" />
+                <StatCard icon={<Pill size={24} />} count={stats.medical} label="Y tế" color="red" />
+                <StatCard icon={<ClockIcon className="h-6 w-6" />} count={stats.expiringSoon} label="Sắp hết hạn" color="yellow" />
+            </div>
+
+            {/* Filter & Search */}
+            <div className="flex flex-col sm:flex-row gap-3">
+                <div className="relative flex-1 max-w-xs">
+                    <MagnifyingGlassIcon className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                        type="text"
+                        placeholder="Tìm tên vật tư, ghi chú..."
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                        className="w-full pl-9 pr-9 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500"
+                    />
+                    {searchTerm && (
+                        <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                            <XMarkIcon className="h-4 w-4" />
+                        </button>
+                    )}
+                </div>
+                <div className="flex gap-1.5 flex-wrap">
+                    {[
+                        { value: 'ALL',        label: 'Tất cả',       icon: Package },
+                        { value: 'FOOD_WATER', label: 'Đồ ăn & Nước', icon: Apple },
+                        { value: 'MEDICAL',    label: 'Y tế',        icon: Pill },
+                        { value: 'EQUIPMENT',  label: 'Thiết bị',   icon: Wrench },
+                        { value: 'OTHER',      label: 'Khác',         icon: Box },
+                    ].map(({ value, label, icon: Icon }) => (
+                        <button
+                            key={value}
+                            onClick={() => setFilterType(value)}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                                filterType === value
+                                    ? 'bg-blue-600 text-white'
+                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                            }`}
+                        >
+                            <Icon size={13} />{label}
+                            <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${
+                                filterType === value ? 'bg-white/25 text-white' : 'bg-white text-gray-500'
+                            }`}>
+                                {value === 'ALL' ? supplies.length : supplies.filter(s => s.type === value).length}
+                            </span>
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* Error */}
+            {error && (
+                <div className="p-4 rounded-lg bg-red-50 border border-red-200 text-red-700 flex items-center gap-3 text-sm">
+                    <AlertCircle size={18} /> {error}
+                </div>
+            )}
+
+            {/* Content */}
+            {loading ? (
+                <div className="flex justify-center items-center h-64">
+                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+                </div>
+            ) : supplies.length === 0 ? (
+                <div className="text-center py-16 bg-white border border-dashed border-gray-300 rounded-lg">
+                    <Package size={40} className="mx-auto text-gray-300 mb-3" />
+                    <h3 className="text-base font-semibold text-gray-700 mb-1">Chưa có lô hàng nào</h3>
+                    <p className="text-sm text-gray-500 mb-4">Hãy nhập lô hàng đầu tiên để bắt đầu quản lý kho.</p>
+                    <button onClick={openCreateModal} className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700">
+                        + Nhập lô hàng đầu tiên
+                    </button>
+                </div>
+            ) : filteredSupplies.length === 0 ? (
+                <div className="text-center py-16 bg-white border border-dashed border-gray-200 rounded-lg">
+                    <MagnifyingGlassIcon className="h-9 w-9 mx-auto text-gray-300 mb-3" />
+                    <p className="text-gray-500 font-medium text-sm">Không tìm thấy lô hàng nào</p>
+                    <button onClick={() => { setFilterType('ALL'); setSearchTerm(''); }} className="mt-2 text-sm text-blue-600 hover:underline">
+                        Xóa bộ lọc
+                    </button>
+                </div>
+            ) : (
+                <div className="flex flex-col gap-2">
+                    {filteredSupplies.map(supply => (
+                        <SupplyCard
+                            key={supply.id}
+                            supply={supply}
+                            onEdit={handleEdit}
+                            onDelete={handleDelete}
+                            onViewDetail={handleViewDetail}
+                        />
+                    ))}
+                </div>
+            )}
+
+            {/* Modals */}
             <SupplyFormModal
                 showModal={showModal}
                 editingSupply={editingSupply}
@@ -325,8 +326,6 @@ export default function SupplyManagement() {
                 onSubmit={handleSubmit}
                 onClose={handleCloseModal}
             />
-
-            {/* Detail Modal */}
             <SupplyDetailModal
                 supply={selectedSupply}
                 onClose={handleCloseDetailModal}
