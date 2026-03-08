@@ -43,6 +43,7 @@ public class RescueTeamMapper {
                 .name(team.getName())
                 .description(team.getDescription())
                 .isActive(team.getIsActive())
+                .status(team.getStatus())
                 .leaderId(leaderId)
                 .leaderName(leaderName)
                 .members(memberResponses)
