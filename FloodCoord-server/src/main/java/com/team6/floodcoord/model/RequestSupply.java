@@ -24,4 +24,7 @@ public class RequestSupply {
     private Supply supply;
 
     private Integer quantity;
+
+    // Số lượng còn dư sau rescue
+    private Integer remainingQuantity;
 }

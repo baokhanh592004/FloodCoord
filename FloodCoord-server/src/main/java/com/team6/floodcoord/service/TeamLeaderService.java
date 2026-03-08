@@ -1,6 +1,7 @@
 package com.team6.floodcoord.service;
 
 import com.team6.floodcoord.dto.request.AttendanceRequestDTO;
+import com.team6.floodcoord.dto.request.ReportRequestDTO;
 import com.team6.floodcoord.dto.response.AttendanceResponseDTO;
 import com.team6.floodcoord.model.Attendance;
 import com.team6.floodcoord.model.enums.RequestStatus;
@@ -15,4 +16,5 @@ public interface TeamLeaderService {
 
     public void updateRescueStatus(UUID requestId, RequestStatus newStatus);
 
+    public void submitReport(ReportRequestDTO dto);
 }

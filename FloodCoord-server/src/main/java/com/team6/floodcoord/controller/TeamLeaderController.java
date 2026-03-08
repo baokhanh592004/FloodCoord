@@ -2,14 +2,17 @@ package com.team6.floodcoord.controller;
 
 
 import com.team6.floodcoord.dto.request.AttendanceRequestDTO;
+import com.team6.floodcoord.dto.request.ReportRequestDTO;
 import com.team6.floodcoord.dto.request.UpdateRescueStatusRequest;
 import com.team6.floodcoord.service.RescueRequestService;
 import com.team6.floodcoord.service.TeamLeaderService;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.UUID;
 
@@ -52,5 +55,17 @@ public class TeamLeaderController {
 
         teamLeaderService.updateRescueStatus(id, request.getStatus());
         return ResponseEntity.ok("Status updated successfully");
+    }
+    @PostMapping(value = "/report", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> submitReport(
+            @RequestPart("data") ReportRequestDTO dto,
+            @RequestPart(value = "mediaFiles", required = false) MultipartFile[] mediaFiles
+    ) {
+
+        dto.setMediaFiles(mediaFiles);
+
+        teamLeaderService.submitReport(dto);
+
+        return ResponseEntity.ok("Report submitted successfully");
     }
 }

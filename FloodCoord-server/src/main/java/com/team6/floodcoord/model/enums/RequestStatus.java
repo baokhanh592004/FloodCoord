@@ -11,5 +11,7 @@ public enum RequestStatus {
     RESCUING,       // 6. Đang thực hiện cứu hộ
 
     COMPLETED,      // 7. Đã cứu hộ xong
+    REPORTED,       // 7.5  Leader đã nộp báo cáo
+
     CANCELLED       // 8. Hủy (do spam hoặc không cần nữa)
 }

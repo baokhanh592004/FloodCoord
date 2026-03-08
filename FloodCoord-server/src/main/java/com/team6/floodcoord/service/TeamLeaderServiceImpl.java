@@ -2,22 +2,20 @@ package com.team6.floodcoord.service;
 
 import com.team6.floodcoord.dto.request.AttendanceItemDTO;
 import com.team6.floodcoord.dto.request.AttendanceRequestDTO;
+import com.team6.floodcoord.dto.request.ReportRequestDTO;
+import com.team6.floodcoord.dto.request.SupplyRemainDTO;
 import com.team6.floodcoord.dto.response.AttendanceResponseDTO;
-import com.team6.floodcoord.model.Attendance;
-import com.team6.floodcoord.model.RescueRequest;
-import com.team6.floodcoord.model.RescueTeam;
-import com.team6.floodcoord.model.User;
+import com.team6.floodcoord.model.*;
 import com.team6.floodcoord.model.enums.RequestStatus;
 import com.team6.floodcoord.model.enums.TeamStatus;
-import com.team6.floodcoord.repository.AttendanceRepository;
-import com.team6.floodcoord.repository.RescueRequestRepository;
-import com.team6.floodcoord.repository.RescueTeamRepository;
-import com.team6.floodcoord.repository.UserRepository;
+import com.team6.floodcoord.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -30,6 +28,11 @@ public class TeamLeaderServiceImpl implements TeamLeaderService {
     private final UserRepository userRepository;
     private final RescueTeamRepository rescueTeamRepository;
     private final RescueRequestRepository rescueRequestRepository;
+    private final RescueReportRepository rescueReportRepository;
+    private final RequestSupplyRepository requestSupplyRepository;
+    private final SupplyRepository supplyRepository;
+    private final CloudinaryService cloudinaryService;
+    private final ReportMediaRepository reportMediaRepository;
 
     @Override
     @Transactional
@@ -152,6 +155,111 @@ public class TeamLeaderServiceImpl implements TeamLeaderService {
             rescueTeamRepository.save(team);
         }
     }
+
+    @Override
+    @Transactional
+    public void submitReport(ReportRequestDTO dto) {
+
+
+
+
+        String email = SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getName();
+
+        User currentUser = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Current user not found"));
+
+        RescueTeam team = currentUser.getRescueTeam();
+        if (team == null) {
+            throw new RuntimeException("You are not assigned to any team");
+        }
+
+        if (!team.getLeader().getId().equals(currentUser.getId())) {
+            throw new RuntimeException("You are not the leader of this team");
+        }
+
+        RescueRequest request = rescueRequestRepository
+                .findById(dto.getRequestId())
+                .orElseThrow();
+
+        if (request.getStatus() != RequestStatus.COMPLETED) {
+            throw new RuntimeException("Only completed request can be reported");
+        }
+
+        if (!request.getAssignedTeam().getLeader().getId()
+                .equals(currentUser.getId())) {
+            throw new RuntimeException("Only team leader can report");
+        }
+
+        RescueReport report = RescueReport.builder()
+                .request(request)
+                .leader(currentUser)
+                .rescuedPeople(dto.getRescuedPeople())
+                .reportNote(dto.getNote())
+                .reportedAt(LocalDateTime.now())
+                .build();
+
+        rescueReportRepository.save(report);
+
+        // update status của rescue request
+        request.setStatus(RequestStatus.REPORTED);
+        rescueRequestRepository.save(request);
+
+        // 🔥 Xử lý hoàn kho
+        for (SupplyRemainDTO item : dto.getRemainSupplies()) {
+
+            if (item.getRemainingQuantity() < 0) {
+                throw new RuntimeException("Remaining quantity cannot be negative");
+            }
+            RequestSupply rs = requestSupplyRepository
+                    .findById(item.getRequestSupplyId())
+                    .orElseThrow();
+
+            int remain = item.getRemainingQuantity();
+
+            if (remain > 0) {
+                Supply supply = rs.getSupply();
+                supply.setQuantity(supply.getQuantity() + remain);
+                supplyRepository.save(supply);
+
+                rs.setRemainingQuantity(remain);
+                requestSupplyRepository.save(rs);
+            }
+        }
+        // 7️⃣ Upload media lên Cloudinary
+        if (dto.getMediaFiles() != null && dto.getMediaFiles().length > 0) {
+
+            if (dto.getMediaFiles().length > 5) {
+                throw new RuntimeException("Maximum 5 media files allowed");
+            }
+
+            for (MultipartFile file : dto.getMediaFiles()) {
+
+                String url = null;
+                try {
+                    url = cloudinaryService.uploadMedia(file);
+                } catch (IOException e) {
+                    throw new RuntimeException("Upload media failed", e);
+                }
+
+                String mediaType = file.getContentType() != null &&
+                        file.getContentType().startsWith("video")
+                        ? "VIDEO"
+                        : "IMAGE";
+
+                ReportMedia media = ReportMedia.builder()
+                        .report(report)
+                        .mediaUrl(url)
+                        .mediaType(mediaType)
+                        .build();
+
+                reportMediaRepository.save(media);
+            }
+        }
+
+    }
+
     private void validateTransition(RequestStatus current, RequestStatus next) {
 
         switch (current) {
@@ -173,6 +281,10 @@ public class TeamLeaderServiceImpl implements TeamLeaderService {
 
             case RESCUING -> {
                 if (next != RequestStatus.COMPLETED)
+                    throw new RuntimeException("Invalid transition");
+            }
+            case COMPLETED -> {
+                if (next != RequestStatus.REPORTED)
                     throw new RuntimeException("Invalid transition");
             }
 
