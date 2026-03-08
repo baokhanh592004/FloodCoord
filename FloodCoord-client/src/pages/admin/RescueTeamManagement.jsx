@@ -50,7 +50,7 @@ export default function RescueTeamManagement() {
 
     const fetchAvailableUsers = async () => {
         try {
-            const data = await adminTeamApi.getAvailableUsers();
+            const data = await adminTeamApi.getAvailableRescueMembers();
             setAvailableUsers(data);
         } catch (err) {
             console.error('Không thể tải danh sách người dùng:', err);

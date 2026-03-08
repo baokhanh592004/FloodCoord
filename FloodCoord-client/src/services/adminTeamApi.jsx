@@ -78,5 +78,16 @@ export const adminTeamApi = {
             console.error("Get available users failed:", error);
             throw error;
         }
+    },
+
+    // Lấy users có role RESCUE_TEAM và CHƯA thuộc đội nào
+    getAvailableRescueMembers: async () => {
+        try {
+            const response = await axiosClient.get('/api/admin/rescue-teams/available-rescue-members');
+            return response.data;
+        } catch (error) {
+            console.error("Get available rescue members failed:", error);
+            throw error;
+        }
     }
 };
