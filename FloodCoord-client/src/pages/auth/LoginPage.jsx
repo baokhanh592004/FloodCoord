@@ -16,6 +16,8 @@ export default function LoginPage() {
   const [error, setError] = React.useState(null);
   const [loading, setLoading] = React.useState(false);
 
+  
+
   const getRoleBasedDashboard = (token) => {
     // Decode token to get role
     const decoded = jwtDecode(token);
