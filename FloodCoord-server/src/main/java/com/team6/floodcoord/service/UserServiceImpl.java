@@ -24,7 +24,6 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
-    private final UserMapper userMapper;
 
 
     @Override
@@ -102,7 +101,7 @@ public class UserServiceImpl implements UserService {
     public UserResponse getMyProfile(User currentUser) {
         User user = userRepository.findById(currentUser.getId())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
-        return userMapper.toUserResponse(user);
+        return UserMapper.toUserResponse(user);
     }
 
     @Override
@@ -124,7 +123,15 @@ public class UserServiceImpl implements UserService {
             user.setFullName(request.getFullName());
         }
 
-        return userMapper.toUserResponse(userRepository.save(user));
+        return UserMapper.toUserResponse(userRepository.save(user));
+    }
+
+    @Override
+    public List<UserResponse> getAvailableRescueMembers() {
+        return userRepository.findByRole_RoleCodeAndRescueTeamIsNull("RESCUE_TEAM")
+                .stream()
+                .map(UserMapper::toUserResponse)
+                .toList();
     }
 
 
