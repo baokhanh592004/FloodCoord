@@ -33,7 +33,7 @@ export default function UserFormModal({ editingUser, onClose, onSuccess }) {
                 phoneNumber: editingUser.phoneNumber || '',
                 password: '',
                 confirmPassword: '',
-                roleId: getRoleIdFromName(editingUser.roleName),
+                roleId: getRoleIdFromCode(editingUser.roleName),
                 status: editingUser.status !== undefined ? editingUser.status : true
             });
         }
@@ -96,7 +96,7 @@ export default function UserFormModal({ editingUser, onClose, onSuccess }) {
                     phoneNumber: formData.phoneNumber,
                     password: formData.password,
                     confirmPassword: formData.confirmPassword,
-                    roleCode: roles.find(r => r.id === parseInt(formData.roleId))?.roleCode
+                    rollCode: roles.find(r => r.id === parseInt(formData.roleId))?.roleCode
                 };
                 await adminUserApi.createUser(createData);
             }
