@@ -16,21 +16,17 @@ export default function UserFormModal({ editingUser, onClose, onSuccess }) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
-    useEffect(() => {
-        fetchRoles();
-        if (editingUser) {
-            // Map roleName to roleId from roles list
-            const getRoleIdFromName = (roleName) => {
-                const roleMap = {
-                    'Quản Trị Viên': 1,
-                    'Quản Lý': 2,
-                    'Điều Phối Viên': 3,
-                    'Đội Cứu Hộ': 4,
-                    'Thành Viên': 5
-                };
-                return roleMap[roleName] || '';
-            };
+    const getRoleIdFromCode = (roleCode) => {
+    const role = roles.find(r => r.roleCode === roleCode);
+    return role ? role.id : '';
+};
 
+    useEffect(() => {
+    fetchRoles();
+}, []);
+
+    useEffect(() => {
+        if (editingUser && roles.length > 0) {
             setFormData({
                 fullName: editingUser.fullName || '',
                 email: editingUser.email || '',
@@ -41,7 +37,7 @@ export default function UserFormModal({ editingUser, onClose, onSuccess }) {
                 status: editingUser.status !== undefined ? editingUser.status : true
             });
         }
-    }, [editingUser]);
+        }, [editingUser, roles]);
 
     const fetchRoles = async () => {
         try {
@@ -100,7 +96,7 @@ export default function UserFormModal({ editingUser, onClose, onSuccess }) {
                     phoneNumber: formData.phoneNumber,
                     password: formData.password,
                     confirmPassword: formData.confirmPassword,
-                    rollCode: roles.find(r => r.id === parseInt(formData.roleId))?.roleCode
+                    roleCode: roles.find(r => r.id === parseInt(formData.roleId))?.roleCode
                 };
                 await adminUserApi.createUser(createData);
             }
