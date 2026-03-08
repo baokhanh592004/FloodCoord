@@ -245,48 +245,84 @@ const RequestRescuePage = () => {
         <>
             {/* Modal hiển thị tracking code sau khi gửi thành công */}
             {successData && (
-                <div 
-                    className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center" 
-                    style={{ zIndex: 9999 }}
+                <div
+                    className="fixed inset-0 flex items-center justify-center p-4"
+                    style={{ zIndex: 9999, background: 'rgba(240, 253, 244, 0.85)', backdropFilter: 'blur(6px)' }}
                 >
-                    <div className="bg-white p-8 rounded-xl shadow-2xl max-w-md w-full mx-4 relative">
-                        <div className="text-center">
-                            <div className="text-6xl mb-4">✅</div>
-                            <h2 className="text-2xl font-bold text-green-600 mb-4">
-                                Gửi yêu cầu thành công!
-                            </h2>
-                            <p className="text-gray-600 mb-4">
-                                Vui lòng lưu lại mã tra cứu này để theo dõi tình trạng cứu trợ
-                            </p>
-                            <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-4 mb-4">
-                                <p className="text-sm text-gray-600 mb-2">Mã tra cứu của bạn:</p>
-                                <p className="text-3xl font-bold text-red-600 tracking-wider break-all">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+                        {/* Header xanh lá */}
+                        <div className="bg-linear-to-br from-green-500 to-emerald-600 px-6 pt-8 pb-6 text-center">
+                            {/* Icon check circle */}
+                            <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center shadow-lg">
+                                    <svg className="w-8 h-8 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                    </svg>
+                                </div>
+                            </div>
+                            <h2 className="text-2xl font-bold text-white mb-1">Gửi thành công!</h2>
+                            <p className="text-green-100 text-sm">Yêu cầu cứu hộ của bạn đã được tiếp nhận</p>
+                        </div>
+
+                        {/* Body */}
+                        <div className="px-6 py-5 space-y-4">
+                            {/* Mã tra cứu */}
+                            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                                <p className="text-xs font-semibold text-amber-600 uppercase tracking-wide mb-2 text-center">
+                                    🔑 Mã tra cứu của bạn
+                                </p>
+                                <p className="text-3xl font-bold text-gray-900 tracking-widest text-center break-all">
                                     {successData.trackingCode}
                                 </p>
+                                <p className="text-xs text-gray-400 text-center mt-2">
+                                    Lưu lại mã này để theo dõi tình trạng cứu trợ
+                                </p>
                             </div>
-                            <p className="text-xs text-gray-500 mb-6 break-all">
-                                ID: {successData.requestId}
+
+                            {/* Info */}
+                            <div className="flex items-start gap-3 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
+                                <svg className="w-5 h-5 text-blue-500 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                                </svg>
+                                <p className="text-xs text-blue-700 leading-relaxed">
+                                    Đội điều phối sẽ xem xét và phân công đội cứu hộ đến hỗ trợ bạn. Vui lòng giữ điện thoại để nhận liên lạc.
+                                </p>
+                            </div>
+
+                            {/* ID nhỏ */}
+                            <p className="text-[11px] text-gray-400 text-center break-all">
+                                Mã yêu cầu: {successData.requestId}
                             </p>
-                            <div className="flex flex-col sm:flex-row gap-3">
+                        </div>
+
+                        {/* Footer buttons */}
+                        <div className="px-6 pb-6 space-y-2">
+                            <div className="flex gap-3">
                                 <button
                                     onClick={() => {
                                         navigator.clipboard.writeText(successData.trackingCode);
                                         alert('Đã copy mã tra cứu!');
                                     }}
-                                    className="flex-1 bg-blue-500 text-white py-3 px-4 rounded-lg hover:bg-blue-600 transition font-semibold"
+                                    className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl transition text-sm"
                                 >
-                                    📋 Sao chép mã
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                    </svg>
+                                    Sao chép mã
                                 </button>
                                 <button
                                     onClick={() => navigate('/track-rescue')}
-                                    className="flex-1 bg-green-500 text-white py-3 px-4 rounded-lg hover:bg-green-600 transition font-semibold"
+                                    className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 px-4 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-xl transition text-sm"
                                 >
-                                    🔍 Tra cứu ngay
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                    Tra cứu ngay
                                 </button>
                             </div>
                             <button
                                 onClick={() => window.location.reload()}
-                                className="mt-4 w-full text-gray-600 hover:text-gray-800 text-sm py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+                                className="w-full py-2.5 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-xl border border-gray-200 transition font-medium"
                             >
                                 ← Gửi yêu cầu mới
                             </button>

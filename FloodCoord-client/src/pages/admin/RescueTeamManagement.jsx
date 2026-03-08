@@ -1,12 +1,17 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminTeamApi } from '../../services/adminTeamApi';
-import { Package, Plus, AlertCircle, Users, Shield, Clock, Activity } from 'lucide-react';
-import StatCard from '../../components/manager/StatCard';
-import EmptyState from '../../components/manager/EmptyState';
+import { Plus, AlertCircle, Users, Activity } from 'lucide-react';
+import StatCard from '../../components/coordinator/StatCard';
 import TeamCard from '../../components/admin/TeamCard';
 import TeamFormModal from '../../components/admin/TeamFormModal';
 import TeamDetailModal from '../../components/admin/TeamDetailModal';
+import {
+    UserGroupIcon,
+    CheckCircleIcon,
+    ShieldCheckIcon,
+    PlusIcon,
+} from '@heroicons/react/24/outline';
 
 export default function RescueTeamManagement() {
     const navigate = useNavigate();
@@ -45,7 +50,7 @@ export default function RescueTeamManagement() {
 
     const fetchAvailableUsers = async () => {
         try {
-            const data = await adminTeamApi.getAvailableUsers();
+            const data = await adminTeamApi.getAvailableRescueMembers();
             setAvailableUsers(data);
         } catch (err) {
             console.error('Không thể tải danh sách người dùng:', err);
@@ -169,70 +174,63 @@ export default function RescueTeamManagement() {
     }, [teams]);
 
     return (
-        <div className="min-h-screen bg-slate-50">
-            <div className="max-w-7xl mx-auto px-6 py-8">
-                
-                {/* Header */}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-                    <div>
-                        <h1 className="text-3xl font-extrabold text-[#1e40af] tracking-tight">Quản lý Đội Cứu Hộ</h1>
-                        <p className="text-slate-500 mt-1 flex items-center gap-2">
-                            <span className="inline-block w-2 h-2 bg-blue-500 rounded-full"></span>
-                            Quản lý đội ngũ và thành viên cứu hộ
-                        </p>
-                    </div>
-                    <div className="flex gap-3">
-                        <button 
-                            onClick={openCreateModal}
-                            className="px-5 py-2.5 rounded-xl bg-[#1e40af] text-white shadow-lg shadow-blue-900/20 hover:bg-blue-800 hover:scale-105 hover:shadow-blue-900/30 transition-all duration-300 flex items-center gap-2 font-medium"
-                        >
-                            <Plus size={18} /> Tạo đội mới
-                        </button>
-                    </div>
+        <div className="p-6 space-y-6 overflow-y-auto h-full">
+            {/* Header */}
+            <div className="flex items-start justify-between">
+                <div>
+                    <h1 className="text-2xl font-bold text-gray-900">Quản lý Đội Cứu Hộ</h1>
+                    <p className="text-sm text-gray-500">Quản lý đội ngũ và thành viên cứu hộ.</p>
                 </div>
-
-                {/* Statistics */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
-                    <StatCard label="Tổng số đội" count={stats.total} icon={Users} color="text-slate-600" />
-                    <StatCard label="Đội sẵn sáng" count={stats.available} icon={Shield} color="text-emerald-600" />
-                    <StatCard label="Đang nhiệm vụ" count={stats.inMission} icon={Activity} color="text-blue-600" />
-                    <StatCard label="Tổng thành viên" count={stats.totalMembers} icon={Users} color="text-purple-600" />
-                </div>
-
-                {/* Error Message */}
-                {error && (
-                    <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-100 text-red-700 flex items-center gap-3">
-                        <AlertCircle size={20} /> {error}
-                    </div>
-                )}
-
-                {/* Main Content */}
-                {loading ? (
-                    <div className="flex justify-center items-center h-64">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1e40af]"></div>
-                    </div>
-                ) : teams.length === 0 ? (
-                    <EmptyState 
-                        onAdd={openCreateModal}
-                        icon={Users}
-                        title="Chưa có đội cứu hộ nào"
-                        description="Hệ thống chưa có đội cứu hộ. Hãy tạo đội đầu tiên để bắt đầu quản lý."
-                        buttonText="+ Tạo đội đầu tiên"
-                    />
-                ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {teams.map(team => (
-                            <TeamCard
-                                key={team.id}
-                                team={team}
-                                onEdit={handleEdit}
-                                onDelete={handleDelete}
-                                onViewDetails={handleViewDetails}
-                            />
-                        ))}
-                    </div>
-                )}
+                <button
+                    onClick={openCreateModal}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors"
+                >
+                    <PlusIcon className="h-4 w-4" /> Tạo đội mới
+                </button>
             </div>
+
+            {/* Stat Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatCard icon={<UserGroupIcon className="h-6 w-6" />} count={stats.total} label="Tổng số đội" color="blue" />
+                <StatCard icon={<CheckCircleIcon className="h-6 w-6" />} count={stats.available} label="Đội sẵn sàng" color="green" />
+                <StatCard icon={<ShieldCheckIcon className="h-6 w-6" />} count={stats.inMission} label="Đang nhiệm vụ" color="yellow" />
+                <StatCard icon={<UserGroupIcon className="h-6 w-6" />} count={stats.totalMembers} label="Tổng thành viên" color="rose" />
+            </div>
+
+            {/* Error */}
+            {error && (
+                <div className="p-4 rounded-lg bg-red-50 border border-red-200 text-red-700 flex items-center gap-3 text-sm">
+                    <AlertCircle size={18} /> {error}
+                </div>
+            )}
+
+            {/* Content */}
+            {loading ? (
+                <div className="flex justify-center items-center h-64">
+                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+                </div>
+            ) : teams.length === 0 ? (
+                <div className="text-center py-16 bg-white border border-dashed border-gray-300 rounded-lg">
+                    <UserGroupIcon className="h-10 w-10 mx-auto text-gray-300 mb-3" />
+                    <h3 className="text-base font-semibold text-gray-700 mb-1">Chưa có đội cứu hộ nào</h3>
+                    <p className="text-sm text-gray-500 mb-4">Hãy tạo đội đầu tiên để bắt đầu quản lý.</p>
+                    <button onClick={openCreateModal} className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700">
+                        + Tạo đội đầu tiên
+                    </button>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {teams.map(team => (
+                        <TeamCard
+                            key={team.id}
+                            team={team}
+                            onEdit={handleEdit}
+                            onDelete={handleDelete}
+                            onViewDetails={handleViewDetails}
+                        />
+                    ))}
+                </div>
+            )}
 
             {/* Modals */}
             <TeamFormModal
@@ -244,7 +242,6 @@ export default function RescueTeamManagement() {
                 onClose={handleCloseModal}
                 availableUsers={availableUsers}
             />
-
             <TeamDetailModal
                 team={selectedTeam}
                 onClose={handleCloseDetailModal}

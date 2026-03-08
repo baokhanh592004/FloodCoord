@@ -1,10 +1,9 @@
 package com.team6.floodcoord.dto.response;
 
-import lombok.Builder;
-import lombok.Data;
-
 import java.time.LocalDateTime;
 import java.util.UUID;
+
+import lombok.Data;
 
 @Data
 public class RescueRequestSummaryResponse {
@@ -18,4 +17,5 @@ public class RescueRequestSummaryResponse {
 
     private String contactName;
     private String contactPhone;
+    
 }

@@ -16,4 +16,5 @@ public interface UserService {
     public UserResponse getUserById(Long id);
     UserResponse getMyProfile(User currentUser);
     UserResponse updateMyProfile(User currentUser, ProfileUpdateRequest request);
+    List<UserResponse> getAvailableRescueMembers();
 }

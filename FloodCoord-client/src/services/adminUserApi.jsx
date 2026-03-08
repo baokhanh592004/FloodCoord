@@ -56,21 +56,13 @@ export const adminUserApi = {
         }
     },
 
-    // Get all roles (for dropdown selection)
     getAllRoles: async () => {
         try {
             const response = await axiosClient.get('/api/roles');
             return response.data;
         } catch (error) {
             console.error("Get roles failed:", error);
-            // Fallback to hardcoded roles if API not available
-            return [
-                { id: 1, roleCode: 'ADMIN', roleName: 'Quản Trị Viên', roleDescription: 'Toàn quyền quản lý hệ thống' },
-                { id: 2, roleCode: 'MANAGER', roleName: 'Quản Lý', roleDescription: 'Quản lý nghiệp vụ và người dùng' },
-                { id: 3, roleCode: 'COORDINATOR', roleName: 'Điều Phối Viên', roleDescription: 'Điều phối hoạt động và đội nhóm' },
-                { id: 4, roleCode: 'RESCUE_TEAM', roleName: 'Đội Cứu Hộ', roleDescription: 'Thực hiện công tác cứu hộ, cứu nạn' },
-                { id: 5, roleCode: 'MEMBER', roleName: 'Thành Viên', roleDescription: 'Người dùng thông thường' }
-            ];
+            return [];
         }
     }
 };

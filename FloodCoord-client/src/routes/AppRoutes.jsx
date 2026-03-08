@@ -40,7 +40,9 @@ import Operations from '../pages/coordinator/Operations'
 
 /* Rescue Team */
 import RescueTeamDashboard from '../pages/rescueteam/RescueTeamDashboard'
-import MissionsPage from '../pages/rescueteam/MissionsPage';
+import MyMissions from '../pages/rescueteam/MyMissions'
+import MissionDetail from '../pages/rescueteam/MissionDetail'
+import RescueReport from '../pages/rescueteam/RescueReport'
 
 export default function AppRoutes() {
   return (
@@ -114,14 +116,16 @@ export default function AppRoutes() {
     <Route
         path="/rescue-team"
         element={
-          <RoleBasedRoute allowedRoles={["RESCUE_TEAM", "TEAM_MEMBER"]}>
+          <RoleBasedRoute allowedRoles={['RESCUE_TEAM']}>
             <RescueTeamLayout />
           </RoleBasedRoute>
         }
       >
-        <Route path="" element={<RescueTeamDashboard />} />
+        <Route index path="" element={<RescueTeamDashboard />} />
         <Route path="dashboard" element={<RescueTeamDashboard />} />
-        <Route path="missions" element={<MissionsPage />} />
+        <Route path="missions" element={<MyMissions />} />
+        <Route path="missions/:id" element={<MissionDetail />}/>
+        <Route path="missions/:id/report" element={<RescueReport />}/>
       </Route>
 
       {/* ================= 404 ================= */}

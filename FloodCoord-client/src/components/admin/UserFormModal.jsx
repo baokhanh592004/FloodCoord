@@ -16,32 +16,28 @@ export default function UserFormModal({ editingUser, onClose, onSuccess }) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
-    useEffect(() => {
-        fetchRoles();
-        if (editingUser) {
-            // Map roleName to roleId from roles list
-            const getRoleIdFromName = (roleName) => {
-                const roleMap = {
-                    'Quản Trị Viên': 1,
-                    'Quản Lý': 2,
-                    'Điều Phối Viên': 3,
-                    'Đội Cứu Hộ': 4,
-                    'Thành Viên': 5
-                };
-                return roleMap[roleName] || '';
-            };
+    const getRoleIdFromCode = (roleCode) => {
+    const role = roles.find(r => r.roleCode === roleCode);
+    return role ? role.id : '';
+};
 
+    useEffect(() => {
+    fetchRoles();
+}, []);
+
+    useEffect(() => {
+        if (editingUser && roles.length > 0) {
             setFormData({
                 fullName: editingUser.fullName || '',
                 email: editingUser.email || '',
                 phoneNumber: editingUser.phoneNumber || '',
                 password: '',
                 confirmPassword: '',
-                roleId: getRoleIdFromName(editingUser.roleName),
+                roleId: getRoleIdFromCode(editingUser.roleName),
                 status: editingUser.status !== undefined ? editingUser.status : true
             });
         }
-    }, [editingUser]);
+        }, [editingUser, roles]);
 
     const fetchRoles = async () => {
         try {

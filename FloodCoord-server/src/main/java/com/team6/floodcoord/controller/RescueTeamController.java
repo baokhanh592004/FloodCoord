@@ -2,7 +2,10 @@ package com.team6.floodcoord.controller;
 
 import com.team6.floodcoord.dto.request.RescueTeamRequest;
 import com.team6.floodcoord.dto.response.RescueTeamResponse;
+import com.team6.floodcoord.dto.response.UserResponse;
+import com.team6.floodcoord.repository.RescueTeamRepository;
 import com.team6.floodcoord.service.RescueTeamService;
+import com.team6.floodcoord.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +22,7 @@ import java.util.List;
 @PreAuthorize("hasRole('ADMIN') or hasRole('MANAGER') or hasRole('COORDINATOR')")
 public class RescueTeamController {
     private final RescueTeamService rescueTeamService;
+    private final UserService userService;
 
     @PostMapping
     @Operation(summary = "Tạo đội cứu hộ mới")
@@ -56,5 +60,11 @@ public class RescueTeamController {
     public ResponseEntity<String> removeMember(@PathVariable Long teamId, @PathVariable Long userId) {
         rescueTeamService.removeMemberFromTeam(teamId, userId);
         return ResponseEntity.ok("Removed member from team successfully");
+    }
+
+    @GetMapping("/available-rescue-members")
+    @Operation(summary = "Lấy danh sách người có Role cứu hộ nhưng CHƯA tham gia đội nào")
+    public ResponseEntity<List<UserResponse>> getAvailableRescueMembers() {
+        return ResponseEntity.ok(userService.getAvailableRescueMembers());
     }
 }

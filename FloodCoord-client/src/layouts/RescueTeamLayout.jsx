@@ -25,11 +25,10 @@ export default function RescueTeamLayout() {
 
   // 🧭 Menu items — dùng path tương đối theo AppRoutes.jsx
   const menu = [
-    { name: "Tổng quan", path: "dashboard", icon: HomeIcon },
+    { name: "Tổng quan", path: "dashboard", icon: HomeIcon },      // index route
     { name: "Nhiệm vụ", path: "missions", icon: ClipboardDocumentListIcon },
-    { name: "Bản đồ cứu hộ", path: "map", icon: MapIcon },
-    { name: "Báo cáo", path: "report", icon: DocumentTextIcon },
-    ];
+    { name: "Báo cáo", path: "missions/:id/report", icon: DocumentTextIcon },
+  ];
 
   return (
     <div className="flex min-h-screen bg-gray-100">
@@ -66,12 +65,10 @@ export default function RescueTeamLayout() {
             <NavLink
               key={item.name}
               to={item.path} // dùng relative path
-              end={item.path === "dashboard"} // đảm bảo active chính xác
               className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                  isActive
-                    ? "text-blue-700 font-semibold"
-                    : "text-black hover:text-blue-600"
+                `flex items-center gap-3 px-4 py-2 rounded-md text-sm font-medium transition-colors ${isActive
+                  ? "text-blue-700 font-semibold"
+                  : "text-black hover:text-blue-600"
                 }`
               }
             >
