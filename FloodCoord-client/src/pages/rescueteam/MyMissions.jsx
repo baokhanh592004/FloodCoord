@@ -84,8 +84,11 @@ export default function MyMissions() {
                     <p className="text-slate-800 font-medium">{m.contactName}</p>
                     <p className="text-slate-400 text-xs mt-0.5">{m.contactPhone}</p>
                   </td>
-                  <td className="px-6 py-4 text-slate-600 max-w-xs truncate" title={m.address}>
-                    {m.address}
+                  <td
+                    className="px-6 py-4 text-slate-600 max-w-xs truncate"
+                    title={m.location?.addressText}
+                  >
+                    {m.location?.addressText || "Chưa có địa chỉ"}
                   </td>
                   <td className="px-6 py-4 text-slate-500">{m.createdAt}</td>
                   <td className="px-6 py-4">
