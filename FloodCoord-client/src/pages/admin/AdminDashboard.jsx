@@ -11,6 +11,7 @@ import {
   ArrowPathIcon,
   ArrowRightIcon,
   ShieldCheckIcon,
+  TruckIcon,
 } from '@heroicons/react/24/outline';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend,
@@ -170,7 +171,7 @@ export default function AdminDashboard() {
       {/* Quick nav */}
       <div className="bg-white border border-gray-200 rounded-lg p-5">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Lối tắt quản lý</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <ActionCard
             icon={<UserGroupIcon className="h-6 w-6 text-blue-600" />}
             title="Quản lý Đội Cứu Hộ"
@@ -184,6 +185,12 @@ export default function AdminDashboard() {
             description="Quản lý tài khoản và phân quyền hệ thống"
             badge={`${userStats.total} người`}
             onClick={() => navigate('/admin/users')}
+          />
+          <ActionCard
+            icon={<TruckIcon className="h-6 w-6 text-teal-600" />}
+            title="Quản lý Phương tiện"
+            description="Xem và điều phối phương tiện cứu hộ"
+            onClick={() => navigate('/admin/vehicles')}
           />
         </div>
       </div>
