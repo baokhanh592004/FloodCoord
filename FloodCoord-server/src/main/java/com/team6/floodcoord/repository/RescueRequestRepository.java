@@ -23,4 +23,6 @@ public interface RescueRequestRepository
             Long teamId,
             List<RequestStatus> statuses
     );
+
+    List<RescueRequest> findByAssignedTeam_Id(Long teamId);
 }
