@@ -1,5 +1,6 @@
 package com.team6.floodcoord.dto.request;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
@@ -25,5 +26,6 @@ public class ReportRequestDTO {
     private List<SupplyRemainDTO> remainSupplies;
 
     @Schema(type = "string", format = "binary",description = "Upload images or videos")
+    @JsonIgnore
     private MultipartFile[] mediaFiles;
 }

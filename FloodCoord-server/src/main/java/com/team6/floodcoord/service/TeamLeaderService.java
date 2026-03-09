@@ -3,7 +3,10 @@ package com.team6.floodcoord.service;
 import com.team6.floodcoord.dto.request.AttendanceRequestDTO;
 import com.team6.floodcoord.dto.request.ReportRequestDTO;
 import com.team6.floodcoord.dto.response.AttendanceResponseDTO;
+import com.team6.floodcoord.dto.response.CompletedRequestDTO;
 import com.team6.floodcoord.model.Attendance;
+import com.team6.floodcoord.model.RescueRequest;
+import com.team6.floodcoord.model.User;
 import com.team6.floodcoord.model.enums.RequestStatus;
 
 import java.util.List;
@@ -17,4 +20,6 @@ public interface TeamLeaderService {
     public void updateRescueStatus(UUID requestId, RequestStatus newStatus);
 
     public void submitReport(ReportRequestDTO dto);
+
+    public List<CompletedRequestDTO> getCompletedRequests(User leader);
 }

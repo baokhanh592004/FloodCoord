@@ -5,6 +5,7 @@ import com.team6.floodcoord.dto.request.AttendanceRequestDTO;
 import com.team6.floodcoord.dto.request.ReportRequestDTO;
 import com.team6.floodcoord.dto.request.SupplyRemainDTO;
 import com.team6.floodcoord.dto.response.AttendanceResponseDTO;
+import com.team6.floodcoord.dto.response.CompletedRequestDTO;
 import com.team6.floodcoord.model.*;
 import com.team6.floodcoord.model.enums.RequestStatus;
 import com.team6.floodcoord.model.enums.TeamStatus;
@@ -161,8 +162,6 @@ public class TeamLeaderServiceImpl implements TeamLeaderService {
     public void submitReport(ReportRequestDTO dto) {
 
 
-
-
         String email = SecurityContextHolder.getContext()
                 .getAuthentication()
                 .getName();
@@ -260,6 +259,23 @@ public class TeamLeaderServiceImpl implements TeamLeaderService {
 
     }
 
+    @Override
+    public List<CompletedRequestDTO> getCompletedRequests(User leader) {
+
+        Long teamId = leader.getRescueTeam().getId();
+
+        List<RescueRequest> requests =
+                rescueRequestRepository.findByAssignedTeam_IdAndStatusIn(
+                        teamId,
+                        List.of(RequestStatus.COMPLETED)
+                );
+
+        return requests.stream()
+                .map(this::mapToCompletedDTO)
+                .toList();
+
+    }
+
     private void validateTransition(RequestStatus current, RequestStatus next) {
 
         switch (current) {
@@ -290,5 +306,21 @@ public class TeamLeaderServiceImpl implements TeamLeaderService {
 
             default -> throw new RuntimeException("Cannot update from this status");
         }
+    }
+
+    private CompletedRequestDTO mapToCompletedDTO(RescueRequest r) {
+
+        RequestLocation loc = r.getLocation();
+
+        return CompletedRequestDTO.builder()
+                .id(r.getRequestId())
+                .trackingCode(r.getTrackingCode())
+                .address(loc != null ? loc.getAddressText() : null)
+                .latitude(loc != null ? loc.getLatitude() : null)
+                .longitude(loc != null ? loc.getLongitude() : null)
+                .floodDepth(loc != null ? loc.getFloodDepth() : null)
+                .peopleCount(r.getPeopleCount())
+                .status(r.getStatus())
+                .build();
     }
 }
