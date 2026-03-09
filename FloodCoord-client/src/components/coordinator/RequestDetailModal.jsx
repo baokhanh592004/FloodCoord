@@ -170,28 +170,43 @@ export default function RequestDetailModal({ request, isOpen, onClose, onValidat
                         </div>
                     )}
 
-                    {/* 3. Thông số chính */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {/* 3. Thông số chính - Ép 4 cột trên 1 hàng */}
+                    <div className="grid grid-cols-4 gap-2 md:gap-4"> {/* Dùng grid-cols-4 cho tất cả màn hình */}
+
+                        {/* Cột 1: Số người */}
                         <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
-                            <p className="text-xs text-gray-500 mb-1">Số người</p>
+                            <p className="text-xs text-gray-500 mb-1 whitespace-nowrap">Số người</p>
                             <div className="flex items-center gap-2">
                                 <UserGroupIcon className="h-5 w-5 text-blue-500" />
                                 <p className="text-lg font-bold text-gray-900">{displayData.peopleCount || 0}</p>
                             </div>
                         </div>
+
+                        {/* Cột 2: Độ sâu lũ */}
                         <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
-                            <p className="text-xs text-gray-500 mb-1">Độ sâu lũ</p>
+                            <p className="text-xs text-gray-500 mb-1 whitespace-nowrap">Độ sâu lũ</p>
                             <p className="text-lg font-bold text-blue-600">
                                 {location.floodDepth ? `${location.floodDepth}m` : 'N/A'}
                             </p>
                         </div>
-                        <div className="bg-gray-50 p-3 rounded-lg border border-gray-100 col-span-2">
-                            <p className="text-xs text-gray-500 mb-1">Thời gian gửi</p>
-                            <div className="flex items-center gap-2">
-                                <ClockIcon className="h-5 w-5 text-gray-400" />
-                                <p className="text-sm font-semibold text-gray-900">{formatDate(displayData.createdAt)}</p>
+
+                        {/* Cột 3: Mức độ khẩn cấp */}
+                        <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                            <p className="text-xs text-gray-500 mb-1 whitespace-nowrap">Khẩn cấp</p>
+                            <PriorityBadge priority={displayData.emergencyLevel} />
+                        </div>
+
+                        {/* Cột 4: Thời gian gửi (ĐÃ XÓA col-span-2) */}
+                        <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                            <p className="text-xs text-gray-500 mb-1 whitespace-nowrap">Thời gian</p>
+                            <div className="flex items-center gap-1">
+                                <ClockIcon className="h-4 w-4 text-gray-400 shrink-0" />
+                                <p className="text-[11px] md:text-sm font-semibold text-gray-900 leading-tight">
+                                    {formatDate(displayData.createdAt)}
+                                </p>
                             </div>
                         </div>
+
                     </div>
 
                     {/* 4. Địa điểm & Bản đồ */}
