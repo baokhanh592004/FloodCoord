@@ -129,7 +129,7 @@ export default function AssignTaskModal({ request, isOpen, onClose, onSuccess })
 
     // Lọc hàng hết hạn, nhóm theo loại
     const validSupplies = supplies.filter(
-        (s) => !s.expiryDate || new Date(s.expiryDate) > new Date()
+        (s) => (s.quantity ?? 0) > 0 && (!s.expiryDate || new Date(s.expiryDate) > new Date())
     );
     const groupedSupplies = validSupplies.reduce((acc, s) => {
         const type = s.type || 'Khác';
