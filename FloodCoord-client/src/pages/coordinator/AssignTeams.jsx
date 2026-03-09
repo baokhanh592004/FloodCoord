@@ -46,8 +46,8 @@ export default function AssignTeams() {
     return (
         <div className="p-6 space-y-6">
             <div>
-                <h1 className="text-2xl font-bold text-gray-900">Assign Teams</h1>
-                <p className="text-sm text-gray-600">Assign rescue teams to validated requests.</p>
+                <h1 className="text-2xl font-bold text-gray-900">Phân công đội cứu hộ</h1>
+                <p className="text-sm text-gray-600">Phân công đội cứu hộ cho các yêu cầu đã xác minh.</p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -68,32 +68,32 @@ export default function AssignTeams() {
                         </div>
                     ))}
                     {verifiedRequests.length === 0 && (
-                        <div className="text-sm text-gray-500">No verified requests to assign.</div>
+                        <div className="text-sm text-gray-500">Không có yêu cầu đã xác minh để phân công.</div>
                     )}
                 </div>
 
                 <div className="bg-white border border-gray-200 rounded-lg p-5">
-                    <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Info</h2>
+                    <h2 className="text-lg font-semibold text-gray-900 mb-4">Thông tin nhanh</h2>
                     <div className="space-y-4">
                         <div className="bg-gray-50 p-4 rounded-lg">
-                            <p className="text-sm text-gray-600">Available Teams</p>
+                            <p className="text-sm text-gray-600">Đội cứu hộ khả dụng</p>
                             <p className="text-2xl font-bold text-gray-900">
                                 {teams.filter((t) => t.status === 'AVAILABLE').length}
                             </p>
                         </div>
                         <div className="bg-gray-50 p-4 rounded-lg">
-                            <p className="text-sm text-gray-600">Available Vehicles</p>
+                            <p className="text-sm text-gray-600">Xe cứu hộ khả dụng</p>
                             <p className="text-2xl font-bold text-gray-900">
                                 {vehicles.filter((v) => v.status === 'AVAILABLE').length}
                             </p>
                         </div>
                         <div className="bg-gray-50 p-4 rounded-lg">
-                            <p className="text-sm text-gray-600">Supplies Ready</p>
+                            <p className="text-sm text-gray-600">Vật tư khả dụng</p>
                             <p className="text-2xl font-bold text-gray-900">{supplies.length}</p>
                         </div>
                     </div>
                     <p className="text-xs text-gray-500 mt-4">
-                        💡 Click "Assign Team" on a request card to dispatch resources
+                        Nhấn "Phân công đội" trên thẻ yêu cầu để điều phối tài nguyên
                     </p>
                 </div>
             </div>
