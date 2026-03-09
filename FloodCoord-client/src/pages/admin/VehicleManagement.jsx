@@ -1,0 +1,556 @@
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { vehicleApi } from '../../services/vehicleApi';
+import { Ship, Truck, Plane, Activity, Bus, AlertCircle, Plus } from 'lucide-react';
+import StatCard from '../../components/coordinator/StatCard';
+import {
+    TruckIcon,
+    CheckCircleIcon,
+    ClockIcon,
+    WrenchScrewdriverIcon,
+    ArrowPathIcon,
+    MagnifyingGlassIcon,
+    XMarkIcon,
+    EyeIcon,
+    PencilSquareIcon,
+    TrashIcon,
+    ExclamationTriangleIcon,
+} from '@heroicons/react/24/outline';
+
+const ITEMS_PER_PAGE = 10;
+
+const TYPE_LABELS = {
+    BOAT:        { label: 'Tàu / Cano',    color: 'bg-blue-100 text-blue-700' },
+    TRUCK:       { label: 'Xe tải',         color: 'bg-slate-100 text-slate-700' },
+    HELICOPTER:  { label: 'Trực thăng',     color: 'bg-orange-100 text-orange-700' },
+    AMBULANCE:   { label: 'Xe cấp cứu',     color: 'bg-red-100 text-red-700' },
+    RESCUE_VAN:  { label: 'Xe cứu hộ',      color: 'bg-teal-100 text-teal-700' },
+};
+
+const STATUS_CONFIG = {
+    AVAILABLE:   { label: 'Sẵn sàng',           color: 'bg-emerald-100 text-emerald-700', dot: 'bg-emerald-500' },
+    IN_USE:      { label: 'Đang hoạt động',       color: 'bg-blue-100 text-blue-700',     dot: 'bg-blue-500' },
+    MAINTENANCE: { label: 'Bảo trì',              color: 'bg-orange-100 text-orange-700', dot: 'bg-orange-500' },
+    UNAVAILABLE: { label: 'Không khả dụng',       color: 'bg-red-100 text-red-700',       dot: 'bg-red-500' },
+};
+
+const VEHICLE_TYPES   = ['BOAT', 'TRUCK', 'HELICOPTER', 'AMBULANCE', 'RESCUE_VAN'];
+const VEHICLE_STATUSES = ['AVAILABLE', 'IN_USE', 'MAINTENANCE', 'UNAVAILABLE'];
+
+const STATUS_FILTER_TABS = [
+    { key: 'ALL',         label: 'Tất cả' },
+    { key: 'AVAILABLE',   label: 'Sẵn sàng' },
+    { key: 'IN_USE',      label: 'Đang hoạt động' },
+    { key: 'MAINTENANCE', label: 'Bảo trì' },
+    { key: 'UNAVAILABLE', label: 'Không khả dụng' },
+];
+
+function TypeIcon({ type, size = 16 }) {
+    const props = { size, strokeWidth: 1.5 };
+    switch (type) {
+        case 'BOAT':       return <Ship {...props} className="text-blue-600" />;
+        case 'TRUCK':      return <Truck {...props} className="text-slate-600" />;
+        case 'HELICOPTER': return <Plane {...props} className="text-orange-600" />;
+        case 'AMBULANCE':  return <Activity {...props} className="text-red-600" />;
+        case 'RESCUE_VAN': return <Bus {...props} className="text-teal-600" />;
+        default:           return <Truck {...props} />;
+    }
+}
+
+export default function AdminVehicleManagement() {
+    const [vehicles, setVehicles]       = useState([]);
+    const [loading, setLoading]         = useState(true);
+    const [error, setError]             = useState('');
+    const [showModal, setShowModal]     = useState(false);
+    const [editingVehicle, setEditingVehicle] = useState(null);
+    const [showDetailModal, setShowDetailModal] = useState(false);
+    const [selectedVehicle, setSelectedVehicle] = useState(null);
+    const [searchTerm, setSearchTerm]   = useState('');
+    const [statusFilter, setStatusFilter] = useState('ALL');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [formData, setFormData] = useState({
+        name: '', type: 'BOAT', licensePlate: '', capacity: '', status: 'AVAILABLE',
+    });
+
+    const fetchVehicles = useCallback(async () => {
+        try {
+            setLoading(true);
+            const data = await vehicleApi.getAllVehicles();
+            setVehicles(data || []);
+            setError('');
+        } catch (err) {
+            setError('Không thể tải danh sách phương tiện.');
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => { fetchVehicles(); }, [fetchVehicles]);
+    useEffect(() => { setCurrentPage(1); }, [statusFilter, searchTerm]);
+
+    // ─── Stats ────────────────────────────────────────────────────────────────
+    const stats = useMemo(() => ({
+        total:       vehicles.length,
+        available:   vehicles.filter(v => v.status === 'AVAILABLE').length,
+        inUse:       vehicles.filter(v => v.status === 'IN_USE').length,
+        maintenance: vehicles.filter(v => ['MAINTENANCE', 'UNAVAILABLE'].includes(v.status)).length,
+    }), [vehicles]);
+
+    const statusCounts = useMemo(() => ({
+        ALL:         vehicles.length,
+        AVAILABLE:   vehicles.filter(v => v.status === 'AVAILABLE').length,
+        IN_USE:      vehicles.filter(v => v.status === 'IN_USE').length,
+        MAINTENANCE: vehicles.filter(v => v.status === 'MAINTENANCE').length,
+        UNAVAILABLE: vehicles.filter(v => v.status === 'UNAVAILABLE').length,
+    }), [vehicles]);
+
+    // ─── Filtered + Paginated ─────────────────────────────────────────────────
+    const filtered = useMemo(() => {
+        return vehicles.filter(v => {
+            const matchStatus = statusFilter === 'ALL' || v.status === statusFilter;
+            const term = searchTerm.toLowerCase();
+            const matchSearch = !searchTerm ||
+                v.name?.toLowerCase().includes(term) ||
+                v.licensePlate?.toLowerCase().includes(term) ||
+                v.type?.toLowerCase().includes(term);
+            return matchStatus && matchSearch;
+        });
+    }, [vehicles, statusFilter, searchTerm]);
+
+    const totalPages  = Math.ceil(filtered.length / ITEMS_PER_PAGE);
+    const paginated   = filtered.slice(
+        (currentPage - 1) * ITEMS_PER_PAGE,
+        currentPage * ITEMS_PER_PAGE,
+    );
+
+    // ─── CRUD ─────────────────────────────────────────────────────────────────
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const resetForm = () => {
+        setFormData({ name: '', type: 'BOAT', licensePlate: '', capacity: '', status: 'AVAILABLE' });
+        setEditingVehicle(null);
+    };
+
+    const openCreateModal = () => { resetForm(); setShowModal(true); };
+
+    const handleEdit = (vehicle) => {
+        setEditingVehicle(vehicle);
+        setFormData({
+            name: vehicle.name,
+            type: vehicle.type,
+            licensePlate: vehicle.licensePlate,
+            capacity: vehicle.capacity.toString(),
+            status: vehicle.status,
+        });
+        setShowModal(true);
+    };
+
+    const handleDelete = async (vehicleId) => {
+        if (!window.confirm('Bạn có chắc chắn muốn xóa phương tiện này?')) return;
+        try {
+            await vehicleApi.deleteVehicle(vehicleId);
+            await fetchVehicles();
+            setError('');
+        } catch (err) {
+            setError(err.response?.data?.message || 'Không thể xóa phương tiện.');
+        }
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            const payload = {
+                name: formData.name,
+                type: formData.type,
+                licensePlate: formData.licensePlate,
+                capacity: parseInt(formData.capacity),
+                status: formData.status,
+            };
+            if (editingVehicle) {
+                await vehicleApi.updateVehicle(editingVehicle.id, payload);
+            } else {
+                await vehicleApi.createVehicle(payload);
+            }
+            await fetchVehicles();
+            setShowModal(false);
+            resetForm();
+            setError('');
+        } catch (err) {
+            setError(err.response?.data?.message || 'Không thể lưu thông tin phương tiện.');
+        }
+    };
+
+    return (
+        <div className="h-full flex flex-col p-4 gap-3 overflow-hidden">
+            {/* ── Header ── */}
+            <div className="shrink-0 flex items-center justify-between">
+                <div>
+                    <h1 className="text-xl font-bold text-gray-900">Quản lý Phương tiện</h1>
+                    <p className="text-xs text-gray-500">Xem và quản lý toàn bộ phương tiện cứu hộ trong hệ thống.</p>
+                </div>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={fetchVehicles}
+                        disabled={loading}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 text-xs font-medium rounded-md hover:bg-gray-200 disabled:opacity-60 transition-colors"
+                    >
+                        <ArrowPathIcon className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+                        Làm mới
+                    </button>
+                    <button
+                        onClick={openCreateModal}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-md hover:bg-blue-700 transition-colors"
+                    >
+                        <Plus size={13} /> Thêm phương tiện
+                    </button>
+                </div>
+            </div>
+
+            {/* ── Stat Cards ── */}
+            <div className="shrink-0 grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <StatCard icon={<TruckIcon className="h-6 w-6" />}          count={stats.total}       label="Tổng phương tiện"  color="blue" />
+                <StatCard icon={<CheckCircleIcon className="h-6 w-6" />}    count={stats.available}   label="Sẵn sàng"          color="green" />
+                <StatCard icon={<ClockIcon className="h-6 w-6" />}          count={stats.inUse}       label="Đang hoạt động"    color="yellow" />
+                <StatCard icon={<WrenchScrewdriverIcon className="h-6 w-6" />} count={stats.maintenance} label="Bảo trì / Hỏng"  color="red" />
+            </div>
+
+            {/* ── Filter & Search ── */}
+            <div className="shrink-0 flex flex-col sm:flex-row gap-2 items-start sm:items-center">
+                <div className="relative flex-1 max-w-sm">
+                    <MagnifyingGlassIcon className="absolute left-2.5 top-2 h-3.5 w-3.5 text-gray-400" />
+                    <input
+                        type="text"
+                        placeholder="Tìm tên, biển số, loại xe..."
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                        className="w-full pl-8 pr-8 py-1.5 border border-gray-200 rounded-md text-xs focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                    {searchTerm && (
+                        <button onClick={() => setSearchTerm('')} className="absolute right-2.5 top-2 text-gray-400 hover:text-gray-600">
+                            <XMarkIcon className="h-3.5 w-3.5" />
+                        </button>
+                    )}
+                </div>
+                <div className="flex gap-0.5 bg-gray-100 p-0.5 rounded-lg flex-wrap">
+                    {STATUS_FILTER_TABS.map(tab => (
+                        <button
+                            key={tab.key}
+                            onClick={() => setStatusFilter(tab.key)}
+                            className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
+                                statusFilter === tab.key
+                                    ? 'bg-white text-blue-700 shadow-sm'
+                                    : 'text-gray-500 hover:text-gray-700'
+                            }`}
+                        >
+                            {tab.label}
+                            <span className="ml-1 text-gray-400">({statusCounts[tab.key]})</span>
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* ── Error ── */}
+            {error && (
+                <div className="shrink-0 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 flex items-center gap-2 text-xs">
+                    <AlertCircle size={15} /> {error}
+                </div>
+            )}
+
+            {/* ── Table ── */}
+            <div className="flex-1 min-h-0 bg-white border border-gray-200 rounded-lg flex flex-col overflow-hidden">
+                <div className="flex-1 min-h-0 overflow-auto">
+                    <table className="w-full text-xs">
+                        <thead className="sticky top-0 z-10">
+                            <tr className="bg-gray-50 border-b border-gray-200">
+                                <th className="text-left px-3 py-2 font-semibold text-gray-600 w-10">#</th>
+                                <th className="text-left px-3 py-2 font-semibold text-gray-600">Tên phương tiện</th>
+                                <th className="text-left px-3 py-2 font-semibold text-gray-600 w-32">Loại</th>
+                                <th className="text-left px-3 py-2 font-semibold text-gray-600 w-32">Biển số</th>
+                                <th className="text-center px-3 py-2 font-semibold text-gray-600 w-28">Sức chứa</th>
+                                <th className="text-center px-3 py-2 font-semibold text-gray-600 w-36">Trạng thái</th>
+                                <th className="text-center px-3 py-2 font-semibold text-gray-600 w-28">Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                            {loading ? (
+                                <tr>
+                                    <td colSpan={7} className="py-12 text-center text-gray-400">
+                                        <div className="flex flex-col items-center gap-2">
+                                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600" />
+                                            <span>Đang tải phương tiện...</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ) : paginated.length === 0 ? (
+                                <tr>
+                                    <td colSpan={7} className="py-12 text-center text-gray-400">
+                                        <TruckIcon className="h-8 w-8 mx-auto mb-2 opacity-40" />
+                                        <p>{vehicles.length === 0 ? 'Chưa có phương tiện nào.' : 'Không tìm thấy phương tiện nào.'}</p>
+                                        {(statusFilter !== 'ALL' || searchTerm) && (
+                                            <button
+                                                onClick={() => { setStatusFilter('ALL'); setSearchTerm(''); }}
+                                                className="mt-1 text-blue-600 hover:underline text-xs"
+                                            >
+                                                Xóa bộ lọc
+                                            </button>
+                                        )}
+                                    </td>
+                                </tr>
+                            ) : (
+                                paginated.map((vehicle, index) => {
+                                    const typeInfo   = TYPE_LABELS[vehicle.type]   || { label: vehicle.type,   color: 'bg-gray-100 text-gray-600' };
+                                    const statusInfo = STATUS_CONFIG[vehicle.status] || STATUS_CONFIG.AVAILABLE;
+                                    return (
+                                        <tr key={vehicle.id} className="hover:bg-gray-50 transition-colors">
+                                            {/* # */}
+                                            <td className="px-3 py-2 text-gray-400 font-mono">
+                                                {(currentPage - 1) * ITEMS_PER_PAGE + index + 1}
+                                            </td>
+
+                                            {/* Tên */}
+                                            <td className="px-3 py-2">
+                                                <div className="flex items-center gap-2">
+                                                    <TypeIcon type={vehicle.type} size={15} />
+                                                    <span className="font-medium text-gray-900">{vehicle.name}</span>
+                                                </div>
+                                            </td>
+
+                                            {/* Loại */}
+                                            <td className="px-3 py-2">
+                                                <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${typeInfo.color}`}>
+                                                    {typeInfo.label}
+                                                </span>
+                                            </td>
+
+                                            {/* Biển số */}
+                                            <td className="px-3 py-2">
+                                                <span className="font-mono font-semibold text-gray-700 bg-gray-100 px-2 py-0.5 rounded text-xs">
+                                                    {vehicle.licensePlate}
+                                                </span>
+                                            </td>
+
+                                            {/* Sức chứa */}
+                                            <td className="px-3 py-2 text-center text-gray-700">
+                                                <span className="font-semibold">{vehicle.capacity}</span>
+                                                <span className="text-gray-400 ml-1">người</span>
+                                            </td>
+
+                                            {/* Trạng thái */}
+                                            <td className="px-3 py-2 text-center">
+                                                <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${statusInfo.color}`}>
+                                                    <span className={`w-1.5 h-1.5 rounded-full ${statusInfo.dot} ${vehicle.status === 'IN_USE' ? 'animate-pulse' : ''}`} />
+                                                    {statusInfo.label}
+                                                </span>
+                                            </td>
+
+                                            {/* Hành động */}
+                                            <td className="px-3 py-2">
+                                                <div className="flex items-center justify-center gap-0.5">
+                                                    <button
+                                                        onClick={() => { setSelectedVehicle(vehicle); setShowDetailModal(true); }}
+                                                        title="Xem chi tiết"
+                                                        className="p-1 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                                    >
+                                                        <EyeIcon className="h-4 w-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleEdit(vehicle)}
+                                                        title="Chỉnh sửa"
+                                                        className="p-1 text-gray-500 hover:text-yellow-600 hover:bg-yellow-50 rounded transition-colors"
+                                                    >
+                                                        <PencilSquareIcon className="h-4 w-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDelete(vehicle.id)}
+                                                        title="Xóa"
+                                                        className="p-1 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                                                    >
+                                                        <TrashIcon className="h-4 w-4" />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+
+                {/* Footer phân trang */}
+                {filtered.length > 0 && (
+                    <div className="shrink-0 px-3 py-2 bg-gray-50 border-t border-gray-200 text-xs text-gray-500 flex items-center justify-between">
+                        <span>
+                            Hiển thị {(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, filtered.length)} / {filtered.length} phương tiện
+                        </span>
+                        {totalPages > 1 && (
+                            <div className="flex items-center gap-1">
+                                <button
+                                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                    disabled={currentPage === 1}
+                                    className="px-2 py-1 rounded border border-gray-300 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed"
+                                >
+                                    ‹
+                                </button>
+                                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                                    <button
+                                        key={page}
+                                        onClick={() => setCurrentPage(page)}
+                                        className={`px-2 py-1 rounded border ${
+                                            currentPage === page
+                                                ? 'bg-blue-600 text-white border-blue-600'
+                                                : 'border-gray-300 hover:bg-white'
+                                        }`}
+                                    >
+                                        {page}
+                                    </button>
+                                ))}
+                                <button
+                                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                    disabled={currentPage === totalPages}
+                                    className="px-2 py-1 rounded border border-gray-300 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed"
+                                >
+                                    ›
+                                </button>
+                            </div>
+                        )}
+                        <span>{filtered.length} kết quả</span>
+                    </div>
+                )}
+            </div>
+
+            {/* ── Detail Modal ── */}
+            {showDetailModal && selectedVehicle && (
+                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                            <h2 className="text-base font-semibold text-gray-900">Chi tiết phương tiện</h2>
+                            <button onClick={() => setShowDetailModal(false)} className="p-1.5 hover:bg-gray-100 rounded-md transition-colors">
+                                <XMarkIcon className="h-5 w-5 text-gray-500" />
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
+                                    <TypeIcon type={selectedVehicle.type} size={32} />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-gray-900">{selectedVehicle.name}</h3>
+                                    <p className="text-xs text-gray-500 uppercase tracking-wider">
+                                        {TYPE_LABELS[selectedVehicle.type]?.label || selectedVehicle.type}
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3 text-sm">
+                                <div className="bg-gray-50 rounded-lg p-3">
+                                    <p className="text-xs text-gray-500 mb-1">Biển số</p>
+                                    <p className="font-mono font-bold text-gray-800">{selectedVehicle.licensePlate}</p>
+                                </div>
+                                <div className="bg-gray-50 rounded-lg p-3">
+                                    <p className="text-xs text-gray-500 mb-1">Sức chứa</p>
+                                    <p className="font-bold text-gray-800">{selectedVehicle.capacity} <span className="text-gray-500 font-normal">người</span></p>
+                                </div>
+                                <div className="bg-gray-50 rounded-lg p-3 col-span-2">
+                                    <p className="text-xs text-gray-500 mb-1">Trạng thái</p>
+                                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${STATUS_CONFIG[selectedVehicle.status]?.color}`}>
+                                        <span className={`w-2 h-2 rounded-full ${STATUS_CONFIG[selectedVehicle.status]?.dot}`} />
+                                        {STATUS_CONFIG[selectedVehicle.status]?.label}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="px-6 pb-5 flex gap-3">
+                            <button
+                                onClick={() => setShowDetailModal(false)}
+                                className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-200 transition-colors"
+                            >
+                                Đóng
+                            </button>
+                            <button
+                                onClick={() => { setShowDetailModal(false); handleEdit(selectedVehicle); }}
+                                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors"
+                            >
+                                Chỉnh sửa
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ── Form Modal (Create / Edit) ── */}
+            {showModal && (
+                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden">
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                            <h2 className="text-base font-semibold text-gray-900">
+                                {editingVehicle ? 'Cập nhật phương tiện' : 'Thêm phương tiện mới'}
+                            </h2>
+                            <button onClick={() => { setShowModal(false); resetForm(); }} className="p-1.5 hover:bg-gray-100 rounded-md transition-colors">
+                                <XMarkIcon className="h-5 w-5 text-gray-500" />
+                            </button>
+                        </div>
+                        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                            {editingVehicle?.status === 'IN_USE' && (
+                                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2 text-xs">
+                                    <ExclamationTriangleIcon className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+                                    <p className="text-amber-700">Phương tiện đang hoạt động — không thể thay đổi trạng thái.</p>
+                                </div>
+                            )}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="col-span-2">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Tên phương tiện</label>
+                                    <input type="text" name="name" value={formData.name} onChange={handleInputChange} required
+                                        placeholder="VD: Cano Cứu Hộ 01"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Loại xe</label>
+                                    <select name="type" value={formData.type} onChange={handleInputChange}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+                                        {VEHICLE_TYPES.map(t => (
+                                            <option key={t} value={t}>{TYPE_LABELS[t]?.label || t}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Biển số</label>
+                                    <input type="text" name="licensePlate" value={formData.licensePlate} onChange={handleInputChange} required
+                                        placeholder="29C-123.45"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Sức chứa (người)</label>
+                                    <input type="number" name="capacity" value={formData.capacity} onChange={handleInputChange} required min={1}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Trạng thái</label>
+                                    <select name="status" value={formData.status} onChange={handleInputChange}
+                                        disabled={editingVehicle?.status === 'IN_USE'}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 disabled:opacity-50 disabled:cursor-not-allowed">
+                                        {VEHICLE_STATUSES.map(s => (
+                                            <option key={s} value={s}>{STATUS_CONFIG[s]?.label || s}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                            <div className="flex gap-3 pt-2">
+                                <button type="button" onClick={() => { setShowModal(false); resetForm(); }}
+                                    className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-200 transition-colors">
+                                    Hủy
+                                </button>
+                                <button type="submit"
+                                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors">
+                                    {editingVehicle ? 'Lưu thay đổi' : 'Thêm mới'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
