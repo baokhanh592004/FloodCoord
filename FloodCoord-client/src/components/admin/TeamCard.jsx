@@ -89,9 +89,19 @@ export default function TeamCard({ team, onEdit, onDelete, onViewDetails }) {
                 </div>
 
                 {team.description && (
-                    <div className="text-sm py-2">
-                        <span className="text-slate-500 block mb-1">Mô tả:</span>
-                        <span className="text-slate-700">{team.description}</span>
+                    <div className="text-sm py-2 space-y-1">
+                        <div className="flex">
+                            <span className="text-slate-500 mr-1">Mô tả:</span>
+                            <span className="text-slate-700">{team.description}</span>
+                        </div>
+
+                        <div className="flex items-center">
+                           
+                            <span className="text-gray-500 mr-1">Đội trưởng:</span>
+                            <span className="font-medium text-gray-700">
+                                {team.leaderName && team.leaderName}
+                            </span>
+                        </div>
                     </div>
                 )}
             </div>

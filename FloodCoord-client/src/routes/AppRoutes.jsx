@@ -26,6 +26,7 @@ import PrivateRoute from './PrivateRoute'
 import AdminDashboard from '../pages/admin/AdminDashboard'
 import AdminRescueTeamManagement from '../pages/admin/RescueTeamManagement'
 import UserManagement from '../pages/admin/UserManagement'
+import AdminVehicleManagement from '../pages/admin/VehicleManagement'
 
 /* Manager */
 import ManagerDashboard from '../pages/manager/ManagerDashboard'
@@ -79,6 +80,7 @@ export default function AppRoutes() {
         <Route path="dashboard" element={<AdminDashboard />} />
         <Route path="rescue-teams" element={<AdminRescueTeamManagement />} />
         <Route path="users" element={<UserManagement />} />
+        <Route path="vehicles" element={<AdminVehicleManagement />} />
       </Route>
 
       {/* ================= MANAGER (WITH SIDEBAR) ================= */}

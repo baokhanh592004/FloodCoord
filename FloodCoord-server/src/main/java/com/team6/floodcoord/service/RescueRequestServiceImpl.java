@@ -500,15 +500,45 @@ public class RescueRequestServiceImpl implements RescueRequestService {
                         )
                 )
                 .stream()
-                .map(r -> RescueRequestLeaderDTO.builder()
-                        .requestId(r.getRequestId())
-                        .title(r.getTitle())
-                        .emergencyLevel(r.getEmergencyLevel())
-                        .status(r.getStatus())
-                        .contactName(r.getContactName())
-                        .contactPhone(r.getContactPhone())
-                        .createdAt(r.getCreatedAt())
-                        .build())
+                .map(r -> {
+
+                    // 📍 Location
+                    RequestLocationResponse location = null;
+                    if (r.getLocation() != null) {
+                        location = new RequestLocationResponse();
+                        location.setLatitude(r.getLocation().getLatitude());
+                        location.setLongitude(r.getLocation().getLongitude());
+                        location.setAddressText(r.getLocation().getAddressText());
+                        location.setFloodDepth(r.getLocation().getFloodDepth());
+                    }
+
+                    // 🖼 Media
+                    List<RequestMediaResponse> mediaList = null;
+                    if (r.getMediaList() != null) {
+                        mediaList = r.getMediaList().stream()
+                                .map(m -> {
+                                    RequestMediaResponse media = new RequestMediaResponse();
+                                    media.setMediaId(m.getMediaId());
+                                    media.setMediaType(m.getMediaType());
+                                    media.setMediaUrl(m.getMediaUrl());
+                                    media.setUploadedAt(m.getUploadedAt());
+                                    return media;
+                                })
+                                .toList();
+                    }
+
+                    return RescueRequestLeaderDTO.builder()
+                            .requestId(r.getRequestId())
+                            .title(r.getTitle())
+                            .emergencyLevel(r.getEmergencyLevel())
+                            .status(r.getStatus())
+                            .contactName(r.getContactName())
+                            .contactPhone(r.getContactPhone())
+                            .createdAt(r.getCreatedAt())
+                            .location(location)
+                            .media(mediaList)
+                            .build();
+                })
                 .toList();
     }
 

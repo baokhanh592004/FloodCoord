@@ -2,12 +2,10 @@ import axiosClient from "../api/axiosClient";
 
 export const rescueTeamApi = {
 
-  // lấy nhiệm vụ của team
+  // Lấy nhiệm vụ của team
   getAssignedMissions: async () => {
     try {
-      const response = await axiosClient.get(
-        "/api/team-leader/my-rescue-requests"
-      );
+      const response = await axiosClient.get("/api/team-leader/my-rescue-requests");
       return response.data;
     } catch (error) {
       console.error("Get missions failed:", error);
@@ -15,18 +13,37 @@ export const rescueTeamApi = {
     }
   },
 
-  // cập nhật tiến độ
-updateProgress: async (requestId, data) => {
-  try {
-    const response = await axiosClient.put(
-      `/api/mission/requests/${requestId}/progress`,
-      data
-    );
-    return response.data;
-  } catch (error) {
-    console.error("Update progress failed:", error);
-    throw error;
+  // Cập nhật tiến độ nhiệm vụ (Đã sửa endpoint chuẩn theo backend của bạn)
+  updateProgress: async (requestId, data) => {
+    try {
+      const response = await axiosClient.put(`/api/team-leader/rescue-request/${requestId}/status`, data);
+      return response.data;
+    } catch (error) {
+      console.error("Update progress failed:", error);
+      throw error;
+    }
+  },
+
+  // GET: Kiểm tra xem nhiệm vụ này đã được điểm danh chưa
+  checkAttendance: async (requestId) => {
+    try {
+      const response = await axiosClient.get(`/api/team-leader/attendance/${requestId}`);
+      return response.data;
+    } catch (error) {
+      console.error("Check attendance failed:", error);
+      throw error;
+    }
+  },
+
+  // POST: Gửi danh sách điểm danh
+  markAttendance: async (data) => {
+    try {
+      const response = await axiosClient.post("/api/team-leader/attendance", data);
+      return response.data;
+    } catch (error) {
+      console.error("Mark attendance failed:", error);
+      throw error;
+    }
   }
-}
 
 };
