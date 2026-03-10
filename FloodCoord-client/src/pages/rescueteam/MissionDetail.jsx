@@ -189,6 +189,54 @@ export default function MissionDetail() {
             </div>
           </div>
 
+          {/* Phương tiện được cấp */}
+          {mission.vehicle && (
+            <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm">
+              <h2 className="text-lg font-bold border-b pb-2 mb-3">🚗 Phương tiện được cấp</h2>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Tên xe:</span>
+                  <span className="font-semibold">{mission.vehicle.name}</span>
+                </div>
+                {mission.vehicle.type && (
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Loại xe:</span>
+                    <span className="font-medium">{mission.vehicle.type}</span>
+                  </div>
+                )}
+                {mission.vehicle.licensePlate && (
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Biển số:</span>
+                    <span className="font-mono font-semibold tracking-wide text-blue-700">{mission.vehicle.licensePlate}</span>
+                  </div>
+                )}
+                {mission.vehicle.capacity && (
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Sức chứa:</span>
+                    <span className="font-medium">{mission.vehicle.capacity} người</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Vật tư được cấp */}
+          {mission.supplies && mission.supplies.length > 0 && (
+            <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm">
+              <h2 className="text-lg font-bold border-b pb-2 mb-3">📦 Vật tư được cấp</h2>
+              <div className="space-y-2">
+                {mission.supplies.map((s, i) => (
+                  <div key={s.supplyId ?? i} className="flex items-center justify-between text-sm py-1.5 border-b border-slate-50 last:border-0">
+                    <span className="text-slate-700 font-medium">{s.supplyName}</span>
+                    <span className="text-slate-500 font-mono">
+                      {s.quantity} <span className="text-xs text-slate-400">{s.unit}</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {mission.status !== "COMPLETED" ? (
             <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm">
               <h2 className="font-bold mb-3 text-sm text-slate-700">Cập nhật tiến trình thực tế</h2>

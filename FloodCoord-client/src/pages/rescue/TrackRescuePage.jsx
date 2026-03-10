@@ -1,11 +1,41 @@
 import React, { useState } from 'react';
 import { rescueApi } from '../../services/rescueApi';
 
+const StarRating = ({ value, onChange, readonly = false }) => {
+    const [hovered, setHovered] = useState(0);
+    return (
+        <div className="flex gap-1">
+            {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                    key={star}
+                    type="button"
+                    disabled={readonly}
+                    onClick={() => !readonly && onChange(star)}
+                    onMouseEnter={() => !readonly && setHovered(star)}
+                    onMouseLeave={() => !readonly && setHovered(0)}
+                    className={`text-3xl transition-transform ${readonly ? 'cursor-default' : 'cursor-pointer hover:scale-110'}`}
+                >
+                    <span className={(hovered || value) >= star ? 'text-yellow-400' : 'text-gray-300'}>
+                        ★
+                    </span>
+                </button>
+            ))}
+        </div>
+    );
+};
+
 const TrackRescuePage = () => {
     const [trackingCode, setTrackingCode] = useState('');
     const [loading, setLoading] = useState(false);
     const [requestData, setRequestData] = useState(null);
     const [error, setError] = useState('');
+
+    // Feedback form states
+    const [feedbackText, setFeedbackText] = useState('');
+    const [feedbackRating, setFeedbackRating] = useState(5);
+    const [feedbackLoading, setFeedbackLoading] = useState(false);
+    const [feedbackError, setFeedbackError] = useState('');
+    const [feedbackSuccess, setFeedbackSuccess] = useState(false);
 
     const handleSearch = async (e) => {
         e.preventDefault();
@@ -17,6 +47,11 @@ const TrackRescuePage = () => {
         setLoading(true);
         setError('');
         setRequestData(null);
+        // Reset feedback state on new search
+        setFeedbackText('');
+        setFeedbackRating(5);
+        setFeedbackSuccess(false);
+        setFeedbackError('');
 
         try {
             const data = await rescueApi.trackRequest(trackingCode.trim());
@@ -25,6 +60,34 @@ const TrackRescuePage = () => {
             setError(err.response?.data?.message || 'Không tìm thấy yêu cầu với mã này');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleFeedbackSubmit = async (e) => {
+        e.preventDefault();
+        if (!feedbackText.trim()) {
+            setFeedbackError('Vui lòng nhập nội dung đánh giá');
+            return;
+        }
+        setFeedbackLoading(true);
+        setFeedbackError('');
+        try {
+            await rescueApi.confirmAndFeedback(requestData.id, {
+                trackingCode: requestData.trackingCode,
+                feedback: feedbackText.trim(),
+                rating: feedbackRating
+            });
+            setFeedbackSuccess(true);
+            // Cập nhật lại requestData để hiển thị đánh giá đã gửi
+            setRequestData(prev => ({
+                ...prev,
+                citizenFeedback: feedbackText.trim(),
+                citizenRating: feedbackRating
+            }));
+        } catch (err) {
+            setFeedbackError(err.response?.data?.message || 'Không thể gửi đánh giá. Vui lòng thử lại.');
+        } finally {
+            setFeedbackLoading(false);
         }
     };
 
@@ -166,6 +229,87 @@ const TrackRescuePage = () => {
                                     📝 Ghi chú từ điều phối viên
                                 </h3>
                                 <p className="text-gray-700 italic">{requestData.coordinatorNote}</p>
+                            </div>
+                        )}
+
+                        {/* ===== PHẦN ĐÁNH GIÁ (chỉ hiện khi COMPLETED) ===== */}
+                        {requestData.status === 'COMPLETED' && (
+                            <div className="border-2 border-yellow-300 rounded-lg overflow-hidden">
+                                <div className="bg-yellow-400 px-4 py-3">
+                                    <h3 className="font-bold text-lg text-yellow-900">
+                                        ⭐ Đánh giá dịch vụ cứu hộ
+                                    </h3>
+                                </div>
+
+                                {/* Đã đánh giá rồi → hiển thị lại */}
+                                {requestData.citizenFeedback ? (
+                                    <div className="bg-yellow-50 p-4 space-y-3">
+                                        <p className="text-sm text-yellow-800 font-medium">
+                                            ✅ Bạn đã gửi đánh giá cho lần hỗ trợ này. Cảm ơn bạn!
+                                        </p>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-sm font-semibold text-gray-600">Số sao:</span>
+                                            <StarRating value={requestData.citizenRating} readonly />
+                                            <span className="text-sm text-gray-500">({requestData.citizenRating}/5)</span>
+                                        </div>
+                                        <div>
+                                            <span className="text-sm font-semibold text-gray-600">Nhận xét:</span>
+                                            <p className="mt-1 text-gray-700 italic bg-white border border-yellow-200 rounded p-3">
+                                                "{requestData.citizenFeedback}"
+                                            </p>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    /* Chưa đánh giá → hiện form */
+                                    <form onSubmit={handleFeedbackSubmit} className="bg-yellow-50 p-4 space-y-4">
+                                        <p className="text-sm text-gray-600">
+                                            Nhiệm vụ đã hoàn thành! Hãy cho chúng tôi biết cảm nhận của bạn về dịch vụ cứu hộ lần này.
+                                        </p>
+
+                                        {/* Chọn số sao */}
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                                Mức độ hài lòng:
+                                            </label>
+                                            <StarRating value={feedbackRating} onChange={setFeedbackRating} />
+                                            <p className="text-xs text-gray-500 mt-1">
+                                                {feedbackRating === 1 && 'Rất không hài lòng'}
+                                                {feedbackRating === 2 && 'Không hài lòng'}
+                                                {feedbackRating === 3 && 'Bình thường'}
+                                                {feedbackRating === 4 && 'Hài lòng'}
+                                                {feedbackRating === 5 && 'Rất hài lòng ❤️'}
+                                            </p>
+                                        </div>
+
+                                        {/* Nội dung nhận xét */}
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                                Lời nhận xét / cảm ơn:
+                                            </label>
+                                            <textarea
+                                                value={feedbackText}
+                                                onChange={(e) => setFeedbackText(e.target.value)}
+                                                rows={3}
+                                                maxLength={500}
+                                                placeholder="Ví dụ: Cảm ơn đội cứu hộ rất nhiệt tình, đến kịp thời..."
+                                                className="w-full border-2 border-gray-300 rounded-lg p-3 text-sm resize-none focus:border-yellow-400 focus:outline-none"
+                                            />
+                                            <p className="text-xs text-gray-400 text-right">{feedbackText.length}/500</p>
+                                        </div>
+
+                                        {feedbackError && (
+                                            <p className="text-sm text-red-600">❌ {feedbackError}</p>
+                                        )}
+
+                                        <button
+                                            type="submit"
+                                            disabled={feedbackLoading}
+                                            className="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded-lg transition disabled:bg-gray-300"
+                                        >
+                                            {feedbackLoading ? '⏳ Đang gửi...' : '💌 Gửi đánh giá'}
+                                        </button>
+                                    </form>
+                                )}
                             </div>
                         )}
 

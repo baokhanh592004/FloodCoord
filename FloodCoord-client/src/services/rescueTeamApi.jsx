@@ -17,16 +17,7 @@ export const rescueTeamApi = {
   getCompletedMissions: async () => {
     try {
       const response = await axiosClient.get("/api/team-leader/completed-requests");
-      
-      const normalizedData = (response.data || []).map(item => ({
-        ...item, 
-        requestId: item.id, 
-        location: item.location || { addressText: item.address }, 
-        title: item.title || `Yêu cầu ${item.trackingCode || ''}`,
-        createdAt: item.createdAt || "---"
-      }));
-
-      return normalizedData;
+      return response.data || [];
     } catch (error) {
       console.error("Get completed missions failed:", error);
       throw error;
