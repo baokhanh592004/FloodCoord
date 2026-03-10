@@ -5,9 +5,7 @@ import com.team6.floodcoord.dto.request.AttendanceRequestDTO;
 import com.team6.floodcoord.dto.request.ReportRequestDTO;
 import com.team6.floodcoord.dto.request.SupplyRemainDTO;
 import com.team6.floodcoord.dto.response.AttendanceResponseDTO;
-import com.team6.floodcoord.dto.response.CompletedRequestDTO;
-import com.team6.floodcoord.dto.response.RescueTeamMemberDTO;
-import com.team6.floodcoord.dto.response.UserResponse;
+import com.team6.floodcoord.dto.response.*;
 import com.team6.floodcoord.model.*;
 import com.team6.floodcoord.model.enums.RequestStatus;
 import com.team6.floodcoord.model.enums.TeamStatus;
@@ -368,22 +366,77 @@ public class TeamLeaderServiceImpl implements TeamLeaderService {
 
     private CompletedRequestDTO mapToCompletedDTO(RescueRequest r) {
 
-        RequestLocation loc = r.getLocation();
+        // 📍 Location
+        RequestLocationResponse location = null;
+        if (r.getLocation() != null) {
+            RequestLocation loc = r.getLocation();
+            location = new RequestLocationResponse();
+            location.setLatitude(loc.getLatitude());
+            location.setLongitude(loc.getLongitude());
+            location.setAddressText(loc.getAddressText());
+            location.setFloodDepth(loc.getFloodDepth());
+        }
+
+        // 🖼 Media
+        List<RequestMediaResponse> mediaList = null;
+        if (r.getMediaList() != null && !r.getMediaList().isEmpty()) {
+            mediaList = r.getMediaList().stream()
+                    .map(m -> {
+                        RequestMediaResponse media = new RequestMediaResponse();
+                        media.setMediaId(m.getMediaId());
+                        media.setMediaType(m.getMediaType());
+                        media.setMediaUrl(m.getMediaUrl());
+                        media.setUploadedAt(m.getUploadedAt());
+                        return media;
+                    })
+                    .toList();
+        }
+
+        // 🚗 Vehicle
+        VehicleResponse vehicleResponse = null;
+        if (r.getAssignedVehicle() != null) {
+            Vehicle v = r.getAssignedVehicle();
+            vehicleResponse = VehicleResponse.builder()
+                    .id(v.getId())
+                    .name(v.getName())
+                    .type(v.getType())
+                    .licensePlate(v.getLicensePlate())
+                    .capacity(v.getCapacity())
+                    .status(v.getStatus())
+                    .build();
+        }
+
+        // 📦 Supplies
+        List<AssignedSupplyResponse> suppliesList = null;
+        if (r.getSupplies() != null && !r.getSupplies().isEmpty()) {
+            suppliesList = r.getSupplies().stream()
+                    .map(rs -> new AssignedSupplyResponse(
+                            rs.getSupply().getId(),
+                            rs.getSupply().getName(),
+                            rs.getQuantity(),
+                            rs.getSupply().getUnit()
+                    ))
+                    .toList();
+        }
 
         return CompletedRequestDTO.builder()
-                .id(r.getRequestId())
+                .requestId(r.getRequestId())
                 .trackingCode(r.getTrackingCode())
                 .title(r.getTitle())
-                .address(loc != null ? loc.getAddressText() : null)
-                .latitude(loc != null ? loc.getLatitude() : null)
-                .longitude(loc != null ? loc.getLongitude() : null)
-                .floodDepth(loc != null ? loc.getFloodDepth() : null)
+                .emergencyLevel(r.getEmergencyLevel())
+                .contactName(r.getContactName())
+                .contactPhone(r.getContactPhone())
                 .description(r.getDescription())
                 .peopleCount(r.getPeopleCount())
                 .status(r.getStatus())
+                .createdAt(r.getCreatedAt())
                 .completedAt(r.getCompletedAt())
                 .citizenFeedback(r.getCitizenFeedback())
                 .citizenRating(r.getCitizenRating())
+                .location(location)
+                .media(mediaList)
+                .vehicle(vehicleResponse)
+                .supplies(suppliesList)
                 .build();
     }
 }
