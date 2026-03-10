@@ -56,8 +56,35 @@ export default function RegisterPage() {
 
     } catch (err) {
       console.error(err);
-      // Lấy lỗi từ Backend trả về (nếu có)
-      setError(err.response?.data?.message || 'Đăng ký thất bại. Vui lòng thử lại.');
+      const rawMessage = err.response?.data?.message || '';
+
+      let friendlyMessage = rawMessage || 'Đăng ký thất bại. Vui lòng thử lại.';
+
+      // Nếu là lỗi validation dài của Spring (chưa qua handler mới)
+      // Dạng: "Field error in object '...' on field 'phoneNumber': ... default message [Số điện thoại không hợp lệ]]"
+      const defaultMsgMatch = rawMessage.match(/default message \[([^\]]+)\]\](?:\s*$|;)/);
+      if (defaultMsgMatch) {
+        friendlyMessage = defaultMsgMatch[1];
+      }
+
+      // Map tên field kỹ thuật → tiếng Việt (dùng khi message quá ngắn/chung chung)
+      const fieldNameMap = {
+        phoneNumber: 'Số điện thoại',
+        email: 'Email',
+        fullName: 'Họ và tên',
+        password: 'Mật khẩu',
+        confirmPassword: 'Xác nhận mật khẩu',
+      };
+      const fieldMatch = rawMessage.match(/on field '(\w+)':/);
+      if (fieldMatch) {
+        const fieldLabel = fieldNameMap[fieldMatch[1]] || fieldMatch[1];
+        // Nếu message không chứa tên field, thêm vào đầu
+        if (!friendlyMessage.toLowerCase().includes(fieldLabel.toLowerCase())) {
+          friendlyMessage = `${fieldLabel}: ${friendlyMessage}`;
+        }
+      }
+
+      setError(friendlyMessage);
     } finally {
       setLoading(false);
     }
