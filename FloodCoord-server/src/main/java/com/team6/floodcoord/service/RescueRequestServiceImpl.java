@@ -602,6 +602,15 @@ public class RescueRequestServiceImpl implements RescueRequestService {
                 .toList();
     }
 
+    @Override
+    public void claimRequestManually(String trackingCode, String phoneNumber, User currentUser) {
+        RescueRequest request = requestRepo.findByTrackingCodeAndContactPhoneAndCitizenIsNull(trackingCode, phoneNumber)
+                .orElseThrow(() -> new IllegalArgumentException("Mã theo dõi hoặc số điện thoại không hợp lệ, hoặc yêu cầu này đã được liên kết với tài khoản khác."));
+
+        request.setCitizen(currentUser);
+        requestRepo.save(request);
+    }
+
     // Hàm kiểm tra logic chuyển trạng thái
     private void validateStatusTransition(RequestStatus currentStatus, RequestStatus newStatus) {
         // Không được chuyển về trạng thái cũ hoặc nhảy cóc quá xa (tùy độ chặt chẽ bạn muốn)
