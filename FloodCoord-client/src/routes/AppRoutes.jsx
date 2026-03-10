@@ -17,6 +17,7 @@ import ResetPasswordPage from '../pages/auth/ResetPasswordPage'
 import RequestRescuePage from '../pages/rescue/RequestRescuePage'
 import TrackRescuePage from '../pages/rescue/TrackRescuePage'
 import ProfilePage from '../pages/profile/ProfilePage'
+import AboutPage from '../pages/AboutPage'
 
 /* Route guards */
 import RoleBasedRoute from './RoleBasedRoute'
@@ -26,6 +27,8 @@ import PrivateRoute from './PrivateRoute'
 import AdminDashboard from '../pages/admin/AdminDashboard'
 import AdminRescueTeamManagement from '../pages/admin/RescueTeamManagement'
 import UserManagement from '../pages/admin/UserManagement'
+import AdminVehicleManagement from '../pages/admin/VehicleManagement'
+import AdminSupplyManagement from '../pages/admin/SupplyManagement'
 
 /* Manager */
 import ManagerDashboard from '../pages/manager/ManagerDashboard'
@@ -43,6 +46,7 @@ import RescueTeamDashboard from '../pages/rescueteam/RescueTeamDashboard'
 import MyMissions from '../pages/rescueteam/MyMissions'
 import MissionDetail from '../pages/rescueteam/MissionDetail'
 import RescueReport from '../pages/rescueteam/RescueReport'
+import CompletedMissions from '../pages/rescueteam/CompletedMissions'
 
 export default function AppRoutes() {
   return (
@@ -56,6 +60,7 @@ export default function AppRoutes() {
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/request-rescue" element={<RequestRescuePage />} />
         <Route path="/track-rescue" element={<TrackRescuePage />} />
+        <Route path="/about" element={<AboutPage />} />
         <Route
           path="/profile"
           element={
@@ -79,6 +84,8 @@ export default function AppRoutes() {
         <Route path="dashboard" element={<AdminDashboard />} />
         <Route path="rescue-teams" element={<AdminRescueTeamManagement />} />
         <Route path="users" element={<UserManagement />} />
+        <Route path="vehicles" element={<AdminVehicleManagement />} />
+        <Route path="supplies" element={<AdminSupplyManagement />} />
       </Route>
 
       {/* ================= MANAGER (WITH SIDEBAR) ================= */}
@@ -126,6 +133,7 @@ export default function AppRoutes() {
         <Route path="missions" element={<MyMissions />} />
         <Route path="missions/:id" element={<MissionDetail />}/>
         <Route path="missions/:id/report" element={<RescueReport />}/>
+        <Route path="completed" element={<CompletedMissions />} />
       </Route>
 
       {/* ================= 404 ================= */}

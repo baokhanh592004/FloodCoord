@@ -378,6 +378,9 @@ public class RescueRequestServiceImpl implements RescueRequestService {
                                 ? request.getAssignedTeam().getLeader().getPhoneNumber()
                                 : null
                 )
+                // Map đánh giá của người dân (nếu đã có)
+                .citizenFeedback(request.getCitizenFeedback())
+                .citizenRating(request.getCitizenRating())
                 .build();
     }
 
@@ -527,9 +530,38 @@ public class RescueRequestServiceImpl implements RescueRequestService {
                                 .toList();
                     }
 
+                    // 🚗 Vehicle
+                    VehicleResponse vehicleResponse = null;
+                    if (r.getAssignedVehicle() != null) {
+                        com.team6.floodcoord.model.Vehicle v = r.getAssignedVehicle();
+                        vehicleResponse = VehicleResponse.builder()
+                                .id(v.getId())
+                                .name(v.getName())
+                                .type(v.getType())
+                                .licensePlate(v.getLicensePlate())
+                                .capacity(v.getCapacity())
+                                .status(v.getStatus())
+                                .build();
+                    }
+
+                    // 📦 Supplies
+                    List<AssignedSupplyResponse> suppliesList = null;
+                    if (r.getSupplies() != null && !r.getSupplies().isEmpty()) {
+                        suppliesList = r.getSupplies().stream()
+                                .map(rs -> new AssignedSupplyResponse(
+                                        rs.getSupply().getId(),
+                                        rs.getSupply().getName(),
+                                        rs.getQuantity(),
+                                        rs.getSupply().getUnit()
+                                ))
+                                .toList();
+                    }
+
                     return RescueRequestLeaderDTO.builder()
                             .requestId(r.getRequestId())
                             .title(r.getTitle())
+                            .description(r.getDescription())
+                            .peopleCount(r.getPeopleCount())
                             .emergencyLevel(r.getEmergencyLevel())
                             .status(r.getStatus())
                             .contactName(r.getContactName())
@@ -537,8 +569,36 @@ public class RescueRequestServiceImpl implements RescueRequestService {
                             .createdAt(r.getCreatedAt())
                             .location(location)
                             .media(mediaList)
+                            .vehicle(vehicleResponse)
+                            .supplies(suppliesList)
                             .build();
                 })
+                .toList();
+    }
+
+    @Override
+    public void claimGuestRequests(List<String> trackingCodes, User currentUser) {
+        if (trackingCodes == null || trackingCodes.isEmpty()) {
+            return;
+        }
+
+        List<RescueRequest> requests = requestRepo.findByTrackingCodeInAndCitizenIsNull(trackingCodes);
+
+        for (RescueRequest request : requests) {
+            request.setCitizen(currentUser);
+        }
+
+        requestRepo.saveAll(requests);
+    }
+
+    @Override
+    public List<RescueRequestSummaryResponse> getMyRescueRequests(User currentUser) {
+        if (currentUser == null) {
+            throw new IllegalArgumentException("User must be logged in to view their requests.");
+        }
+
+        return requestRepo.findByCitizen_Id(currentUser.getId()).stream()
+                .map(this::mapToSummary)
                 .toList();
     }
 

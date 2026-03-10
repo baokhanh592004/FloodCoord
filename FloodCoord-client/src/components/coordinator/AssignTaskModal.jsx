@@ -30,7 +30,7 @@ export default function AssignTaskModal({ request, isOpen, onClose, onSuccess })
 
     const [formData, setFormData] = useState({
         rescueTeamId: '',
-        vehicleIds: [],     // multi-select vehicles
+        vehicleId: '',      // single vehicle
         note: '',
         emergencyLevel: '',
         supplies: [],       // [{supplyId, quantity}]
@@ -41,7 +41,7 @@ export default function AssignTaskModal({ request, isOpen, onClose, onSuccess })
             loadResources();
             setFormData({
                 rescueTeamId: '',
-                vehicleIds: [],
+                vehicleId: '',
                 note: '',
                 emergencyLevel: request?.emergencyLevel || '',
                 supplies: [],
@@ -82,9 +82,9 @@ export default function AssignTaskModal({ request, isOpen, onClose, onSuccess })
         try {
             await coordinatorApi.assignTask(request.requestId || request.id, {
                 rescueTeamId: Number(formData.rescueTeamId),
-                vehicleIds: useVehicle && formData.vehicleIds.length > 0
-                    ? formData.vehicleIds.map(Number)
-                    : [],
+                vehicleId: useVehicle && formData.vehicleId
+                    ? Number(formData.vehicleId)
+                    : null,
                 note: formData.note,
                 emergencyLevel: formData.emergencyLevel || request.emergencyLevel,
                 supplies: useSupplies
@@ -223,7 +223,7 @@ export default function AssignTaskModal({ request, isOpen, onClose, onSuccess })
                                     type="button"
                                     onClick={() => {
                                         setUseVehicle(!useVehicle);
-                                        if (useVehicle) setFormData({ ...formData, vehicleIds: [] });
+                                        if (useVehicle) setFormData({ ...formData, vehicleId: '' });
                                     }}
                                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                                         useVehicle ? 'bg-teal-600' : 'bg-gray-300'
@@ -246,28 +246,25 @@ export default function AssignTaskModal({ request, isOpen, onClose, onSuccess })
                                         <p className="text-sm text-gray-400 text-center py-4">Không có phương tiện khả dụng</p>
                                     ) : (
                                         availableVehicles.map((v) => {
-                                            const checked = formData.vehicleIds.includes(String(v.id));
+                                            const checked = formData.vehicleId === String(v.id);
                                             return (
                                                 <label
                                                     key={v.id}
                                                     className="flex items-center gap-3 px-3 py-2.5 border-b border-gray-100 last:border-b-0 hover:bg-gray-50 cursor-pointer"
                                                 >
                                                     <input
-                                                        type="checkbox"
+                                                        type="radio"
+                                                        name="vehicleId"
                                                         checked={checked}
-                                                        onChange={() => {
-                                                            setFormData((prev) => ({
-                                                                ...prev,
-                                                                vehicleIds: checked
-                                                                    ? prev.vehicleIds.filter((id) => id !== String(v.id))
-                                                                    : [...prev.vehicleIds, String(v.id)],
-                                                            }));
-                                                        }}
-                                                        className="h-4 w-4 text-teal-600 rounded"
+                                                        onChange={() => setFormData((prev) => ({ ...prev, vehicleId: String(v.id) }))}
+                                                        className="h-4 w-4 text-teal-600"
                                                     />
                                                     <div className="flex-1">
                                                         <p className="text-sm font-medium text-gray-900">{v.name}</p>
-                                                        <p className="text-xs text-gray-500">{v.type} • Sức chứa: {v.capacity}</p>
+                                                        <p className="text-xs text-gray-500">
+                                                            {v.licensePlate && <span className="font-mono mr-2">{v.licensePlate}</span>}
+                                                            {v.type} • Sức chứa: {v.capacity} người
+                                                        </p>
                                                     </div>
                                                 </label>
                                             );
@@ -448,13 +445,10 @@ export default function AssignTaskModal({ request, isOpen, onClose, onSuccess })
                             <p>
                                 <strong>Đội:</strong> {selectedTeam?.name || '—'}
                             </p>
-                            {useVehicle && formData.vehicleIds.length > 0 && (
+                            {useVehicle && formData.vehicleId && (
                                 <p>
-                                    <strong>Phương tiện ({formData.vehicleIds.length}):</strong>{' '}
-                                    {formData.vehicleIds
-                                        .map((vid) => availableVehicles.find((v) => String(v.id) === vid)?.name)
-                                        .filter(Boolean)
-                                        .join(', ') || '—'}
+                                    <strong>Phương tiện:</strong>{' '}
+                                    {availableVehicles.find((v) => String(v.id) === formData.vehicleId)?.name || '—'}
                                 </p>
                             )}
                             {useSupplies && formData.supplies.length > 0 && (

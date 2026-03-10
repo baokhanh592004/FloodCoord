@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Getter
@@ -12,20 +14,38 @@ import java.util.UUID;
 @Builder
 public class CompletedRequestDTO {
 
-    private UUID id;
+    private UUID requestId;
 
     private String trackingCode;
 
-    private Double latitude;
-    private Double longitude;
-    private String address;
-    private Float floodDepth;
+    private String title;
 
+    private String emergencyLevel;
+
+    private String contactName;
+
+    private String contactPhone;
 
     private String description;
 
     private Integer peopleCount;
 
     private RequestStatus status;
+
+    private LocalDateTime createdAt;
+
+    private LocalDateTime completedAt;
+
+    private String citizenFeedback;
+
+    private Integer citizenRating;
+
+    private RequestLocationResponse location;
+
+    private List<RequestMediaResponse> media;
+
+    private VehicleResponse vehicle;
+
+    private List<AssignedSupplyResponse> supplies;
 
 }

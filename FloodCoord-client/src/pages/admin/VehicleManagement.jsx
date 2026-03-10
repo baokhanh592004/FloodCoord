@@ -20,21 +20,21 @@ import {
 const ITEMS_PER_PAGE = 10;
 
 const TYPE_LABELS = {
-    BOAT:       { label: 'Tàu / Cano',  color: 'bg-blue-100 text-blue-700' },
-    TRUCK:      { label: 'Xe tải',       color: 'bg-slate-100 text-slate-700' },
-    HELICOPTER: { label: 'Trực thăng',   color: 'bg-orange-100 text-orange-700' },
-    AMBULANCE:  { label: 'Xe cấp cứu',   color: 'bg-red-100 text-red-700' },
-    RESCUE_VAN: { label: 'Xe cứu hộ',    color: 'bg-teal-100 text-teal-700' },
+    BOAT:        { label: 'Tàu / Cano',    color: 'bg-blue-100 text-blue-700' },
+    TRUCK:       { label: 'Xe tải',         color: 'bg-slate-100 text-slate-700' },
+    HELICOPTER:  { label: 'Trực thăng',     color: 'bg-orange-100 text-orange-700' },
+    AMBULANCE:   { label: 'Xe cấp cứu',     color: 'bg-red-100 text-red-700' },
+    RESCUE_VAN:  { label: 'Xe cứu hộ',      color: 'bg-teal-100 text-teal-700' },
 };
 
 const STATUS_CONFIG = {
-    AVAILABLE:   { label: 'Sẵn sàng',        color: 'bg-emerald-100 text-emerald-700', dot: 'bg-emerald-500' },
-    IN_USE:      { label: 'Đang hoạt động',   color: 'bg-blue-100 text-blue-700',       dot: 'bg-blue-500' },
-    MAINTENANCE: { label: 'Bảo trì',          color: 'bg-orange-100 text-orange-700',   dot: 'bg-orange-500' },
-    UNAVAILABLE: { label: 'Không khả dụng',   color: 'bg-red-100 text-red-700',         dot: 'bg-red-500' },
+    AVAILABLE:   { label: 'Sẵn sàng',           color: 'bg-emerald-100 text-emerald-700', dot: 'bg-emerald-500' },
+    IN_USE:      { label: 'Đang hoạt động',       color: 'bg-blue-100 text-blue-700',     dot: 'bg-blue-500' },
+    MAINTENANCE: { label: 'Bảo trì',              color: 'bg-orange-100 text-orange-700', dot: 'bg-orange-500' },
+    UNAVAILABLE: { label: 'Không khả dụng',       color: 'bg-red-100 text-red-700',       dot: 'bg-red-500' },
 };
 
-const VEHICLE_TYPES    = ['BOAT', 'TRUCK', 'HELICOPTER', 'AMBULANCE', 'RESCUE_VAN'];
+const VEHICLE_TYPES   = ['BOAT', 'TRUCK', 'HELICOPTER', 'AMBULANCE', 'RESCUE_VAN'];
 const VEHICLE_STATUSES = ['AVAILABLE', 'IN_USE', 'MAINTENANCE', 'UNAVAILABLE'];
 
 const STATUS_FILTER_TABS = [
@@ -57,17 +57,17 @@ function TypeIcon({ type, size = 16 }) {
     }
 }
 
-export default function VehicleManagement() {
-    const [vehicles, setVehicles]             = useState([]);
-    const [loading, setLoading]               = useState(true);
-    const [error, setError]                   = useState('');
-    const [showModal, setShowModal]           = useState(false);
+export default function AdminVehicleManagement() {
+    const [vehicles, setVehicles]       = useState([]);
+    const [loading, setLoading]         = useState(true);
+    const [error, setError]             = useState('');
+    const [showModal, setShowModal]     = useState(false);
     const [editingVehicle, setEditingVehicle] = useState(null);
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [selectedVehicle, setSelectedVehicle] = useState(null);
-    const [searchTerm, setSearchTerm]         = useState('');
-    const [statusFilter, setStatusFilter]     = useState('ALL');
-    const [currentPage, setCurrentPage]       = useState(1);
+    const [searchTerm, setSearchTerm]   = useState('');
+    const [statusFilter, setStatusFilter] = useState('ALL');
+    const [currentPage, setCurrentPage] = useState(1);
     const [formData, setFormData] = useState({
         name: '', type: 'BOAT', licensePlate: '', capacity: '', status: 'AVAILABLE',
     });
@@ -79,8 +79,8 @@ export default function VehicleManagement() {
             setVehicles(data || []);
             setError('');
         } catch (err) {
-            setError('Không thể tải danh sách phương tiện. Vui lòng kiểm tra kết nối với server.');
-            console.error('Fetch vehicles error:', err);
+            setError('Không thể tải danh sách phương tiện.');
+            console.error(err);
         } finally {
             setLoading(false);
         }
@@ -106,18 +106,20 @@ export default function VehicleManagement() {
     }), [vehicles]);
 
     // ─── Filtered + Paginated ─────────────────────────────────────────────────
-    const filtered = useMemo(() => vehicles.filter(v => {
-        const matchStatus = statusFilter === 'ALL' || v.status === statusFilter;
-        const term = searchTerm.toLowerCase();
-        const matchSearch = !searchTerm ||
-            v.name?.toLowerCase().includes(term) ||
-            v.licensePlate?.toLowerCase().includes(term) ||
-            v.type?.toLowerCase().includes(term);
-        return matchStatus && matchSearch;
-    }), [vehicles, statusFilter, searchTerm]);
+    const filtered = useMemo(() => {
+        return vehicles.filter(v => {
+            const matchStatus = statusFilter === 'ALL' || v.status === statusFilter;
+            const term = searchTerm.toLowerCase();
+            const matchSearch = !searchTerm ||
+                v.name?.toLowerCase().includes(term) ||
+                v.licensePlate?.toLowerCase().includes(term) ||
+                v.type?.toLowerCase().includes(term);
+            return matchStatus && matchSearch;
+        });
+    }, [vehicles, statusFilter, searchTerm]);
 
-    const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
-    const paginated  = filtered.slice(
+    const totalPages  = Math.ceil(filtered.length / ITEMS_PER_PAGE);
+    const paginated   = filtered.slice(
         (currentPage - 1) * ITEMS_PER_PAGE,
         currentPage * ITEMS_PER_PAGE,
     );
@@ -178,7 +180,7 @@ export default function VehicleManagement() {
             resetForm();
             setError('');
         } catch (err) {
-            setError(err.response?.data?.message || err.response?.data?.error || 'Không thể lưu thông tin phương tiện.');
+            setError(err.response?.data?.message || 'Không thể lưu thông tin phương tiện.');
         }
     };
 
@@ -195,14 +197,15 @@ export default function VehicleManagement() {
 
         const worksheet = XLSX.utils.json_to_sheet(exportData);
 
+        // Căn chỉnh độ rộng cột
         worksheet['!cols'] = [
-            { wch: 5 },
-            { wch: 28 },
-            { wch: 16 },
-            { wch: 16 },
-            { wch: 18 },
-            { wch: 20 },
-            { wch: 28 },
+            { wch: 5 },   // STT
+            { wch: 28 },  // Tên
+            { wch: 16 },  // Loại
+            { wch: 16 },  // Biển số
+            { wch: 18 },  // Sức chứa
+            { wch: 20 },  // Trạng thái
+            { wch: 28 },  // Đội
         ];
 
         const workbook = XLSX.utils.book_new();
@@ -218,7 +221,7 @@ export default function VehicleManagement() {
             <div className="shrink-0 flex items-center justify-between">
                 <div>
                     <h1 className="text-xl font-bold text-gray-900">Quản lý Phương tiện</h1>
-                    <p className="text-xs text-gray-500">Quản lý và điều phối phương tiện cứu hộ trong hệ thống.</p>
+                    <p className="text-xs text-gray-500">Xem và quản lý toàn bộ phương tiện cứu hộ trong hệ thống.</p>
                 </div>
                 <div className="flex items-center gap-2">
                     <button
@@ -247,10 +250,10 @@ export default function VehicleManagement() {
 
             {/* ── Stat Cards ── */}
             <div className="shrink-0 grid grid-cols-2 lg:grid-cols-4 gap-3">
-                <StatCard icon={<TruckIcon className="h-6 w-6" />}             count={stats.total}       label="Tổng phương tiện" color="blue" />
-                <StatCard icon={<CheckCircleIcon className="h-6 w-6" />}       count={stats.available}   label="Sẵn sàng"         color="green" />
-                <StatCard icon={<ClockIcon className="h-6 w-6" />}             count={stats.inUse}       label="Đang hoạt động"   color="yellow" />
-                <StatCard icon={<WrenchScrewdriverIcon className="h-6 w-6" />} count={stats.maintenance} label="Bảo trì / Hỏng"   color="red" />
+                <StatCard icon={<TruckIcon className="h-6 w-6" />}          count={stats.total}       label="Tổng phương tiện"  color="blue" />
+                <StatCard icon={<CheckCircleIcon className="h-6 w-6" />}    count={stats.available}   label="Sẵn sàng"          color="green" />
+                <StatCard icon={<ClockIcon className="h-6 w-6" />}          count={stats.inUse}       label="Đang hoạt động"    color="yellow" />
+                <StatCard icon={<WrenchScrewdriverIcon className="h-6 w-6" />} count={stats.maintenance} label="Bảo trì / Hỏng"  color="red" />
             </div>
 
             {/* ── Filter & Search ── */}
@@ -337,39 +340,52 @@ export default function VehicleManagement() {
                                 </tr>
                             ) : (
                                 paginated.map((vehicle, index) => {
-                                    const typeInfo   = TYPE_LABELS[vehicle.type]     || { label: vehicle.type,   color: 'bg-gray-100 text-gray-600' };
+                                    const typeInfo   = TYPE_LABELS[vehicle.type]   || { label: vehicle.type,   color: 'bg-gray-100 text-gray-600' };
                                     const statusInfo = STATUS_CONFIG[vehicle.status] || STATUS_CONFIG.AVAILABLE;
                                     return (
                                         <tr key={vehicle.id} className="hover:bg-gray-50 transition-colors">
+                                            {/* # */}
                                             <td className="px-3 py-2 text-gray-400 font-mono">
                                                 {(currentPage - 1) * ITEMS_PER_PAGE + index + 1}
                                             </td>
+
+                                            {/* Tên */}
                                             <td className="px-3 py-2">
                                                 <div className="flex items-center gap-2">
                                                     <TypeIcon type={vehicle.type} size={15} />
                                                     <span className="font-medium text-gray-900">{vehicle.name}</span>
                                                 </div>
                                             </td>
+
+                                            {/* Loại */}
                                             <td className="px-3 py-2">
                                                 <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${typeInfo.color}`}>
                                                     {typeInfo.label}
                                                 </span>
                                             </td>
+
+                                            {/* Biển số */}
                                             <td className="px-3 py-2">
                                                 <span className="font-mono font-semibold text-gray-700 bg-gray-100 px-2 py-0.5 rounded text-xs">
                                                     {vehicle.licensePlate}
                                                 </span>
                                             </td>
+
+                                            {/* Sức chứa */}
                                             <td className="px-3 py-2 text-center text-gray-700">
                                                 <span className="font-semibold">{vehicle.capacity}</span>
                                                 <span className="text-gray-400 ml-1">người</span>
                                             </td>
+
+                                            {/* Trạng thái */}
                                             <td className="px-3 py-2 text-center">
                                                 <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${statusInfo.color}`}>
                                                     <span className={`w-1.5 h-1.5 rounded-full ${statusInfo.dot} ${vehicle.status === 'IN_USE' ? 'animate-pulse' : ''}`} />
                                                     {statusInfo.label}
                                                 </span>
                                             </td>
+
+                                            {/* Hành động */}
                                             <td className="px-3 py-2">
                                                 <div className="flex items-center justify-center gap-0.5">
                                                     <button

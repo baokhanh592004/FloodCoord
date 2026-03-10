@@ -24,4 +24,14 @@ export const rescueApi = {
         const response = await axiosClient.get('/api/rescue-requests/my-requests');
         return response.data;
     },
+    // Người dân gửi đánh giá / xác nhận hoàn thành (không cần login)
+    confirmAndFeedback: async (requestId, payload) => {
+        try {
+            const response = await axiosClient.post(`/api/rescue-requests/${requestId}/confirm`, payload);
+            return response.data;
+        } catch (error) {
+            console.error("Gửi đánh giá thất bại:", error);
+            throw error;
+        }
+    }
 };

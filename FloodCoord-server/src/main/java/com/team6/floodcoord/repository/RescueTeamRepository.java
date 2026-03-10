@@ -11,4 +11,6 @@ public interface RescueTeamRepository extends JpaRepository<RescueTeam, Long> {
     boolean existsByName(String name);
 
     Optional<RescueTeam> findByLeader_Id(Long leaderId);
+
+
 }
