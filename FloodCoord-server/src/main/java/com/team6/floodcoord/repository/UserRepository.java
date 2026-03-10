@@ -1,5 +1,6 @@
 package com.team6.floodcoord.repository;
 
+import com.team6.floodcoord.model.RescueTeam;
 import com.team6.floodcoord.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -21,4 +22,5 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
 
     List<User> findByStatusTrueAndLastLoginDateBefore(LocalDateTime thresholdDate);
     List<User> findByRole_RoleCodeAndRescueTeamIsNull(String roleCode);
+    List<User> findByRescueTeam(RescueTeam rescueTeam);
 }

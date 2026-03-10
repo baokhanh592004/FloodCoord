@@ -530,6 +530,8 @@ public class RescueRequestServiceImpl implements RescueRequestService {
                     return RescueRequestLeaderDTO.builder()
                             .requestId(r.getRequestId())
                             .title(r.getTitle())
+                            .description(r.getDescription())
+                            .peopleCount(r.getPeopleCount())
                             .emergencyLevel(r.getEmergencyLevel())
                             .status(r.getStatus())
                             .contactName(r.getContactName())

@@ -6,6 +6,8 @@ import com.team6.floodcoord.dto.request.ReportRequestDTO;
 import com.team6.floodcoord.dto.request.SupplyRemainDTO;
 import com.team6.floodcoord.dto.response.AttendanceResponseDTO;
 import com.team6.floodcoord.dto.response.CompletedRequestDTO;
+import com.team6.floodcoord.dto.response.RescueTeamMemberDTO;
+import com.team6.floodcoord.dto.response.UserResponse;
 import com.team6.floodcoord.model.*;
 import com.team6.floodcoord.model.enums.RequestStatus;
 import com.team6.floodcoord.model.enums.TeamStatus;
@@ -275,6 +277,50 @@ public class TeamLeaderServiceImpl implements TeamLeaderService {
                 .toList();
 
     }
+
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<RescueTeamMemberDTO> getMyTeamMembers() {
+
+        // 1️⃣ Lấy email từ security context
+        String email = SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getName();
+
+        User currentUser = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Current user not found"));
+
+        // 2️⃣ Kiểm tra team
+        RescueTeam team = currentUser.getRescueTeam();
+        if (team == null) {
+            throw new RuntimeException("You are not assigned to any team");
+        }
+
+        // 3️⃣ Kiểm tra leader
+        if (!team.getLeader().getId().equals(currentUser.getId())) {
+            throw new RuntimeException("Only team leader can view team members");
+        }
+
+        // 4️⃣ Lấy member của team
+        List<User> members = userRepository.findByRescueTeam(team);
+
+
+        Long leaderId = team.getLeader().getId();
+
+        // 5️⃣ Convert sang DTO
+        return members.stream()
+                .map(user -> new RescueTeamMemberDTO(
+                        user.getId(),
+                        user.getFullName(),
+                        user.getEmail(),
+                        user.getPhoneNumber(),
+                        user.getRole().getRoleCode(),
+                        user.getId().equals(leaderId)
+                ))
+                .toList();
+    }
+
 
     private void validateTransition(RequestStatus current, RequestStatus next) {
 

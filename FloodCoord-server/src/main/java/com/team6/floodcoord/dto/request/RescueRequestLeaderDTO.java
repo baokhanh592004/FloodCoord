@@ -23,6 +23,8 @@ public class RescueRequestLeaderDTO {
     private String contactName;
     private String contactPhone;
     private LocalDateTime createdAt;
+    private String description;
+    private Integer peopleCount;
 
     private RequestLocationResponse location;
     private List<RequestMediaResponse> media;
