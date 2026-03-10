@@ -9,6 +9,7 @@ import com.team6.floodcoord.dto.response.CompletedRequestDTO;
 import com.team6.floodcoord.model.*;
 import com.team6.floodcoord.model.enums.RequestStatus;
 import com.team6.floodcoord.model.enums.TeamStatus;
+import com.team6.floodcoord.model.enums.VehicleStatus;
 import com.team6.floodcoord.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -34,6 +35,7 @@ public class TeamLeaderServiceImpl implements TeamLeaderService {
     private final SupplyRepository supplyRepository;
     private final CloudinaryService cloudinaryService;
     private final ReportMediaRepository reportMediaRepository;
+    private final com.team6.floodcoord.repository.VehicleRepository vehicleRepository;
 
     @Override
     @Transactional
@@ -150,10 +152,20 @@ public class TeamLeaderServiceImpl implements TeamLeaderService {
         request.setStatus(newStatus);
         rescueRequestRepository.save(request);
 
-        // Nếu completed thì trả team về available
+        // Nếu completed thì trả team về available và trả xe
         if (newStatus == RequestStatus.COMPLETED) {
             team.setStatus(TeamStatus.AVAILABLE);
             rescueTeamRepository.save(team);
+
+            // Trả xe về AVAILABLE
+            if (request.getAssignedVehicle() != null) {
+                Vehicle vehicle = request.getAssignedVehicle();
+                if (vehicle.getStatus() == VehicleStatus.IN_USE) {
+                    vehicle.setStatus(VehicleStatus.AVAILABLE);
+                    vehicle.setCurrentTeam(null);
+                    vehicleRepository.save(vehicle);
+                }
+            }
         }
     }
 
