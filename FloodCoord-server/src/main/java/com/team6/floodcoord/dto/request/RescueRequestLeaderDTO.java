@@ -2,6 +2,7 @@ package com.team6.floodcoord.dto.request;
 
 import com.team6.floodcoord.dto.response.RequestLocationResponse;
 import com.team6.floodcoord.dto.response.RequestMediaResponse;
+import com.team6.floodcoord.dto.response.VehicleResponse;
 import com.team6.floodcoord.model.enums.RequestStatus;
 import lombok.Builder;
 import lombok.Getter;
@@ -26,4 +27,5 @@ public class RescueRequestLeaderDTO {
 
     private RequestLocationResponse location;
     private List<RequestMediaResponse> media;
+    private VehicleResponse vehicle;
 }

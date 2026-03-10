@@ -223,6 +223,41 @@ export default function MissionDetail() {
             </div>
           </div>
 
+          {/* Thông tin phương tiện */}
+          {mission.vehicle && (
+            <div className="bg-white border border-slate-100 rounded-2xl p-4">
+              <h2 className="text-lg font-bold border-b pb-2 mb-3">
+                Phương tiện được cấp
+              </h2>
+              <div className="space-y-3 text-sm">
+                <p className="flex justify-between">
+                  <span className="text-slate-500">Tên xe:</span>
+                  <span className="font-semibold">{mission.vehicle.name}</span>
+                </p>
+                {mission.vehicle.type && (
+                  <p className="flex justify-between">
+                    <span className="text-slate-500">Loại xe:</span>
+                    <span className="font-medium">{mission.vehicle.type}</span>
+                  </p>
+                )}
+                {mission.vehicle.licensePlate && (
+                  <p className="flex justify-between">
+                    <span className="text-slate-500">Biển số:</span>
+                    <span className="font-mono font-semibold tracking-wide text-blue-700">
+                      {mission.vehicle.licensePlate}
+                    </span>
+                  </p>
+                )}
+                {mission.vehicle.capacity && (
+                  <p className="flex justify-between">
+                    <span className="text-slate-500">Sức chứa:</span>
+                    <span className="font-medium">{mission.vehicle.capacity} người</span>
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
 
           {/* UPDATE STATUS */}
           {mission.status !== "COMPLETED" && (

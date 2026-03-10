@@ -527,6 +527,20 @@ public class RescueRequestServiceImpl implements RescueRequestService {
                                 .toList();
                     }
 
+                    // 🚗 Vehicle
+                    VehicleResponse vehicleResponse = null;
+                    if (r.getAssignedVehicle() != null) {
+                        com.team6.floodcoord.model.Vehicle v = r.getAssignedVehicle();
+                        vehicleResponse = VehicleResponse.builder()
+                                .id(v.getId())
+                                .name(v.getName())
+                                .type(v.getType())
+                                .licensePlate(v.getLicensePlate())
+                                .capacity(v.getCapacity())
+                                .status(v.getStatus())
+                                .build();
+                    }
+
                     return RescueRequestLeaderDTO.builder()
                             .requestId(r.getRequestId())
                             .title(r.getTitle())
@@ -537,6 +551,7 @@ public class RescueRequestServiceImpl implements RescueRequestService {
                             .createdAt(r.getCreatedAt())
                             .location(location)
                             .media(mediaList)
+                            .vehicle(vehicleResponse)
                             .build();
                 })
                 .toList();
