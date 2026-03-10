@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import * as XLSX from 'xlsx';
 import { supplyApi } from '../../services/supplyApi';
-import { Package, AlertCircle, Apple, Pill, Wrench, Box } from 'lucide-react';
+import { Package, AlertCircle, Apple, Pill, Wrench, Box, FileDown } from 'lucide-react';
 import StatCard from '../../components/coordinator/StatCard';
 import SupplyFormModal from '../../components/manager/SupplyFormModal';
 import SupplyDetailModal from '../../components/manager/SupplyDetailModal';
@@ -150,6 +151,48 @@ export default function SupplyManagement() {
         setShowModal(true);
     };
 
+    const exportToExcel = () => {
+        const typeMap = {
+            FOOD_WATER: 'Đồ ăn & Nước',
+            MEDICAL:    'Y tế',
+            EQUIPMENT:  'Thiết bị',
+            OTHER:      'Khác',
+        };
+        const getStatus = (s) => {
+            if (isExpired(s.expiryDate))      return 'Hết hạn';
+            if (isExpiringSoon(s.expiryDate)) return 'Sắp hết hạn';
+            return 'Còn hạn';
+        };
+        const exportData = supplies.map((s, idx) => ({
+            'STT': idx + 1,
+            'Tên vật tư': s.name || '',
+            'Loại': typeMap[s.type] || s.type || '',
+            'Số lượng': s.quantity ?? '',
+            'Đơn vị': s.unit || '',
+            'Ngày nhập': s.importedDate ? new Date(s.importedDate).toLocaleDateString('vi-VN') : '',
+            'Hạn sử dụng': s.expiryDate  ? new Date(s.expiryDate).toLocaleDateString('vi-VN')  : '',
+            'Trạng thái': getStatus(s),
+            'Mô tả': s.description || '',
+        }));
+
+        const worksheet = XLSX.utils.json_to_sheet(exportData);
+        worksheet['!cols'] = [
+            { wch: 5  },
+            { wch: 30 },
+            { wch: 16 },
+            { wch: 10 },
+            { wch: 10 },
+            { wch: 14 },
+            { wch: 14 },
+            { wch: 16 },
+            { wch: 40 },
+        ];
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Vật tư');
+        const today = new Date().toLocaleDateString('vi-VN').replace(/\//g, '-');
+        XLSX.writeFile(workbook, `Danh_sach_vat_tu_${today}.xlsx`);
+    };
+
     const formatDate = (dateString) => {
         if (!dateString) return 'Không có';
         const date = new Date(dateString);
@@ -225,12 +268,21 @@ export default function SupplyManagement() {
                     <h1 className="text-xl font-bold text-gray-900">Quản lý Vật tư</h1>
                     <p className="text-xs text-gray-500">Quản lý tồn kho theo từng lô hàng cứu trợ.</p>
                 </div>
-                <button
-                    onClick={openCreateModal}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-medium hover:bg-blue-700 transition-colors"
-                >
-                    <PlusIcon className="h-3.5 w-3.5" /> Nhập lô hàng mới
-                </button>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={exportToExcel}
+                        disabled={supplies.length === 0}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white rounded-md text-xs font-medium hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+                    >
+                        <FileDown size={13} /> Xuất Excel
+                    </button>
+                    <button
+                        onClick={openCreateModal}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-medium hover:bg-blue-700 transition-colors"
+                    >
+                        <PlusIcon className="h-3.5 w-3.5" /> Nhập lô hàng mới
+                    </button>
+                </div>
             </div>
 
             {/* Stat Cards */}
