@@ -378,6 +378,9 @@ public class RescueRequestServiceImpl implements RescueRequestService {
                                 ? request.getAssignedTeam().getLeader().getPhoneNumber()
                                 : null
                 )
+                // Map đánh giá của người dân (nếu đã có)
+                .citizenFeedback(request.getCitizenFeedback())
+                .citizenRating(request.getCitizenRating())
                 .build();
     }
 
