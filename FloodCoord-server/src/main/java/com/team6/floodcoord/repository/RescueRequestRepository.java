@@ -33,4 +33,6 @@ public interface RescueRequestRepository
     );
 
     List<RescueRequest> findByCitizen_Id(Long citizenId);
+
+    Optional<RescueRequest> findByTrackingCodeAndContactPhoneAndCitizenIsNull(String trackingCode, String contactPhone);
 }

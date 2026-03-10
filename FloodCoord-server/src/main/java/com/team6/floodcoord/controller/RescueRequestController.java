@@ -81,4 +81,15 @@ public class RescueRequestController {
     ) {
         return ResponseEntity.ok(rescueRequestService.getMyRescueRequests(currentUser));
     }
+
+    @PostMapping("/claim-manual")
+    @Operation(summary = "Liên kết thủ công yêu cầu cũ bằng Tracking Code và SĐT")
+    public ResponseEntity<String> claimManual(
+            @RequestParam String trackingCode,
+            @RequestParam String phoneNumber,
+            @AuthenticationPrincipal User currentUser
+    ) {
+        rescueRequestService.claimRequestManually(trackingCode, phoneNumber, currentUser);
+        return ResponseEntity.ok("Đã liên kết yêu cầu thành công vào tài khoản của bạn.");
+    }
 }

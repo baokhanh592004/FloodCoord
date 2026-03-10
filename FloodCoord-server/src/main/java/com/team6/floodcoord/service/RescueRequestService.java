@@ -27,4 +27,5 @@ public interface RescueRequestService {
     List<RescueRequestLeaderDTO> getMyAssignedRescueRequests();
     void claimGuestRequests(List<String> trackingCodes, User currentUser);
     List<RescueRequestSummaryResponse> getMyRescueRequests(User currentUser);
+    void claimRequestManually(String trackingCode, String phoneNumber, User currentUser);
 }
