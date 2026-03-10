@@ -40,5 +40,10 @@ export const loginApi = {
         return response.data;
     },
 
+    changePassword: async (data) => {
+        const response = await axiosClient.put('/api/auth/change-pass', data);
+        return response.data;
+    },
+
 };
     

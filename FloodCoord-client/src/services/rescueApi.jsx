@@ -17,5 +17,11 @@ export const rescueApi = {
             console.error("Tra cứu tracking code thất bại:", error);
             throw error;
         }
-    }
+    },
+
+    // Lấy danh sách yêu cầu cứu hộ của người dùng hiện tại
+    getMyRescueRequests: async () => {
+        const response = await axiosClient.get('/api/rescue-requests/my-requests');
+        return response.data;
+    },
 };
