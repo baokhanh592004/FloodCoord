@@ -591,6 +591,17 @@ public class RescueRequestServiceImpl implements RescueRequestService {
         requestRepo.saveAll(requests);
     }
 
+    @Override
+    public List<RescueRequestSummaryResponse> getMyRescueRequests(User currentUser) {
+        if (currentUser == null) {
+            throw new IllegalArgumentException("User must be logged in to view their requests.");
+        }
+
+        return requestRepo.findByCitizen_Id(currentUser.getId()).stream()
+                .map(this::mapToSummary)
+                .toList();
+    }
+
     // Hàm kiểm tra logic chuyển trạng thái
     private void validateStatusTransition(RequestStatus currentStatus, RequestStatus newStatus) {
         // Không được chuyển về trạng thái cũ hoặc nhảy cóc quá xa (tùy độ chặt chẽ bạn muốn)
