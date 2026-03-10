@@ -23,6 +23,7 @@ import java.text.ParseException;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 
 @Slf4j
@@ -42,6 +43,7 @@ public class AuthenticationServiceImpl implements AuthenticationService{
     private static final int MAX_FAILED_ATTEMPTS = 5;
     private final EmailService emailService;
     private final RoleRepository roleRepository;
+    private final RescueRequestRepository rescueRequestRepository;
 
     @Override
     public void logout(String token) throws ParseException {
@@ -327,7 +329,7 @@ public class AuthenticationServiceImpl implements AuthenticationService{
 
     @Override
     public UserResponse register(UserRequest request) {
-        // 1. Validate Email & Phone
+
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new IllegalArgumentException("Email already exists: " + request.getEmail());
         }
@@ -335,30 +337,18 @@ public class AuthenticationServiceImpl implements AuthenticationService{
             throw new IllegalArgumentException("Phone number already exists: " + request.getPhoneNumber());
         }
 
-        // 2. Validate Password Match
+
         if (!request.getPassword().equals(request.getConfirmPassword())) {
             throw new IllegalArgumentException("Password and confirm password do not match");
         }
 
-        // 3. Validate Password Complexity (Optional - Reuse PasswordUtils)
         if (!PasswordUtils.isValidPassword(request.getPassword())) {
             throw new IllegalArgumentException("Invalid password. " + PasswordUtils.getPasswordValidationMessage());
         }
 
-        // 4. Handle Role
-        // Nếu không truyền roleCode, mặc định là USER (hoặc CITIZEN tùy DB của bạn)
-        String roleCode = request.getRollCode();
-        if (roleCode == null || roleCode.isEmpty()) {
-            roleCode = "USER";
-        }
+        Role role = roleRepository.findByRoleCode("CITIZEN")
+                .orElseThrow(() -> new RuntimeException("Default Role USER not found in database."));
 
-        Role role = roleRepository.findByRoleCode(roleCode).orElse(null);
-        if (role == null) {
-            role = roleRepository.findByRoleCode("USER")
-                    .orElseThrow(() -> new RuntimeException("Default Role USER not found in database."));
-        }
-
-        // 5. Create User Entity
         User user = User.builder()
                 .fullName(request.getFullName())
                 .email(request.getEmail())
@@ -368,10 +358,23 @@ public class AuthenticationServiceImpl implements AuthenticationService{
                 .role(role)
                 .build();
 
-        userRepository.save(user);
+        user = userRepository.save(user);
         log.info("User registered successfully: {}", user.getEmail());
 
-        // 6. Return Response
+        //TỰ ĐỘNG ĐỒNG BỘ YÊU CẦU CỨU HỘ ẨN DANH QUA SĐT
+        if (user.getPhoneNumber() != null && !user.getPhoneNumber().trim().isEmpty()) {
+            List<RescueRequest> requests = rescueRequestRepository.findByContactPhoneAndCitizenIsNull(user.getPhoneNumber());
+
+            if (!requests.isEmpty()) {
+                for (RescueRequest req : requests){
+                    req.setCitizen(user);
+                }
+                rescueRequestRepository.saveAll(requests);
+                log.info("Synced {} orphaned rescue requests to user: {}", requests.size(), user.getEmail());
+            }
+        }
+
+
         return UserMapper.toUserResponse(user);
     }
 }

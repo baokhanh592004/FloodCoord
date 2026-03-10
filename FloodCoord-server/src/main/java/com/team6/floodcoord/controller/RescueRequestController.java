@@ -4,6 +4,7 @@ import com.team6.floodcoord.dto.request.CitizenConfirmRequest;
 import com.team6.floodcoord.dto.request.CreateRescueRequestDTO;
 import com.team6.floodcoord.dto.response.CreateRequestResponse;
 import com.team6.floodcoord.dto.response.RescueRequestResponse;
+import com.team6.floodcoord.dto.response.RescueRequestSummaryResponse;
 import com.team6.floodcoord.model.User;
 import com.team6.floodcoord.service.RescueRequestService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -63,7 +64,7 @@ public class RescueRequestController {
         return ResponseEntity.ok("Cảm ơn bạn! Đánh giá của bạn đã được ghi nhận.");
     }
 
-    @PostMapping
+    @PostMapping("/claim")
     @Operation(summary = "Đồng bộ yêu cầu cứu hộ của khách vãng lai")
     public ResponseEntity<?> claimRequests(
             @RequestBody List<String> trackingCodes,
@@ -71,5 +72,13 @@ public class RescueRequestController {
             ){
         rescueRequestService.claimGuestRequests(trackingCodes, currentUser);
         return ResponseEntity.ok("Đã đồng bộ yêu cầu thành công");
+    }
+
+    @GetMapping("/my-requests")
+    @Operation(summary = "Lấy danh sách yêu cầu cứu hộ của tôi (Dành cho CITIZEN)")
+    public ResponseEntity<List<RescueRequestSummaryResponse>> getMyRequests(
+            @AuthenticationPrincipal User currentUser
+    ) {
+        return ResponseEntity.ok(rescueRequestService.getMyRescueRequests(currentUser));
     }
 }
