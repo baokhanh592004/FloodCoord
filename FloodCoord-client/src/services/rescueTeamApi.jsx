@@ -2,7 +2,7 @@ import axiosClient from "../api/axiosClient";
 
 export const rescueTeamApi = {
 
-  // Lấy nhiệm vụ của team
+  // Lấy các nhiệm vụ đang thực hiện (Assigned/In Progress)
   getAssignedMissions: async () => {
     try {
       const response = await axiosClient.get("/api/team-leader/my-rescue-requests");
@@ -13,7 +13,27 @@ export const rescueTeamApi = {
     }
   },
 
-  // Cập nhật tiến độ nhiệm vụ (Đã sửa endpoint chuẩn theo backend của bạn)
+  // Lấy danh sách nhiệm vụ đã hoàn thành
+  getCompletedMissions: async () => {
+    try {
+      const response = await axiosClient.get("/api/team-leader/completed-requests");
+      
+      const normalizedData = (response.data || []).map(item => ({
+        ...item, 
+        requestId: item.id, 
+        location: item.location || { addressText: item.address }, 
+        title: item.title || `Yêu cầu ${item.trackingCode || ''}`,
+        createdAt: item.createdAt || "---"
+      }));
+
+      return normalizedData;
+    } catch (error) {
+      console.error("Get completed missions failed:", error);
+      throw error;
+    }
+  },
+
+  // Cập nhật tiến độ nhiệm vụ
   updateProgress: async (requestId, data) => {
     try {
       const response = await axiosClient.put(`/api/team-leader/rescue-request/${requestId}/status`, data);
@@ -24,7 +44,7 @@ export const rescueTeamApi = {
     }
   },
 
-  // GET: Kiểm tra xem nhiệm vụ này đã được điểm danh chưa
+  // Kiểm tra điểm danh
   checkAttendance: async (requestId) => {
     try {
       const response = await axiosClient.get(`/api/team-leader/attendance/${requestId}`);
@@ -35,7 +55,7 @@ export const rescueTeamApi = {
     }
   },
 
-  // POST: Gửi danh sách điểm danh
+  // Gửi danh sách điểm danh
   markAttendance: async (data) => {
     try {
       const response = await axiosClient.post("/api/team-leader/attendance", data);
@@ -46,15 +66,42 @@ export const rescueTeamApi = {
     }
   },
 
-  // GET: Lấy danh sách nhiệm vụ đã hoàn thành (kèm đánh giá của người dân)
-  getCompletedMissions: async () => {
+  /**
+   * MỚI: Gửi báo cáo hoàn thành nhiệm vụ kèm hình ảnh/video
+   * @param {Object} reportData - Chứa rescuedPeople, note, remainSupplies...
+   * @param {File[]} mediaFiles - Mảng các file hình ảnh/video từ input
+   */
+  submitReport: async (requestId, reportData, mediaFiles = []) => {
     try {
-      const response = await axiosClient.get("/api/team-leader/completed-requests");
+      const formData = new FormData();
+
+      // Cấu trúc object khớp với ReportRequestDTO bên Java
+      const dataPayload = {
+        requestId: requestId,
+        rescuedPeople: parseInt(reportData.rescuedPeople),
+        note: reportData.notes || reportData.note,
+        remainSupplies: reportData.remainSupplies || []
+      };
+
+      // Vì Back-end dùng ObjectMapper.readValue(data, ...), ta phải gửi payload dưới dạng chuỗi JSON
+      formData.append("data", JSON.stringify(dataPayload));
+
+      // Thêm các file vào formData nếu có
+      if (mediaFiles && mediaFiles.length > 0) {
+        mediaFiles.forEach((file) => {
+          formData.append("mediaFiles", file);
+        });
+      }
+
+      const response = await axiosClient.post("/api/team-leader/report", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
       return response.data;
     } catch (error) {
-      console.error("Get completed missions failed:", error);
+      console.error("Submit report failed:", error);
       throw error;
     }
   }
-
 };

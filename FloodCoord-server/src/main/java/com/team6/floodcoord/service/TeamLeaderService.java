@@ -4,6 +4,8 @@ import com.team6.floodcoord.dto.request.AttendanceRequestDTO;
 import com.team6.floodcoord.dto.request.ReportRequestDTO;
 import com.team6.floodcoord.dto.response.AttendanceResponseDTO;
 import com.team6.floodcoord.dto.response.CompletedRequestDTO;
+import com.team6.floodcoord.dto.response.RescueTeamMemberDTO;
+import com.team6.floodcoord.dto.response.UserResponse;
 import com.team6.floodcoord.model.Attendance;
 import com.team6.floodcoord.model.RescueRequest;
 import com.team6.floodcoord.model.User;
@@ -22,4 +24,5 @@ public interface TeamLeaderService {
     public void submitReport(ReportRequestDTO dto);
 
     public List<CompletedRequestDTO> getCompletedRequests(User leader);
+    public List<RescueTeamMemberDTO> getMyTeamMembers();
 }

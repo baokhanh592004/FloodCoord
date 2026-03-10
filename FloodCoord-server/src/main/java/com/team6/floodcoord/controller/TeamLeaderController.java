@@ -103,4 +103,9 @@ public class TeamLeaderController {
                 teamLeaderService.getCompletedRequests(leader)
         );
     }
+
+    @GetMapping("/team-members")
+    public ResponseEntity<?> getTeamMembers() {
+        return ResponseEntity.ok(teamLeaderService.getMyTeamMembers());
+    }
 }
