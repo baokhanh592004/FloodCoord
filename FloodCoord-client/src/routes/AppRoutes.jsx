@@ -17,6 +17,7 @@ import ResetPasswordPage from '../pages/auth/ResetPasswordPage'
 import RequestRescuePage from '../pages/rescue/RequestRescuePage'
 import TrackRescuePage from '../pages/rescue/TrackRescuePage'
 import ProfilePage from '../pages/profile/ProfilePage'
+import AboutPage from '../pages/AboutPage'
 
 /* Route guards */
 import RoleBasedRoute from './RoleBasedRoute'
@@ -58,6 +59,7 @@ export default function AppRoutes() {
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/request-rescue" element={<RequestRescuePage />} />
         <Route path="/track-rescue" element={<TrackRescuePage />} />
+        <Route path="/about" element={<AboutPage />} />
         <Route
           path="/profile"
           element={
