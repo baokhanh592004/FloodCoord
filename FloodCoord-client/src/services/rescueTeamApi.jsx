@@ -44,6 +44,17 @@ export const rescueTeamApi = {
       console.error("Mark attendance failed:", error);
       throw error;
     }
+  },
+
+  // GET: Lấy danh sách nhiệm vụ đã hoàn thành (kèm đánh giá của người dân)
+  getCompletedMissions: async () => {
+    try {
+      const response = await axiosClient.get("/api/team-leader/completed-requests");
+      return response.data;
+    } catch (error) {
+      console.error("Get completed missions failed:", error);
+      throw error;
+    }
   }
 
 };

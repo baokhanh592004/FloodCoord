@@ -327,12 +327,17 @@ public class TeamLeaderServiceImpl implements TeamLeaderService {
         return CompletedRequestDTO.builder()
                 .id(r.getRequestId())
                 .trackingCode(r.getTrackingCode())
+                .title(r.getTitle())
                 .address(loc != null ? loc.getAddressText() : null)
                 .latitude(loc != null ? loc.getLatitude() : null)
                 .longitude(loc != null ? loc.getLongitude() : null)
                 .floodDepth(loc != null ? loc.getFloodDepth() : null)
+                .description(r.getDescription())
                 .peopleCount(r.getPeopleCount())
                 .status(r.getStatus())
+                .completedAt(r.getCompletedAt())
+                .citizenFeedback(r.getCitizenFeedback())
+                .citizenRating(r.getCitizenRating())
                 .build();
     }
 }

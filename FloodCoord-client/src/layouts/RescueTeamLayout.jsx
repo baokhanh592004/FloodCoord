@@ -11,6 +11,7 @@ import {
   ArrowRightOnRectangleIcon,
   ShieldCheckIcon,
   UserCircleIcon,
+  CheckCircleIcon,
 } from "@heroicons/react/24/outline";
 import { useAuth } from "../context/AuthContext";
 
@@ -27,6 +28,7 @@ export default function RescueTeamLayout() {
   const menu = [
     { name: "Tổng quan", path: "dashboard", icon: HomeIcon },      // index route
     { name: "Nhiệm vụ", path: "missions", icon: ClipboardDocumentListIcon },
+    { name: "Lịch sử cứu hộ", path: "completed", icon: CheckCircleIcon },
     { name: "Báo cáo", path: "missions/:id/report", icon: DocumentTextIcon },
   ];
 
