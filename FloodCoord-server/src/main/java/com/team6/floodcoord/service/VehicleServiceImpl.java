@@ -80,10 +80,14 @@ public class VehicleServiceImpl implements  VehicleService{
 
     @Override
     public void deleteVehicle(Long id) {
-        if (!vehicleRepo.existsById(id)) {
-            throw new RuntimeException("Vehicle not found");
-        }
-        vehicleRepo.deleteById(id);
+        Vehicle vehicle = vehicleRepo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Vehicle not found"));
+
+        vehicle.setStatus(VehicleStatus.UNAVAILABLE);
+
+        vehicle.setCurrentTeam(null);
+
+        vehicleRepo.save(vehicle);
     }
 
     @Override
