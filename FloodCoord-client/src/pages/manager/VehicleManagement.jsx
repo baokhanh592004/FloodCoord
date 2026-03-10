@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import * as XLSX from 'xlsx';
 import { vehicleApi } from '../../services/vehicleApi';
-import { Ship, Truck, Plane, Activity, Bus, AlertCircle, Plus } from 'lucide-react';
+import { Ship, Truck, Plane, Activity, Bus, AlertCircle, Plus, FileDown } from 'lucide-react';
 import StatCard from '../../components/coordinator/StatCard';
 import {
     TruckIcon,
@@ -181,6 +182,36 @@ export default function VehicleManagement() {
         }
     };
 
+    const exportToExcel = () => {
+        const exportData = vehicles.map((v, idx) => ({
+            'STT': idx + 1,
+            'Tên phương tiện': v.name || '',
+            'Loại': TYPE_LABELS[v.type]?.label || v.type || '',
+            'Biển số': v.licensePlate || '',
+            'Sức chứa (người)': v.capacity ?? '',
+            'Trạng thái': STATUS_CONFIG[v.status]?.label || v.status || '',
+            'Đội đang dùng': v.currentTeamName || 'Không có',
+        }));
+
+        const worksheet = XLSX.utils.json_to_sheet(exportData);
+
+        worksheet['!cols'] = [
+            { wch: 5 },
+            { wch: 28 },
+            { wch: 16 },
+            { wch: 16 },
+            { wch: 18 },
+            { wch: 20 },
+            { wch: 28 },
+        ];
+
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Phương tiện');
+
+        const today = new Date().toLocaleDateString('vi-VN').replace(/\//g, '-');
+        XLSX.writeFile(workbook, `Danh_sach_phuong_tien_${today}.xlsx`);
+    };
+
     return (
         <div className="h-full flex flex-col p-4 gap-3 overflow-hidden">
             {/* ── Header ── */}
@@ -197,6 +228,13 @@ export default function VehicleManagement() {
                     >
                         <ArrowPathIcon className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
                         Làm mới
+                    </button>
+                    <button
+                        onClick={exportToExcel}
+                        disabled={vehicles.length === 0}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white text-xs font-medium rounded-md hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+                    >
+                        <FileDown size={13} /> Xuất Excel
                     </button>
                     <button
                         onClick={openCreateModal}
