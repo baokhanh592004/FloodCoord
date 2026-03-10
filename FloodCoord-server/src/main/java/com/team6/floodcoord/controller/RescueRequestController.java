@@ -14,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @Slf4j
@@ -60,5 +61,15 @@ public class RescueRequestController {
     ) {
         rescueRequestService.confirmCompletion(requestId, dto, currentUser);
         return ResponseEntity.ok("Cảm ơn bạn! Đánh giá của bạn đã được ghi nhận.");
+    }
+
+    @PostMapping
+    @Operation(summary = "Đồng bộ yêu cầu cứu hộ của khách vãng lai")
+    public ResponseEntity<?> claimRequests(
+            @RequestBody List<String> trackingCodes,
+            @AuthenticationPrincipal User currentUser
+            ){
+        rescueRequestService.claimGuestRequests(trackingCodes, currentUser);
+        return ResponseEntity.ok("Đã đồng bộ yêu cầu thành công");
     }
 }

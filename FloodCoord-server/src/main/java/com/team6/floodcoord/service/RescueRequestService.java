@@ -25,4 +25,5 @@ public interface RescueRequestService {
     RescueRequestDetailResponse getRequestDetail(UUID requestId);
     Page<RescueRequestSummaryResponse> getAllRequestsForAdmin(RequestStatus status, Pageable pageable);
     List<RescueRequestLeaderDTO> getMyAssignedRescueRequests();
+    void claimGuestRequests(List<String> trackingCodes, com.team6.floodcoord.model.User currentUser);
 }

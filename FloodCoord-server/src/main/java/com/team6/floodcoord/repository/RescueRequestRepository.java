@@ -25,4 +25,6 @@ public interface RescueRequestRepository
     );
 
     List<RescueRequest> findByAssignedTeam_Id(Long teamId);
+
+    List<RescueRequest> findByTrackingCodeInAndCitizenIsNull(List<String> trackingCodes);
 }
