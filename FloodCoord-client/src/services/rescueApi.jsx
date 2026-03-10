@@ -19,6 +19,11 @@ export const rescueApi = {
         }
     },
 
+    // Lấy danh sách yêu cầu cứu hộ của người dùng hiện tại
+    getMyRescueRequests: async () => {
+        const response = await axiosClient.get('/api/rescue-requests/my-requests');
+        return response.data;
+    },
     // Người dân gửi đánh giá / xác nhận hoàn thành (không cần login)
     confirmAndFeedback: async (requestId, payload) => {
         try {
