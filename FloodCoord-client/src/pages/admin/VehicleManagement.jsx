@@ -499,6 +499,17 @@ export default function AdminVehicleManagement() {
                                         {STATUS_CONFIG[selectedVehicle.status]?.label}
                                     </span>
                                 </div>
+                                <div className="bg-gray-50 rounded-lg p-3 col-span-2">
+                                    <p className="text-xs text-gray-500 mb-1">Đội đang sử dụng</p>
+                                    {selectedVehicle.currentTeamName ? (
+                                        <div className="flex items-center gap-2">
+                                            <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse shrink-0" />
+                                            <p className="font-semibold text-blue-700">{selectedVehicle.currentTeamName}</p>
+                                        </div>
+                                    ) : (
+                                        <p className="text-gray-400 italic">Không có đội nào đang sử dụng</p>
+                                    )}
+                                </div>
                             </div>
                         </div>
                         <div className="px-6 pb-5 flex gap-3">
