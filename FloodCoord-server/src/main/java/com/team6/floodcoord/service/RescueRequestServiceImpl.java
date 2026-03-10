@@ -576,6 +576,21 @@ public class RescueRequestServiceImpl implements RescueRequestService {
                 .toList();
     }
 
+    @Override
+    public void claimGuestRequests(List<String> trackingCodes, User currentUser) {
+        if (trackingCodes == null || trackingCodes.isEmpty()) {
+            return;
+        }
+
+        List<RescueRequest> requests = requestRepo.findByTrackingCodeInAndCitizenIsNull(trackingCodes);
+
+        for (RescueRequest request : requests) {
+            request.setCitizen(currentUser);
+        }
+
+        requestRepo.saveAll(requests);
+    }
+
     // Hàm kiểm tra logic chuyển trạng thái
     private void validateStatusTransition(RequestStatus currentStatus, RequestStatus newStatus) {
         // Không được chuyển về trạng thái cũ hoặc nhảy cóc quá xa (tùy độ chặt chẽ bạn muốn)
