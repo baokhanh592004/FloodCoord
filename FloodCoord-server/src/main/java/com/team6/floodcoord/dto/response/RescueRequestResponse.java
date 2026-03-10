@@ -25,4 +25,8 @@ public class RescueRequestResponse {
 
     private LocalDateTime createdAt;
     private LocalDateTime completedAt;
+
+    // Đánh giá của người dân (sau khi hoàn thành)
+    private String citizenFeedback;
+    private Integer citizenRating;
 }

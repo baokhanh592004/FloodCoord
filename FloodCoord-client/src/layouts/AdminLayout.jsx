@@ -9,6 +9,7 @@ import {
   ShieldCheckIcon,
   UserCircleIcon,
   TruckIcon,
+  ArchiveBoxIcon,
 } from '@heroicons/react/24/outline'
 import { useAuth } from '../context/AuthContext'
 
@@ -22,10 +23,11 @@ export default function AdminLayout() {
   }
 
   const menu = [
-    { name: 'Tổng quan',     path: '/admin/dashboard',  icon: HomeIcon },
-    { name: 'Phương tiện', path: '/admin/vehicles',    icon: TruckIcon },
-    { name: 'Đội cứu hộ',  path: '/admin/rescue-teams', icon: UserGroupIcon },
-    { name: 'Người dùng',  path: '/admin/users',       icon: UsersIcon },
+    { name: 'Tổng quan',     path: '/admin/dashboard',    icon: HomeIcon },
+    { name: 'Phương tiện',  path: '/admin/vehicles',     icon: TruckIcon },
+    { name: 'Đội cứu hộ',   path: '/admin/rescue-teams', icon: UserGroupIcon },
+    { name: 'Vật tư',       path: '/admin/supplies',     icon: ArchiveBoxIcon },
+    { name: 'Người dùng',   path: '/admin/users',        icon: UsersIcon },
   ]
 
   return (

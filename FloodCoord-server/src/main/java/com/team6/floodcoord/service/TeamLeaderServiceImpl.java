@@ -5,10 +5,11 @@ import com.team6.floodcoord.dto.request.AttendanceRequestDTO;
 import com.team6.floodcoord.dto.request.ReportRequestDTO;
 import com.team6.floodcoord.dto.request.SupplyRemainDTO;
 import com.team6.floodcoord.dto.response.AttendanceResponseDTO;
-import com.team6.floodcoord.dto.response.CompletedRequestDTO;
+import com.team6.floodcoord.dto.response.*;
 import com.team6.floodcoord.model.*;
 import com.team6.floodcoord.model.enums.RequestStatus;
 import com.team6.floodcoord.model.enums.TeamStatus;
+import com.team6.floodcoord.model.enums.VehicleStatus;
 import com.team6.floodcoord.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -34,6 +35,7 @@ public class TeamLeaderServiceImpl implements TeamLeaderService {
     private final SupplyRepository supplyRepository;
     private final CloudinaryService cloudinaryService;
     private final ReportMediaRepository reportMediaRepository;
+    private final com.team6.floodcoord.repository.VehicleRepository vehicleRepository;
 
     @Override
     @Transactional
@@ -150,10 +152,20 @@ public class TeamLeaderServiceImpl implements TeamLeaderService {
         request.setStatus(newStatus);
         rescueRequestRepository.save(request);
 
-        // Nếu completed thì trả team về available
+        // Nếu completed thì trả team về available và trả xe
         if (newStatus == RequestStatus.COMPLETED) {
             team.setStatus(TeamStatus.AVAILABLE);
             rescueTeamRepository.save(team);
+
+            // Trả xe về AVAILABLE
+            if (request.getAssignedVehicle() != null) {
+                Vehicle vehicle = request.getAssignedVehicle();
+                if (vehicle.getStatus() == VehicleStatus.IN_USE) {
+                    vehicle.setStatus(VehicleStatus.AVAILABLE);
+                    vehicle.setCurrentTeam(null);
+                    vehicleRepository.save(vehicle);
+                }
+            }
         }
     }
 
@@ -276,6 +288,50 @@ public class TeamLeaderServiceImpl implements TeamLeaderService {
 
     }
 
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<RescueTeamMemberDTO> getMyTeamMembers() {
+
+        // 1️⃣ Lấy email từ security context
+        String email = SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getName();
+
+        User currentUser = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Current user not found"));
+
+        // 2️⃣ Kiểm tra team
+        RescueTeam team = currentUser.getRescueTeam();
+        if (team == null) {
+            throw new RuntimeException("You are not assigned to any team");
+        }
+
+        // 3️⃣ Kiểm tra leader
+        if (!team.getLeader().getId().equals(currentUser.getId())) {
+            throw new RuntimeException("Only team leader can view team members");
+        }
+
+        // 4️⃣ Lấy member của team
+        List<User> members = userRepository.findByRescueTeam(team);
+
+
+        Long leaderId = team.getLeader().getId();
+
+        // 5️⃣ Convert sang DTO
+        return members.stream()
+                .map(user -> new RescueTeamMemberDTO(
+                        user.getId(),
+                        user.getFullName(),
+                        user.getEmail(),
+                        user.getPhoneNumber(),
+                        user.getRole().getRoleCode(),
+                        user.getId().equals(leaderId)
+                ))
+                .toList();
+    }
+
+
     private void validateTransition(RequestStatus current, RequestStatus next) {
 
         switch (current) {
@@ -310,17 +366,77 @@ public class TeamLeaderServiceImpl implements TeamLeaderService {
 
     private CompletedRequestDTO mapToCompletedDTO(RescueRequest r) {
 
-        RequestLocation loc = r.getLocation();
+        // 📍 Location
+        RequestLocationResponse location = null;
+        if (r.getLocation() != null) {
+            RequestLocation loc = r.getLocation();
+            location = new RequestLocationResponse();
+            location.setLatitude(loc.getLatitude());
+            location.setLongitude(loc.getLongitude());
+            location.setAddressText(loc.getAddressText());
+            location.setFloodDepth(loc.getFloodDepth());
+        }
+
+        // 🖼 Media
+        List<RequestMediaResponse> mediaList = null;
+        if (r.getMediaList() != null && !r.getMediaList().isEmpty()) {
+            mediaList = r.getMediaList().stream()
+                    .map(m -> {
+                        RequestMediaResponse media = new RequestMediaResponse();
+                        media.setMediaId(m.getMediaId());
+                        media.setMediaType(m.getMediaType());
+                        media.setMediaUrl(m.getMediaUrl());
+                        media.setUploadedAt(m.getUploadedAt());
+                        return media;
+                    })
+                    .toList();
+        }
+
+        // 🚗 Vehicle
+        VehicleResponse vehicleResponse = null;
+        if (r.getAssignedVehicle() != null) {
+            Vehicle v = r.getAssignedVehicle();
+            vehicleResponse = VehicleResponse.builder()
+                    .id(v.getId())
+                    .name(v.getName())
+                    .type(v.getType())
+                    .licensePlate(v.getLicensePlate())
+                    .capacity(v.getCapacity())
+                    .status(v.getStatus())
+                    .build();
+        }
+
+        // 📦 Supplies
+        List<AssignedSupplyResponse> suppliesList = null;
+        if (r.getSupplies() != null && !r.getSupplies().isEmpty()) {
+            suppliesList = r.getSupplies().stream()
+                    .map(rs -> new AssignedSupplyResponse(
+                            rs.getSupply().getId(),
+                            rs.getSupply().getName(),
+                            rs.getQuantity(),
+                            rs.getSupply().getUnit()
+                    ))
+                    .toList();
+        }
 
         return CompletedRequestDTO.builder()
-                .id(r.getRequestId())
+                .requestId(r.getRequestId())
                 .trackingCode(r.getTrackingCode())
-                .address(loc != null ? loc.getAddressText() : null)
-                .latitude(loc != null ? loc.getLatitude() : null)
-                .longitude(loc != null ? loc.getLongitude() : null)
-                .floodDepth(loc != null ? loc.getFloodDepth() : null)
+                .title(r.getTitle())
+                .emergencyLevel(r.getEmergencyLevel())
+                .contactName(r.getContactName())
+                .contactPhone(r.getContactPhone())
+                .description(r.getDescription())
                 .peopleCount(r.getPeopleCount())
                 .status(r.getStatus())
+                .createdAt(r.getCreatedAt())
+                .completedAt(r.getCompletedAt())
+                .citizenFeedback(r.getCitizenFeedback())
+                .citizenRating(r.getCitizenRating())
+                .location(location)
+                .media(mediaList)
+                .vehicle(vehicleResponse)
+                .supplies(suppliesList)
                 .build();
     }
 }

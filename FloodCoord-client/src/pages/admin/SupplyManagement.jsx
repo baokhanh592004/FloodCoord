@@ -40,18 +40,7 @@ export default function SupplyManagement() {
         exportedDate: ''
     });
 
-    const supplyTypes = [
-        { value: 'FOOD_WATER', label: 'Đồ ăn, nước uống' },
-        { value: 'MEDICAL', label: 'Thuốc men, y tế' },
-        { value: 'EQUIPMENT', label: 'Thiết bị cứu hộ' },
-        { value: 'OTHER', label: 'Khác' }
-    ];
-
-    useEffect(() => {
-        fetchSupplies();
-    }, []);
-
-    // Reset về trang 1 khi thay đổi filter hoặc tìm kiếm
+    useEffect(() => { fetchSupplies(); }, []);
     useEffect(() => { setCurrentPage(1); }, [filterType, searchTerm]);
 
     const fetchSupplies = async () => {
@@ -70,10 +59,7 @@ export default function SupplyManagement() {
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: value
-        }));
+        setFormData(prev => ({ ...prev, [name]: value }));
     };
 
     const handleSubmit = async (e) => {
@@ -89,13 +75,11 @@ export default function SupplyManagement() {
                 expiryDate: formData.expiryDate ? new Date(formData.expiryDate).toISOString() : null,
                 exportedDate: formData.exportedDate ? new Date(formData.exportedDate).toISOString() : null
             };
-
             if (editingSupply) {
                 await supplyApi.updateSupply(editingSupply.id, supplyData);
             } else {
                 await supplyApi.createSupply(supplyData);
             }
-
             setShowModal(false);
             resetForm();
             fetchSupplies();
@@ -146,10 +130,7 @@ export default function SupplyManagement() {
         setEditingSupply(null);
     };
 
-    const openCreateModal = () => {
-        resetForm();
-        setShowModal(true);
-    };
+    const openCreateModal = () => { resetForm(); setShowModal(true); };
 
     const exportToExcel = () => {
         const typeMap = {
@@ -195,22 +176,16 @@ export default function SupplyManagement() {
 
     const formatDate = (dateString) => {
         if (!dateString) return 'Không có';
-        const date = new Date(dateString);
-        return date.toLocaleDateString('vi-VN', { 
-            year: 'numeric', 
-            month: '2-digit', 
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit'
+        return new Date(dateString).toLocaleDateString('vi-VN', {
+            year: 'numeric', month: '2-digit', day: '2-digit',
+            hour: '2-digit', minute: '2-digit'
         });
     };
 
     const isExpiringSoon = (expiryDate) => {
         if (!expiryDate) return false;
-        const expiry = new Date(expiryDate);
-        const today = new Date();
-        const daysUntilExpiry = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
-        return daysUntilExpiry <= 30 && daysUntilExpiry > 0;
+        const days = Math.ceil((new Date(expiryDate) - new Date()) / (1000 * 60 * 60 * 24));
+        return days <= 30 && days > 0;
     };
 
     const isExpired = (expiryDate) => {
@@ -218,47 +193,26 @@ export default function SupplyManagement() {
         return new Date(expiryDate) < new Date();
     };
 
-    // Tính toán thống kê nhanh
-    const stats = useMemo(() => {
-        return {
-            total: supplies.length,
-            foodWater: supplies.filter(s => s.type === 'FOOD_WATER').length,
-            medical: supplies.filter(s => s.type === 'MEDICAL').length,
-            expiringSoon: supplies.filter(s => isExpiringSoon(s.expiryDate)).length
-        };
-    }, [supplies]);
+    const stats = useMemo(() => ({
+        total: supplies.length,
+        foodWater: supplies.filter(s => s.type === 'FOOD_WATER').length,
+        medical: supplies.filter(s => s.type === 'MEDICAL').length,
+        expiringSoon: supplies.filter(s => isExpiringSoon(s.expiryDate)).length
+    }), [supplies]);
 
-    const filteredSupplies = useMemo(() => {
-        return supplies.filter(s => {
-            const matchType = filterType === 'ALL' || s.type === filterType;
-            const matchSearch = !searchTerm ||
-                s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                (s.description || '').toLowerCase().includes(searchTerm.toLowerCase());
-            return matchType && matchSearch;
-        });
-    }, [supplies, filterType, searchTerm]);
+    const filteredSupplies = useMemo(() => supplies.filter(s => {
+        const matchType = filterType === 'ALL' || s.type === filterType;
+        const matchSearch = !searchTerm ||
+            s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (s.description || '').toLowerCase().includes(searchTerm.toLowerCase());
+        return matchType && matchSearch;
+    }), [supplies, filterType, searchTerm]);
 
-    // Pagination
     const totalPages = Math.ceil(filteredSupplies.length / ITEMS_PER_PAGE);
     const paginatedSupplies = filteredSupplies.slice(
         (currentPage - 1) * ITEMS_PER_PAGE,
         currentPage * ITEMS_PER_PAGE
     );
-
-    const handleCloseModal = () => {
-        setShowModal(false);
-        resetForm();
-    };
-
-    const handleViewDetail = (supply) => {
-        setSelectedSupply(supply);
-        setShowDetailModal(true);
-    };
-
-    const handleCloseDetailModal = () => {
-        setShowDetailModal(false);
-        setSelectedSupply(null);
-    };
 
     return (
         <div className="h-full flex flex-col p-4 gap-3 overflow-hidden">
@@ -287,10 +241,10 @@ export default function SupplyManagement() {
 
             {/* Stat Cards */}
             <div className="shrink-0 grid grid-cols-2 lg:grid-cols-4 gap-3">
-                <StatCard icon={<ArchiveBoxIcon className="h-6 w-6" />} count={stats.total} label="Tổng lô hàng" color="blue" />
-                <StatCard icon={<Apple size={24} />} count={stats.foodWater} label="Đồ ăn & Nước" color="green" />
-                <StatCard icon={<Pill size={24} />} count={stats.medical} label="Y tế" color="red" />
-                <StatCard icon={<ClockIcon className="h-6 w-6" />} count={stats.expiringSoon} label="Sắp hết hạn" color="yellow" />
+                <StatCard icon={<ArchiveBoxIcon className="h-6 w-6" />} count={stats.total}        label="Tổng lô hàng"  color="blue" />
+                <StatCard icon={<Apple size={24} />}                     count={stats.foodWater}    label="Đồ ăn & Nước"  color="green" />
+                <StatCard icon={<Pill size={24} />}                      count={stats.medical}      label="Y tế"           color="red" />
+                <StatCard icon={<ClockIcon className="h-6 w-6" />}       count={stats.expiringSoon} label="Sắp hết hạn"   color="yellow" />
             </div>
 
             {/* Filter & Search */}
@@ -343,7 +297,7 @@ export default function SupplyManagement() {
                 </div>
             )}
 
-            {/* Table — fills remaining space, scrolls internally */}
+            {/* Table */}
             <div className="flex-1 min-h-0 bg-white border border-gray-200 rounded-lg flex flex-col overflow-hidden">
                 <div className="flex-1 min-h-0 overflow-auto">
                     <table className="w-full text-xs">
@@ -394,43 +348,28 @@ export default function SupplyManagement() {
                                     const typeInfo = typeMap[supply.type] || typeMap.OTHER;
                                     return (
                                         <tr key={supply.id} className="hover:bg-gray-50 transition-colors">
-                                            {/* # */}
                                             <td className="px-3 py-2 text-gray-400 font-mono">
                                                 {(currentPage - 1) * ITEMS_PER_PAGE + index + 1}
                                             </td>
-
-                                            {/* Tên */}
                                             <td className="px-3 py-2">
                                                 <p className="font-medium text-gray-900">{supply.name}</p>
                                                 {supply.description && (
                                                     <p className="text-gray-400 mt-0.5 truncate max-w-xs">{supply.description}</p>
                                                 )}
                                             </td>
-
-                                            {/* Loại */}
                                             <td className="px-3 py-2">
                                                 <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${typeInfo.color}`}>
                                                     {typeInfo.label}
                                                 </span>
                                             </td>
-
-                                            {/* Số lượng */}
                                             <td className="px-3 py-2 text-center">
                                                 <span className="font-semibold text-gray-800">{supply.quantity}</span>
                                                 {supply.unit && <span className="text-gray-400 ml-1">{supply.unit}</span>}
                                             </td>
-
-                                            {/* Ngày nhập */}
-                                            <td className="px-3 py-2 text-gray-600">
-                                                {formatDate(supply.importedDate)}
-                                            </td>
-
-                                            {/* Hạn sử dụng */}
+                                            <td className="px-3 py-2 text-gray-600">{formatDate(supply.importedDate)}</td>
                                             <td className="px-3 py-2 text-gray-600">
                                                 {supply.expiryDate ? formatDate(supply.expiryDate) : <span className="text-gray-300">—</span>}
                                             </td>
-
-                                            {/* Trạng thái */}
                                             <td className="px-3 py-2 text-center">
                                                 {expired ? (
                                                     <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">Hết hạn</span>
@@ -440,12 +379,10 @@ export default function SupplyManagement() {
                                                     <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Còn hạn</span>
                                                 )}
                                             </td>
-
-                                            {/* Hành động */}
                                             <td className="px-3 py-2">
                                                 <div className="flex items-center justify-center gap-0.5">
                                                     <button
-                                                        onClick={() => handleViewDetail(supply)}
+                                                        onClick={() => { setSelectedSupply(supply); setShowDetailModal(true); }}
                                                         title="Xem chi tiết"
                                                         className="p-1 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
                                                     >
@@ -475,7 +412,7 @@ export default function SupplyManagement() {
                     </table>
                 </div>
 
-                {/* Footer: phân trang */}
+                {/* Pagination footer */}
                 {filteredSupplies.length > 0 && (
                     <div className="shrink-0 px-3 py-2 bg-gray-50 border-t border-gray-200 text-xs text-gray-500 flex items-center justify-between">
                         <span>
@@ -487,9 +424,7 @@ export default function SupplyManagement() {
                                     onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                                     disabled={currentPage === 1}
                                     className="px-2 py-1 rounded border border-gray-300 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed"
-                                >
-                                    ‹
-                                </button>
+                                >‹</button>
                                 {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
                                     <button
                                         key={page}
@@ -499,17 +434,13 @@ export default function SupplyManagement() {
                                                 ? 'bg-blue-600 text-white border-blue-600'
                                                 : 'border-gray-300 hover:bg-white'
                                         }`}
-                                    >
-                                        {page}
-                                    </button>
+                                    >{page}</button>
                                 ))}
                                 <button
                                     onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                                     disabled={currentPage === totalPages}
                                     className="px-2 py-1 rounded border border-gray-300 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed"
-                                >
-                                    ›
-                                </button>
+                                >›</button>
                             </div>
                         )}
                         <span>{filteredSupplies.length} kết quả</span>
@@ -524,12 +455,12 @@ export default function SupplyManagement() {
                 formData={formData}
                 onInputChange={handleInputChange}
                 onSubmit={handleSubmit}
-                onClose={handleCloseModal}
+                onClose={() => { setShowModal(false); resetForm(); }}
             />
             <SupplyDetailModal
                 supply={selectedSupply}
-                onClose={handleCloseDetailModal}
-                onEdit={(supply) => { handleCloseDetailModal(); handleEdit(supply); }}
+                onClose={() => { setShowDetailModal(false); setSelectedSupply(null); }}
+                onEdit={(supply) => { setShowDetailModal(false); setSelectedSupply(null); handleEdit(supply); }}
             />
         </div>
     );
