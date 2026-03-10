@@ -27,6 +27,7 @@ import AdminDashboard from '../pages/admin/AdminDashboard'
 import AdminRescueTeamManagement from '../pages/admin/RescueTeamManagement'
 import UserManagement from '../pages/admin/UserManagement'
 import AdminVehicleManagement from '../pages/admin/VehicleManagement'
+import AdminSupplyManagement from '../pages/admin/SupplyManagement'
 
 /* Manager */
 import ManagerDashboard from '../pages/manager/ManagerDashboard'
@@ -81,6 +82,7 @@ export default function AppRoutes() {
         <Route path="rescue-teams" element={<AdminRescueTeamManagement />} />
         <Route path="users" element={<UserManagement />} />
         <Route path="vehicles" element={<AdminVehicleManagement />} />
+        <Route path="supplies" element={<AdminSupplyManagement />} />
       </Route>
 
       {/* ================= MANAGER (WITH SIDEBAR) ================= */}
