@@ -544,6 +544,19 @@ public class RescueRequestServiceImpl implements RescueRequestService {
                                 .build();
                     }
 
+                    // 📦 Supplies
+                    List<AssignedSupplyResponse> suppliesList = null;
+                    if (r.getSupplies() != null && !r.getSupplies().isEmpty()) {
+                        suppliesList = r.getSupplies().stream()
+                                .map(rs -> new AssignedSupplyResponse(
+                                        rs.getSupply().getId(),
+                                        rs.getSupply().getName(),
+                                        rs.getQuantity(),
+                                        rs.getSupply().getUnit()
+                                ))
+                                .toList();
+                    }
+
                     return RescueRequestLeaderDTO.builder()
                             .requestId(r.getRequestId())
                             .title(r.getTitle())
@@ -557,6 +570,7 @@ public class RescueRequestServiceImpl implements RescueRequestService {
                             .location(location)
                             .media(mediaList)
                             .vehicle(vehicleResponse)
+                            .supplies(suppliesList)
                             .build();
                 })
                 .toList();
