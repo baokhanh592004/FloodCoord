@@ -47,5 +47,8 @@ public class CompletedRequestDTO {
     private VehicleResponse vehicle;
 
     private List<AssignedSupplyResponse> supplies;
+    private Long assignedTeamId;
+    private String assignedTeamName;
+    private String assignedTeamLeaderPhone;
 
 }
