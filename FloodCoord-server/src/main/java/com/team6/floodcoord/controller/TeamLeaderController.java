@@ -78,16 +78,25 @@ public class TeamLeaderController {
 //        teamLeaderService.submitReport(dto);
 //        return ResponseEntity.ok("Report submitted successfully");
 //    }
+//    @PostMapping(value = "/report", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+//    public ResponseEntity<?> submitReport(
+//            @RequestPart("data") String data,
+//            @RequestPart(value = "mediaFiles", required = false) MultipartFile[] mediaFiles) throws Exception {
+//
+//        ObjectMapper mapper = new ObjectMapper();
+//
+//        ReportRequestDTO dto = mapper.readValue(data, ReportRequestDTO.class);
+//
+//        dto.setMediaFiles(mediaFiles);
+//
+//        teamLeaderService.submitReport(dto);
+//
+//        return ResponseEntity.ok("Report submitted successfully");
+//    }
     @PostMapping(value = "/report", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> submitReport(
-            @RequestPart("data") String data,
-            @RequestPart(value = "mediaFiles", required = false) MultipartFile[] mediaFiles) throws Exception {
-
-        ObjectMapper mapper = new ObjectMapper();
-
-        ReportRequestDTO dto = mapper.readValue(data, ReportRequestDTO.class);
-
-        dto.setMediaFiles(mediaFiles);
+            @ModelAttribute ReportRequestDTO dto
+    ) {
 
         teamLeaderService.submitReport(dto);
 
