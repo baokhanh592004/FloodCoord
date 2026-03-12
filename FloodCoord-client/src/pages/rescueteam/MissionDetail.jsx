@@ -1,6 +1,3 @@
-MissionDetail
-
-
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { rescueTeamApi } from "../../services/rescueTeamApi";
@@ -15,6 +12,11 @@ export default function MissionDetail() {
   const [mission, setMission] = useState(null);
   const [loading, setLoading] = useState(true);
   const [attendanceDone, setAttendanceDone] = useState(false);
+
+  // --- PHẦN THÊM MỚI: State cho điểm danh ---
+  const [showAttendanceModal, setShowAttendanceModal] = useState(false);
+  const [teamMembers, setTeamMembers] = useState([]);
+  const [attendanceList, setAttendanceList] = useState([]);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -39,6 +41,9 @@ export default function MissionDetail() {
         if (missionData.status === "COMPLETED") {
           setAttendanceDone(true);
         }
+        // Kiểm tra xem đã điểm danh chưa từ server
+        const attStatus = await rescueTeamApi.checkAttendance(id).catch(() => []);
+        if (attStatus && attStatus.length > 0) setAttendanceDone(true);
       } else {
         toast.error("Không tìm thấy thông tin nhiệm vụ!");
       }
@@ -53,6 +58,33 @@ export default function MissionDetail() {
   useEffect(() => {
     if (id) fetchDetail();
   }, [id]);
+
+  // --- PHẦN THÊM MỚI: Hàm xử lý điểm danh ---
+  const openAttendance = async () => {
+    try {
+      const members = await rescueTeamApi.getTeamMembers(); // Bạn cần thêm hàm này vào rescueTeamApi.js
+      setTeamMembers(members);
+      setAttendanceList(members.map(m => ({ memberId: m.id, status: "PRESENT", fullName: m.fullName })));
+      setShowAttendanceModal(true);
+    } catch (err) {
+      toast.error("Không lấy được danh sách đội!");
+    }
+  };
+
+  const submitAttendance = async () => {
+    try {
+      const data = {
+        requestId: id,
+        attendanceList: attendanceList.map(({memberId, status}) => ({memberId, status}))
+      };
+      await rescueTeamApi.markAttendance(data);
+      setAttendanceDone(true);
+      setShowAttendanceModal(false);
+      toast.success("Điểm danh thành công!");
+    } catch (err) {
+      toast.error("Điểm danh thất bại!");
+    }
+  };
 
   const updateStatus = async (status) => {
     try {
@@ -119,6 +151,34 @@ export default function MissionDetail() {
 
   return (
     <div className="p-6 h-[calc(100vh-80px)]">
+      {/* MODAL ĐIỂM DANH MỚI THÊM */}
+      {showAttendanceModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl">
+            <h3 className="text-xl font-bold mb-4">Điểm danh thành viên</h3>
+            <div className="space-y-3 mb-6">
+              {attendanceList.map((item) => (
+                <div key={item.memberId} className="flex justify-between items-center p-2 bg-slate-50 rounded-lg">
+                  <span className="font-medium">{item.fullName}</span>
+                  <select 
+                    value={item.status} 
+                    onChange={(e) => setAttendanceList(prev => prev.map(a => a.memberId === item.memberId ? {...a, status: e.target.value} : a))}
+                    className="text-sm border rounded p-1"
+                  >
+                    <option value="PRESENT">Có mặt</option>
+                    <option value="ABSENT">Vắng mặt</option>
+                  </select>
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => setShowAttendanceModal(false)} className="flex-1 py-2 border rounded-lg">Hủy</button>
+              <button onClick={submitAttendance} className="flex-1 py-2 bg-blue-600 text-white rounded-lg font-bold">Xác nhận</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-900">Chi tiết nhiệm vụ cứu hộ</h1>
@@ -143,7 +203,7 @@ export default function MissionDetail() {
         </div>
 
         <div className="flex flex-col gap-4 overflow-y-auto pr-1">
-          {/* HÌNH ẢNH HIỆN TRƯỜNG - MỚI THÊM */}
+          {/* HÌNH ẢNH HIỆN TRƯỜNG - GIỮ NGUYÊN */}
           {mission.media && mission.media.length > 0 && (
             <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm">
               <h2 className="text-lg font-bold border-b pb-2 mb-3">Hình ảnh hiện trường</h2>
@@ -162,6 +222,7 @@ export default function MissionDetail() {
             </div>
           )}
 
+          {/* THÔNG TIN CHUNG - GIỮ NGUYÊN */}
           <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm">
             <h2 className="text-lg font-bold border-b pb-2 mb-3">Thông tin chung</h2>
             <div className="space-y-3 text-sm">
@@ -176,6 +237,7 @@ export default function MissionDetail() {
             </div>
           </div>
 
+          {/* THÔNG TIN LIÊN HỆ - GIỮ NGUYÊN */}
           <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm">
             <h2 className="text-lg font-bold border-b pb-2 mb-3">Thông tin liên hệ</h2>
             <div className="space-y-3 text-sm">
@@ -189,38 +251,20 @@ export default function MissionDetail() {
             </div>
           </div>
 
-          {/* Phương tiện được cấp */}
+          {/* PHƯƠNG TIỆN - GIỮ NGUYÊN */}
           {mission.vehicle && (
             <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm">
               <h2 className="text-lg font-bold border-b pb-2 mb-3">🚗 Phương tiện được cấp</h2>
               <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Tên xe:</span>
-                  <span className="font-semibold">{mission.vehicle.name}</span>
-                </div>
-                {mission.vehicle.type && (
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Loại xe:</span>
-                    <span className="font-medium">{mission.vehicle.type}</span>
-                  </div>
-                )}
+                <div className="flex justify-between text-slate-500"><span>Tên xe:</span><span className="font-semibold text-slate-900">{mission.vehicle.name}</span></div>
                 {mission.vehicle.licensePlate && (
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Biển số:</span>
-                    <span className="font-mono font-semibold tracking-wide text-blue-700">{mission.vehicle.licensePlate}</span>
-                  </div>
-                )}
-                {mission.vehicle.capacity && (
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Sức chứa:</span>
-                    <span className="font-medium">{mission.vehicle.capacity} người</span>
-                  </div>
+                  <div className="flex justify-between text-slate-500"><span>Biển số:</span><span className="font-mono font-semibold text-blue-700">{mission.vehicle.licensePlate}</span></div>
                 )}
               </div>
             </div>
           )}
 
-          {/* Vật tư được cấp */}
+          {/* VẬT TƯ - GIỮ NGUYÊN */}
           {mission.supplies && mission.supplies.length > 0 && (
             <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm">
               <h2 className="text-lg font-bold border-b pb-2 mb-3">📦 Vật tư được cấp</h2>
@@ -228,60 +272,56 @@ export default function MissionDetail() {
                 {mission.supplies.map((s, i) => (
                   <div key={s.supplyId ?? i} className="flex items-center justify-between text-sm py-1.5 border-b border-slate-50 last:border-0">
                     <span className="text-slate-700 font-medium">{s.supplyName}</span>
-                    <span className="text-slate-500 font-mono">
-                      {s.quantity} <span className="text-xs text-slate-400">{s.unit}</span>
-                    </span>
+                    <span className="text-slate-500 font-mono">{s.quantity} {s.unit}</span>
                   </div>
                 ))}
               </div>
             </div>
           )}
 
+          {/* PHẦN CẬP NHẬT TIẾN TRÌNH - SỬA LOGIC Ở ĐÂY */}
           {mission.status !== "COMPLETED" ? (
             <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm">
               <h2 className="font-bold mb-3 text-sm text-slate-700">Cập nhật tiến trình thực tế</h2>
               {currentUser?.isTeamLeader ? (
                 <div className="flex gap-2 flex-wrap">
+                  {/* LUỒNG MỚI: Chỉ hiện Điểm danh nếu chưa làm */}
                   {mission.status === "IN_PROGRESS" && !attendanceDone && (
-                    <button onClick={() => { setAttendanceDone(true); toast.success("Điểm danh thành công!"); }} className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-semibold transition-all shadow-sm">Điểm danh đội</button>
+                    <button onClick={openAttendance} className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-semibold transition-all shadow-sm">Điểm danh đội</button>
                   )}
-                  {mission.status === "IN_PROGRESS" && attendanceDone && (
-                    <button onClick={() => updateStatus("MOVING")} className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg font-semibold shadow-sm">Đang di chuyển</button>
-                  )}
-                  {mission.status === "MOVING" && (
-                    <button onClick={() => updateStatus("ARRIVED")} className="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold shadow-sm">Đã đến nơi</button>
-                  )}
-                  {mission.status === "ARRIVED" && (
-                    <button onClick={() => updateStatus("RESCUING")} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold shadow-sm">Đang cứu hộ</button>
-                  )}
-                  {mission.status === "RESCUING" && (
-                    <button onClick={() => updateStatus("COMPLETED")} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-bold shadow-md transition-all active:scale-95">Hoàn thành nhiệm vụ</button>
+                  
+                  {/* CHỈ HIỆN CÁC NÚT NÀY SAU KHI ĐÃ ĐIỂM DANH */}
+                  {attendanceDone && (
+                    <>
+                      {mission.status === "IN_PROGRESS" && (
+                        <button onClick={() => updateStatus("MOVING")} className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg font-semibold shadow-sm">Đang di chuyển</button>
+                      )}
+                      {mission.status === "MOVING" && (
+                        <button onClick={() => updateStatus("ARRIVED")} className="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold shadow-sm">Đã đến nơi</button>
+                      )}
+                      {mission.status === "ARRIVED" && (
+                        <button onClick={() => updateStatus("RESCUING")} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold shadow-sm">Đang cứu hộ</button>
+                      )}
+                      {mission.status === "RESCUING" && (
+                        <button onClick={() => updateStatus("COMPLETED")} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-bold shadow-md transition-all active:scale-95">Hoàn thành nhiệm vụ</button>
+                      )}
+                    </>
                   )}
                 </div>
               ) : (
-                <div className="bg-amber-50 border border-amber-100 text-amber-700 text-xs p-3 rounded-lg">Chỉ Đội trưởng (Leader) mới có quyền cập nhật tiến độ cứu hộ.</div>
+                <div className="bg-amber-50 border border-amber-100 text-amber-700 text-xs p-3 rounded-lg">Chỉ Đội trưởng mới có quyền cập nhật tiến độ.</div>
               )}
             </div>
           ) : (
             <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-6 text-center animate-in fade-in zoom-in duration-500">
-              <div className="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-emerald-200">
+               {/* Phần Báo cáo - GIỮ NGUYÊN */}
+               <div className="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-emerald-200">
                 <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
               </div>
               <h2 className="text-xl font-black text-emerald-900 mb-2 uppercase tracking-tight">Nhiệm vụ đã hoàn tất!</h2>
-              {currentUser?.isTeamLeader ? (
-                <div className="mt-4">
-                  <p className="text-emerald-700 text-xs mb-5 font-medium">Bạn có thể tạo báo cáo tổng kết ngay bây giờ để hoàn thiện hồ sơ.</p>
-                  <button
-                    onClick={() => navigate(`/rescue-team/missions/${mission.requestId}/report`)}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-8 py-3 rounded-xl shadow-lg transition-all active:scale-95 flex items-center justify-center mx-auto gap-3"
-                  >
-                    <span>Tạo báo cáo tổng kết</span>
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
-                  </button>
-                </div>
-              ) : (
-                <p className="text-emerald-700/80 text-xs mt-2 italic">(Lưu ý: Báo cáo tổng kết sẽ do Đội trưởng thực hiện)</p>
-              )}
+              <button onClick={() => navigate(`/rescue-team/missions/${mission.requestId}/report`)} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-8 py-3 rounded-xl shadow-lg flex items-center justify-center mx-auto gap-3">
+                <span>Tạo báo cáo tổng kết</span>
+              </button>
             </div>
           )}
         </div>

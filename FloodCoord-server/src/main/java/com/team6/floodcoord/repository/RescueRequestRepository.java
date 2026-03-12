@@ -25,4 +25,14 @@ public interface RescueRequestRepository
     );
 
     List<RescueRequest> findByAssignedTeam_Id(Long teamId);
+
+    List<RescueRequest> findByTrackingCodeInAndCitizenIsNull(List<String> trackingCodes);
+
+    List<RescueRequest> findByContactPhoneAndCitizenIsNull(
+            String contactPhone
+    );
+
+    List<RescueRequest> findByCitizen_Id(Long citizenId);
+
+    Optional<RescueRequest> findByTrackingCodeAndContactPhoneAndCitizenIsNull(String trackingCode, String contactPhone);
 }

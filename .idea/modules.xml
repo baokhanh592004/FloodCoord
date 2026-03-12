@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/FloodCoord.iml" filepath="$PROJECT_DIR$/.idea/FloodCoord.iml" />
+      <module fileurl="file://$PROJECT_DIR$/FloodCoord-server/FloodCoord.iml" filepath="$PROJECT_DIR$/FloodCoord-server/FloodCoord.iml" />
     </modules>
   </component>
 </project>

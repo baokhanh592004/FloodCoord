@@ -403,6 +403,17 @@ public class TeamLeaderServiceImpl implements TeamLeaderService {
                     .licensePlate(v.getLicensePlate())
                     .capacity(v.getCapacity())
                     .status(v.getStatus())
+                    .currentTeamId(
+                            r.getAssignedTeam() != null
+                                    ? r.getAssignedTeam().getId()
+                                    : null
+                    )
+                    .currentTeamName(
+                            r.getAssignedTeam() != null
+                                    ? r.getAssignedTeam().getName()
+                                    : null
+                    )
+
                     .build();
         }
 
@@ -437,6 +448,17 @@ public class TeamLeaderServiceImpl implements TeamLeaderService {
                 .media(mediaList)
                 .vehicle(vehicleResponse)
                 .supplies(suppliesList)
+                .assignedTeamId(
+                        r.getAssignedTeam() != null ? r.getAssignedTeam().getId() : null
+                )
+                .assignedTeamName(
+                        r.getAssignedTeam() != null ? r.getAssignedTeam().getName() : null
+                )
+                .assignedTeamLeaderPhone(
+                        r.getAssignedTeam() != null && r.getAssignedTeam().getLeader() != null
+                                ? r.getAssignedTeam().getLeader().getPhoneNumber()
+                                : null
+                )
                 .build();
     }
 }

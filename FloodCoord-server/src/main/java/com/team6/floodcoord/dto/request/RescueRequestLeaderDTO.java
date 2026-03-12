@@ -32,4 +32,8 @@ public class RescueRequestLeaderDTO {
     private List<RequestMediaResponse> media;
     private VehicleResponse vehicle;
     private List<AssignedSupplyResponse> supplies;
+
+    private Long assignedTeamId;
+    private String assignedTeamName;
+    private String assignedTeamLeaderPhone;
 }

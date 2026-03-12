@@ -25,4 +25,7 @@ public interface RescueRequestService {
     RescueRequestDetailResponse getRequestDetail(UUID requestId);
     Page<RescueRequestSummaryResponse> getAllRequestsForAdmin(RequestStatus status, Pageable pageable);
     List<RescueRequestLeaderDTO> getMyAssignedRescueRequests();
+    void claimGuestRequests(List<String> trackingCodes, User currentUser);
+    List<RescueRequestSummaryResponse> getMyRescueRequests(User currentUser);
+    void claimRequestManually(String trackingCode, String phoneNumber, User currentUser);
 }

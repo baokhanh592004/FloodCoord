@@ -541,6 +541,16 @@ public class RescueRequestServiceImpl implements RescueRequestService {
                                 .licensePlate(v.getLicensePlate())
                                 .capacity(v.getCapacity())
                                 .status(v.getStatus())
+                                .currentTeamId(
+                                        r.getAssignedTeam() != null
+                                                ? r.getAssignedTeam().getId()
+                                                : null
+                                )
+                                .currentTeamName(
+                                        r.getAssignedTeam() != null
+                                                ? r.getAssignedTeam().getName()
+                                                : null
+                                )
                                 .build();
                     }
 
@@ -571,9 +581,55 @@ public class RescueRequestServiceImpl implements RescueRequestService {
                             .media(mediaList)
                             .vehicle(vehicleResponse)
                             .supplies(suppliesList)
+                            .assignedTeamId(
+                            r.getAssignedTeam() != null ? r.getAssignedTeam().getId() : null
+                    )
+                            .assignedTeamName(
+                                    r.getAssignedTeam() != null ? r.getAssignedTeam().getName() : null
+                            )
+                            .assignedTeamLeaderPhone(
+                                    r.getAssignedTeam() != null && r.getAssignedTeam().getLeader() != null
+                                            ? r.getAssignedTeam().getLeader().getPhoneNumber()
+                                            : null
+                            )
                             .build();
                 })
                 .toList();
+    }
+
+    @Override
+    public void claimGuestRequests(List<String> trackingCodes, User currentUser) {
+        if (trackingCodes == null || trackingCodes.isEmpty()) {
+            return;
+        }
+
+        List<RescueRequest> requests = requestRepo.findByTrackingCodeInAndCitizenIsNull(trackingCodes);
+
+        for (RescueRequest request : requests) {
+            request.setCitizen(currentUser);
+        }
+
+        requestRepo.saveAll(requests);
+    }
+
+    @Override
+    public List<RescueRequestSummaryResponse> getMyRescueRequests(User currentUser) {
+        if (currentUser == null) {
+            throw new IllegalArgumentException("User must be logged in to view their requests.");
+        }
+
+        return requestRepo.findByCitizen_Id(currentUser.getId()).stream()
+                .map(this::mapToSummary)
+                .toList();
+    }
+
+    @Override
+    public void claimRequestManually(String trackingCode, String phoneNumber, User currentUser) {
+        RescueRequest request = requestRepo.findByTrackingCodeAndContactPhoneAndCitizenIsNull(trackingCode, phoneNumber)
+                .orElseThrow(() -> new IllegalArgumentException("Mã theo dõi hoặc số điện thoại không hợp lệ, hoặc yêu cầu này đã được liên kết với tài khoản khác."));
+
+        request.setCitizen(currentUser);
+        requestRepo.save(request);
     }
 
     // Hàm kiểm tra logic chuyển trạng thái
