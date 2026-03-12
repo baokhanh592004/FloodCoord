@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { rescueTeamApi } from "../../services/rescueTeamApi";
 import MissionMap from "../../components/rescueteam/MissionMap";
 import toast from "react-hot-toast";
+import { CheckCircle2, Users, X, UserCheck, UserX, Search } from "lucide-react";
 
 export default function MissionDetail() {
   const { id } = useParams();
@@ -151,33 +152,128 @@ export default function MissionDetail() {
 
   return (
     <div className="p-6 h-[calc(100vh-80px)]">
-      {/* MODAL ĐIỂM DANH MỚI THÊM */}
-      {showAttendanceModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl">
-            <h3 className="text-xl font-bold mb-4">Điểm danh thành viên</h3>
-            <div className="space-y-3 mb-6">
-              {attendanceList.map((item) => (
-                <div key={item.memberId} className="flex justify-between items-center p-2 bg-slate-50 rounded-lg">
-                  <span className="font-medium">{item.fullName}</span>
-                  <select 
-                    value={item.status} 
-                    onChange={(e) => setAttendanceList(prev => prev.map(a => a.memberId === item.memberId ? {...a, status: e.target.value} : a))}
-                    className="text-sm border rounded p-1"
-                  >
-                    <option value="PRESENT">Có mặt</option>
-                    <option value="ABSENT">Vắng mặt</option>
-                  </select>
-                </div>
-              ))}
-            </div>
-            <div className="flex gap-2">
-              <button onClick={() => setShowAttendanceModal(false)} className="flex-1 py-2 border rounded-lg">Hủy</button>
-              <button onClick={submitAttendance} className="flex-1 py-2 bg-blue-600 text-white rounded-lg font-bold">Xác nhận</button>
-            </div>
+{showAttendanceModal && (
+  <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] z-[60] flex items-center justify-center p-4 animate-in fade-in duration-200">
+    <div className="bg-white rounded-3xl w-full max-w-4xl overflow-hidden shadow-2xl border border-slate-200 flex flex-col max-h-[90vh]">
+      
+      {/* Header: Thiết kế dàn hàng ngang rộng */}
+      <div className="px-8 py-5 border-b border-slate-100 flex justify-between items-center bg-white">
+        <div className="flex items-center gap-4">
+          <div className="bg-blue-50 p-2.5 rounded-xl text-blue-600">
+            <Users size={24} />
+          </div>
+          <div>
+            <h3 className="text-xl font-black text-slate-800 tracking-tight">Bảng điểm danh nhiệm vụ</h3>
+            <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-0.5">Mã nhiệm vụ: #{id}</p>
           </div>
         </div>
-      )}
+
+        {/* Thanh tìm kiếm nhanh cho Desktop */}
+        <div className="hidden md:flex items-center bg-slate-100 px-4 py-2 rounded-xl w-64 border border-transparent focus-within:border-blue-300 focus-within:bg-white transition-all">
+          <Search size={16} className="text-slate-400 mr-2" />
+          <input 
+            type="text" 
+            placeholder="Tìm tên thành viên..." 
+            className="bg-transparent border-none outline-none text-sm w-full"
+          />
+        </div>
+
+        <button 
+          onClick={() => setShowAttendanceModal(false)}
+          className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400"
+        >
+          <X size={20} />
+        </button>
+      </div>
+
+      {/* Body: Chia cột (Grid) để tận dụng chiều ngang của máy tính */}
+      <div className="p-8 overflow-y-auto bg-slate-50/50">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {attendanceList.map((item) => {
+            const isPresent = item.status === "PRESENT";
+            return (
+              <div 
+                key={item.memberId} 
+                className={`group flex items-center justify-between p-4 rounded-2xl border transition-all duration-200 ${
+                  isPresent 
+                    ? "bg-white border-slate-200 shadow-sm hover:border-blue-200" 
+                    : "bg-red-50 border-red-100 shadow-none"
+                }`}
+              >
+                <div className="flex items-center gap-4">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold transition-colors ${
+                    isPresent ? "bg-blue-100 text-blue-600" : "bg-red-200 text-red-700"
+                  }`}>
+                    {item.fullName.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <p className={`font-bold text-sm ${isPresent ? "text-slate-700" : "text-red-900"}`}>
+                      {item.fullName}
+                    </p>
+                    <p className="text-[10px] text-slate-400 font-medium">Thành viên chính thức</p>
+                  </div>
+                </div>
+
+                {/* Nút bấm gọn gàng cho Desktop (Hover effect) */}
+                <div className="flex gap-1 bg-slate-100 p-1 rounded-xl">
+                  <button
+                    onClick={() => setAttendanceList(prev => prev.map(a => a.memberId === item.memberId ? {...a, status: "PRESENT"} : a))}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all ${
+                      isPresent 
+                        ? "bg-white text-emerald-600 shadow-sm" 
+                        : "text-slate-400 hover:text-slate-600 hover:bg-white/50"
+                    }`}
+                  >
+                    <UserCheck size={14} />
+                    CÓ MẶT
+                  </button>
+                  <button
+                    onClick={() => setAttendanceList(prev => prev.map(a => a.memberId === item.memberId ? {...a, status: "ABSENT"} : a))}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all ${
+                      !isPresent 
+                        ? "bg-red-600 text-white shadow-md shadow-red-100" 
+                        : "text-slate-400 hover:text-red-600 hover:bg-red-50"
+                    }`}
+                  >
+                    <UserX size={14} />
+                    VẮNG
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Footer: Dàn hàng ngang cuối trang */}
+      <div className="px-8 py-6 bg-white border-t border-slate-100 flex justify-between items-center">
+        <div className="text-sm">
+          <span className="text-slate-400 font-medium">Tổng số: </span>
+          <span className="font-bold text-slate-700">{attendanceList.length} người</span>
+          <span className="mx-3 text-slate-200">|</span>
+          <span className="text-emerald-500 font-medium">Hiện diện: </span>
+          <span className="font-bold text-emerald-600">{attendanceList.filter(a => a.status === "PRESENT").length}</span>
+        </div>
+
+        <div className="flex gap-3">
+          <button 
+            onClick={() => setShowAttendanceModal(false)} 
+            className="px-6 py-2.5 border border-slate-200 text-slate-500 rounded-xl font-bold text-sm hover:bg-slate-50 transition-all"
+          >
+            Đóng
+          </button>
+          <button 
+            onClick={submitAttendance} 
+            className="px-8 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black text-sm shadow-lg shadow-blue-100 transition-all active:scale-95 flex items-center gap-2"
+          >
+            <CheckCircle2 size={18} />
+            LƯU ĐIỂM DANH
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
 
       <div className="flex items-center justify-between mb-4">
         <div>
