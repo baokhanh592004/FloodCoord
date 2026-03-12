@@ -422,7 +422,7 @@ public class TeamLeaderServiceImpl implements TeamLeaderService {
         if (r.getSupplies() != null && !r.getSupplies().isEmpty()) {
             suppliesList = r.getSupplies().stream()
                     .map(rs -> new AssignedSupplyResponse(
-                            rs.getSupply().getId(),
+                            rs.getId(),
                             rs.getSupply().getName(),
                             rs.getQuantity(),
                             rs.getSupply().getUnit()
