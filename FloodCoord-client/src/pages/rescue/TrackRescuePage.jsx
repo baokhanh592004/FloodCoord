@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { rescueApi } from '../../services/rescueApi';
+import { useSearchParams } from 'react-router-dom';
 
 const StarRating = ({ value, onChange, readonly = false }) => {
     const [hovered, setHovered] = useState(0);
@@ -25,10 +26,12 @@ const StarRating = ({ value, onChange, readonly = false }) => {
 };
 
 const TrackRescuePage = () => {
+    const [searchParams] = useSearchParams();
     const [trackingCode, setTrackingCode] = useState('');
     const [loading, setLoading] = useState(false);
     const [requestData, setRequestData] = useState(null);
     const [error, setError] = useState('');
+    const autoSearchedCodeRef = useRef('');
 
     // Feedback form states
     const [feedbackText, setFeedbackText] = useState('');
@@ -37,31 +40,54 @@ const TrackRescuePage = () => {
     const [feedbackError, setFeedbackError] = useState('');
     const [feedbackSuccess, setFeedbackSuccess] = useState(false);
 
-    const handleSearch = async (e) => {
-        e.preventDefault();
-        if (!trackingCode.trim()) {
+    const performSearch = useCallback(async (code) => {
+        const normalizedCode = code?.trim().toUpperCase();
+
+        if (!normalizedCode) {
             setError('Vui lòng nhập mã tra cứu');
             return;
         }
 
+        setTrackingCode(normalizedCode);
         setLoading(true);
         setError('');
         setRequestData(null);
-        // Reset feedback state on new search
         setFeedbackText('');
         setFeedbackRating(5);
         setFeedbackSuccess(false);
         setFeedbackError('');
 
         try {
-            const data = await rescueApi.trackRequest(trackingCode.trim());
+            const data = await rescueApi.trackRequest(normalizedCode);
             setRequestData(data);
         } catch (err) {
             setError(err.response?.data?.message || 'Không tìm thấy yêu cầu với mã này');
         } finally {
             setLoading(false);
         }
+    }, []);
+
+    const handleSearch = async (e) => {
+        e.preventDefault();
+        await performSearch(trackingCode);
     };
+
+    useEffect(() => {
+        const codeFromQuery = searchParams.get('code')?.trim().toUpperCase() || '';
+
+        if (!codeFromQuery) {
+            return;
+        }
+
+        setTrackingCode(codeFromQuery);
+
+        if (autoSearchedCodeRef.current === codeFromQuery) {
+            return;
+        }
+
+        autoSearchedCodeRef.current = codeFromQuery;
+        performSearch(codeFromQuery);
+    }, [performSearch, searchParams]);
 
     const handleFeedbackSubmit = async (e) => {
         e.preventDefault();
