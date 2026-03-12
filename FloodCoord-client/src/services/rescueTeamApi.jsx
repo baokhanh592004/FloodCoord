@@ -5,14 +5,14 @@ export const rescueTeamApi = {
   getAssignedMissions: async () => {
     try {
       const response = await axiosClient.get("/api/team-leader/my-rescue-requests");
-      return response.data || []; // Đảm bảo luôn trả về mảng
+      return response.data || [];
     } catch (error) {
       console.error("Get missions failed:", error);
       throw error;
     }
   },
 
-  // Lấy danh sách nhiệm vụ đã hoàn thành
+  // Lấy danh sách nhiệm vụ đã hoàn thành (Dùng để lấy vật tư đi báo cáo)
   getCompletedMissions: async () => {
     try {
       const response = await axiosClient.get("/api/team-leader/completed-requests");
@@ -23,7 +23,7 @@ export const rescueTeamApi = {
     }
   },
 
-  // Cập nhật tiến độ nhiệm vụ (PUT status)
+  // Cập nhật tiến độ nhiệm vụ
   updateProgress: async (requestId, data) => {
     try {
       const response = await axiosClient.put(`/api/team-leader/rescue-request/${requestId}/status`, data);
@@ -45,21 +45,20 @@ export const rescueTeamApi = {
     }
   },
 
-  // Kiểm tra điểm danh (Xem đã điểm danh cho request này chưa)
+  // Kiểm tra điểm danh
   checkAttendance: async (requestId) => {
     try {
       const response = await axiosClient.get(`/api/team-leader/attendance/${requestId}`);
-      return response.data || []; // Nếu chưa có, trả về mảng rỗng
+      return response.data || [];
     } catch (error) {
       console.error("Check attendance failed:", error);
-      return []; // Trả về mảng rỗng thay vì ném lỗi để UI dễ xử lý
+      return [];
     }
   },
 
-  // Gửi danh sách điểm danh (POST)
+  // Gửi danh sách điểm danh
   markAttendance: async (data) => {
     try {
-      // Data cấu trúc: { requestId: id, attendanceList: [{memberId: 1, status: 'PRESENT'}, ...] }
       const response = await axiosClient.post("/api/team-leader/attendance", data);
       return response.data;
     } catch (error) {
@@ -70,41 +69,27 @@ export const rescueTeamApi = {
 
   /**
    * Gửi báo cáo hoàn thành nhiệm vụ kèm hình ảnh/video
+   * Đã sửa định dạng FormData để khớp với @ModelAttribute List<DTO> của Spring Boot
    */
-  submitReport: async (requestId, reportData, mediaFiles = []) => {
-    try {
-      const formData = new FormData();
+submitReport: async (requestId, reportData, mediaFiles = []) => {
+        const formData = new FormData();
+        formData.append("requestId", requestId);
+        formData.append("rescuedPeople", parseInt(reportData.rescuedPeople) || 0);
+        formData.append("note", reportData.note || "");
 
-      // Đồng bộ hóa với ReportRequestDTO bên Backend
-      const dataPayload = {
-        requestId: requestId,
-        rescuedPeople: parseInt(reportData.rescuedPeople) || 0,
-        note: reportData.note || reportData.notes || "", 
-        remainSupplies: (reportData.remainSupplies || []).map(item => ({
-          requestSupplyId: item.requestSupplyId,
-          remainingQuantity: parseInt(item.remainingQuantity) || 0
-        }))
-      };
+        if (reportData.remainSupplies?.length > 0) {
+            reportData.remainSupplies.forEach((item, index) => {
+                formData.append(`remainSupplies[${index}].requestSupplyId`, item.requestSupplyId);
+                formData.append(`remainSupplies[${index}].remainingQuantity`, parseInt(item.remainingQuantity) || 0);
+            });
+        }
 
-      // Backend (Java) thường nhận JSON String thông qua @RequestPart
-      formData.append("data", JSON.stringify(dataPayload));
+        if (mediaFiles?.length > 0) {
+            mediaFiles.forEach(file => formData.append("mediaFiles", file));
+        }
 
-      // Thêm file đa phương tiện
-      if (mediaFiles && mediaFiles.length > 0) {
-        mediaFiles.forEach((file) => {
-          formData.append("mediaFiles", file);
+        return await axiosClient.post("/api/team-leader/report", formData, {
+            headers: { "Content-Type": "multipart/form-data" },
         });
-      }
-
-      const response = await axiosClient.post("/api/team-leader/report", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-      return response.data;
-    } catch (error) {
-      console.error("Submit report failed:", error);
-      throw error;
     }
-  }
 };
