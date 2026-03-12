@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import * as XLSX from 'xlsx';
 import { vehicleApi } from '../../services/vehicleApi';
 import { Ship, Truck, Plane, Activity, Bus, AlertCircle, Plus, FileDown } from 'lucide-react';
+import toast from 'react-hot-toast';
 import StatCard from '../../components/coordinator/StatCard';
 import {
     TruckIcon,
@@ -147,14 +148,21 @@ export default function VehicleManagement() {
         setShowModal(true);
     };
 
-    const handleDelete = async (vehicleId) => {
-        if (!window.confirm('Bạn có chắc chắn muốn xóa phương tiện này?')) return;
+    const handleDelete = async (vehicle) => {
+        if (vehicle.status === 'IN_USE') {
+            toast.error('Không thể vô hiệu hóa phương tiện đang hoạt động!');
+            return;
+        }
+        if (!window.confirm(`Bạn có chắc muốn vô hiệu hóa "${vehicle.name}"?\nPhương tiện sẽ được đặt sang trạng thái Không khả dụng.`)) return;
         try {
-            await vehicleApi.deleteVehicle(vehicleId);
+            await vehicleApi.deleteVehicle(vehicle.id);
             await fetchVehicles();
             setError('');
+            toast.success(`Đã vô hiệu hóa "${vehicle.name}" thành công!`);
         } catch (err) {
-            setError(err.response?.data?.message || 'Không thể xóa phương tiện.');
+            const msg = err.response?.data?.message || 'Không thể vô hiệu hóa phương tiện.';
+            setError(msg);
+            toast.error(msg);
         }
     };
 
@@ -387,9 +395,10 @@ export default function VehicleManagement() {
                                                         <PencilSquareIcon className="h-4 w-4" />
                                                     </button>
                                                     <button
-                                                        onClick={() => handleDelete(vehicle.id)}
-                                                        title="Xóa"
-                                                        className="p-1 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                                                        onClick={() => handleDelete(vehicle)}
+                                                        title={vehicle.status === 'IN_USE' ? 'Không thể vô hiệu hóa khi đang hoạt động' : 'Vô hiệu hóa'}
+                                                        disabled={vehicle.status === 'IN_USE'}
+                                                        className="p-1 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                                                     >
                                                         <TrashIcon className="h-4 w-4" />
                                                     </button>
