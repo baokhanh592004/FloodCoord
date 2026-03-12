@@ -687,6 +687,7 @@ public class RescueRequestServiceImpl implements RescueRequestService {
     private RescueRequestSummaryResponse mapToSummary(RescueRequest request) {
         RescueRequestSummaryResponse dto = new RescueRequestSummaryResponse();
         dto.setRequestId(request.getRequestId());
+        dto.setTrackingCode(request.getTrackingCode());
         dto.setTitle(request.getTitle());
         dto.setEmergencyLevel(request.getEmergencyLevel());
         dto.setStatus(request.getStatus().toString());
