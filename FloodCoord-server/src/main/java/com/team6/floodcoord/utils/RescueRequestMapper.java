@@ -13,6 +13,7 @@ public class RescueRequestMapper {
 
         // Gán đúng theo cấu trúc RescueRequestSummaryResponse của bạn
         response.setRequestId(request.getRequestId());
+        response.setTrackingCode(request.getTrackingCode());
         response.setTitle(request.getTitle());
         response.setPeopleCount(request.getPeopleCount());
         response.setCreatedAt(request.getCreatedAt());

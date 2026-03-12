@@ -9,6 +9,7 @@ import lombok.Data;
 public class RescueRequestSummaryResponse {
 
     private UUID requestId;
+    private String trackingCode;
     private String title;
     private String emergencyLevel;
     private String status;
