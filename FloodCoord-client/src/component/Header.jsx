@@ -101,9 +101,9 @@ export default function Header() {
         {/* Desktop menu */}
         <PopoverGroup className="hidden lg:flex lg:gap-x-13 ">
           <Popover className="relative">
-            <PopoverButton className="flex items-center gap-x-1 text-sm/6 font-semibold text-black hover:text-blue-100 transition-colors">
+            <PopoverButton className="flex items-center gap-x-1 text-sm/6 font-semibold text-black hover:text-blue-600 transition-colors">
               Dịch vụ
-              <ChevronDownIcon aria-hidden="true" className="size-5 flex-none text-blue-100" />
+              <ChevronDownIcon aria-hidden="true" className="size-5 flex-none text-blue-400" />
             </PopoverButton>
 
             <PopoverPanel
@@ -144,16 +144,16 @@ export default function Header() {
             </PopoverPanel>
           </Popover>
 
-          <Link to="/" className="text-sm/6 font-semibold text-black hover:text-blue-100 transition-colors">
+          <Link to="/" className="text-sm/6 font-semibold text-black hover:text-blue-600 transition-colors">
             Trang chủ
           </Link>
-          <Link to="/request-rescue" className="text-sm/6 font-semibold text-black hover:text-blue-100 transition-colors">
+          <Link to="/request-rescue" className="text-sm/6 font-semibold text-black hover:text-blue-600 transition-colors">
             Yêu cầu cứu hộ
           </Link>
-          <Link to="/track-rescue" className="text-sm/6 font-semibold text-black hover:text-blue-100 transition-colors">
+          <Link to="/track-rescue" className="text-sm/6 font-semibold text-black hover:text-blue-600 transition-colors">
             Tra cứu cứu hộ
           </Link>
-          <Link to="/about" className="text-sm/6 font-semibold text-black hover:text-blue-100 transition-colors">
+          <Link to="/about" className="text-sm/6 font-semibold text-black hover:text-blue-600 transition-colors">
             Giới thiệu
           </Link>
           {isLoggedIn && (
@@ -176,13 +176,13 @@ export default function Header() {
               </Link>
               <button
                 onClick={handleLogout}
-                className="text-sm/6 font-semibold text-black hover:text-blue-100 transition-colors"
+                className="text-sm/6 font-semibold text-black hover:text-blue-600 transition-colors"
               >
                 Đăng xuất <span aria-hidden="true">&rarr;</span>
               </button>
             </>
           ) : (
-            <Link to="/login" className="text-sm/6 font-semibold text-black hover:text-blue-100 transition-colors bg-white/20 hover:bg-white/30 px-27 py-2 rounded-lg">
+            <Link to="/login" className="text-sm/6 font-semibold text-black hover:text-blue-600 transition-colors bg-white/20 hover:bg-white/30 px-27 py-2 rounded-lg">
               Đăng nhập <span aria-hidden="true">&rarr;</span>
             </Link>
           )}

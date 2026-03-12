@@ -48,6 +48,7 @@ import MyMissions from '../pages/rescueteam/MyMissions'
 import MissionDetail from '../pages/rescueteam/MissionDetail'
 import RescueReport from '../pages/rescueteam/RescueReport'
 import CompletedMissions from '../pages/rescueteam/CompletedMissions'
+import TeamMembers from '../pages/rescueteam/TeamMembers'
 
 export default function AppRoutes() {
   return (
@@ -143,6 +144,7 @@ export default function AppRoutes() {
         <Route path="missions/:id" element={<MissionDetail />}/>
         <Route path="missions/:id/report" element={<RescueReport />}/>
         <Route path="completed" element={<CompletedMissions />} />
+        <Route path="members" element={<TeamMembers />} />
       </Route>
 
       {/* ================= 404 ================= */}
