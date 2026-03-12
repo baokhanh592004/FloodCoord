@@ -52,7 +52,7 @@ export default function RegisterPage() {
       await loginApi.register(formData);
 
       toast.success('Đăng ký thành công! Vui lòng đăng nhập.');
-      navigate('/login'); 
+      navigate('/login');   
 
     } catch (err) {
       console.error(err);
