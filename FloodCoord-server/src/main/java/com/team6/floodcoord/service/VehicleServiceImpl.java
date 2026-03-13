@@ -7,9 +7,14 @@ import com.team6.floodcoord.model.enums.VehicleStatus;
 import com.team6.floodcoord.repository.VehicleRepository;
 import com.team6.floodcoord.utils.VehicleMapper;
 import lombok.RequiredArgsConstructor;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -102,5 +107,183 @@ public class VehicleServiceImpl implements  VehicleService{
         Vehicle vehicle = vehicleRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Vehicle not found"));
         return VehicleMapper.mapToResponse(vehicle);
+    }
+
+    @Override
+    public void importVehiclesFromExcel(MultipartFile file) {
+
+        try (InputStream is = file.getInputStream();
+             Workbook workbook = WorkbookFactory.create(is)) {
+
+            Sheet sheet = workbook.getSheetAt(0);
+
+            for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+
+                Row row = sheet.getRow(i);
+                if (row == null) continue;
+
+                // Đọc 5 cột
+                Cell nameCell = row.getCell(0);
+                Cell typeCell = row.getCell(1);
+                Cell licenseCell = row.getCell(2);
+                Cell capacityCell = row.getCell(3);
+                Cell statusCell = row.getCell(4);
+
+                // ==========================================
+                // 1. VALIDATE: Name (Bắt buộc)
+                // ==========================================
+                if (nameCell == null || nameCell.getCellType() == CellType.BLANK) {
+                    throw new IllegalArgumentException("Lỗi dòng " + (i + 1) + ": 'Tên xe' không được để trống.");
+                }
+
+                String name = nameCell.getStringCellValue().trim();
+
+                if (name.isEmpty()) {
+                    throw new IllegalArgumentException("Lỗi dòng " + (i + 1) + ": 'Tên xe' không được để trống.");
+                }
+
+                if (vehicleRepo.existsByName(name)) {
+                    throw new IllegalArgumentException("Lỗi dòng " + (i + 1) + ": Tên xe đã tồn tại.");
+                }
+
+                // ==========================================
+                // 2. VALIDATE: Type (Bắt buộc)
+                // ==========================================
+                if (typeCell == null || typeCell.getCellType() == CellType.BLANK) {
+                    throw new IllegalArgumentException("Lỗi dòng " + (i + 1) + ": 'Loại xe' không được để trống.");
+                }
+
+                String type = typeCell.getStringCellValue().trim();
+
+                if (type.isEmpty()) {
+                    throw new IllegalArgumentException("Lỗi dòng " + (i + 1) + ": 'Loại xe' không được để trống.");
+                }
+
+                // ==========================================
+                // 3. VALIDATE: License Plate (Bắt buộc)
+                // ==========================================
+                if (licenseCell == null || licenseCell.getCellType() == CellType.BLANK) {
+                    throw new IllegalArgumentException("Lỗi dòng " + (i + 1) + ": 'Biển số xe' không được để trống.");
+                }
+
+                String licensePlate = licenseCell.getStringCellValue().trim();
+
+                if (licensePlate.isEmpty()) {
+                    throw new IllegalArgumentException("Lỗi dòng " + (i + 1) + ": 'Biển số xe' không được để trống.");
+                }
+
+                if (vehicleRepo.existsByLicensePlate(licensePlate)) {
+                    throw new IllegalArgumentException("Lỗi dòng " + (i + 1) + ": Biển số xe đã tồn tại.");
+                }
+
+                // ==========================================
+                // 4. VALIDATE: Capacity
+                // ==========================================
+                if (capacityCell == null || capacityCell.getCellType() == CellType.BLANK) {
+                    throw new IllegalArgumentException("Lỗi dòng " + (i + 1) + ": 'Sức chứa' không được để trống.");
+                }
+
+                int capacity = 0;
+
+                if (capacityCell.getCellType() == CellType.NUMERIC) {
+                    capacity = (int) capacityCell.getNumericCellValue();
+                }
+                else if (capacityCell.getCellType() == CellType.STRING) {
+                    try {
+                        capacity = Integer.parseInt(capacityCell.getStringCellValue().trim());
+                    } catch (NumberFormatException ex) {
+                        throw new IllegalArgumentException("Lỗi dòng " + (i + 1) + ": 'Sức chứa' phải là số.");
+                    }
+                }
+
+                if (capacity <= 0) {
+                    throw new IllegalArgumentException("Lỗi dòng " + (i + 1) + ": 'Sức chứa' phải lớn hơn 0.");
+                }
+
+                // ==========================================
+                // 5. STATUS (Optional)
+                // ==========================================
+                VehicleStatus status = VehicleStatus.AVAILABLE;
+
+                if (statusCell != null && statusCell.getCellType() != CellType.BLANK) {
+
+                    String statusStr = statusCell.getStringCellValue().trim();
+
+                    try {
+                        status = VehicleStatus.valueOf(statusStr.toUpperCase());
+                    } catch (IllegalArgumentException e) {
+                        throw new IllegalArgumentException(
+                                "Lỗi dòng " + (i + 1) +
+                                        ": Status không hợp lệ ('" + statusStr + "'). Chỉ chấp nhận: AVAILABLE, IN_USE, MAINTENANCE."
+                        );
+                    }
+                }
+
+                // ==========================================
+                // SAVE DATABASE
+                // ==========================================
+                Vehicle vehicle = Vehicle.builder()
+                        .name(name)
+                        .type(type)
+                        .licensePlate(licensePlate)
+                        .capacity(capacity)
+                        .status(status)
+                        .build();
+
+                vehicleRepo.save(vehicle);
+            }
+
+        } catch (IllegalArgumentException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException("Lỗi định dạng file Excel. Vui lòng kiểm tra lại file.");
+        }
+    }
+
+    @Override
+    public byte[] generateVehicleExcelTemplate() {
+
+        try (Workbook workbook = new XSSFWorkbook();
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+
+            Sheet sheet = workbook.createSheet("Import_Vehicles");
+
+            Row headerRow = sheet.createRow(0);
+
+            String[] headers = {
+                    "Tên xe (*)",
+                    "Loại xe (*)",
+                    "Biển số xe (*)",
+                    "Sức chứa (*)",
+                    "Trạng thái (AVAILABLE, IN_USE, MAINTENANCE)"
+            };
+
+            CellStyle headerStyle = workbook.createCellStyle();
+            Font font = workbook.createFont();
+            font.setBold(true);
+            headerStyle.setFont(font);
+
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(headerStyle);
+                sheet.autoSizeColumn(i);
+            }
+
+            // Example row
+            Row sampleRow = sheet.createRow(1);
+
+            sampleRow.createCell(0).setCellValue("Rescue Truck 01");
+            sampleRow.createCell(1).setCellValue("TRUCK");
+            sampleRow.createCell(2).setCellValue("51A-12345");
+            sampleRow.createCell(3).setCellValue(10);
+            sampleRow.createCell(4).setCellValue("AVAILABLE");
+
+            workbook.write(out);
+            return out.toByteArray();
+
+        } catch (Exception e) {
+            throw new RuntimeException("Lỗi tạo file template: " + e.getMessage());
+        }
     }
 }
