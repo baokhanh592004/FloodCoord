@@ -218,7 +218,8 @@ public class TeamLeaderServiceImpl implements TeamLeaderService {
         rescueRequestRepository.save(request);
 
         // 🔥 Xử lý hoàn kho
-        for (SupplyRemainDTO item : dto.getRemainSupplies()) {
+        if (dto.getRemainSupplies() != null){
+            for (SupplyRemainDTO item : dto.getRemainSupplies()) {
 
             if (item.getRemainingQuantity() < 0) {
                 throw new RuntimeException("Remaining quantity cannot be negative");
@@ -238,6 +239,7 @@ public class TeamLeaderServiceImpl implements TeamLeaderService {
                 requestSupplyRepository.save(rs);
             }
         }
+            }
         // 7️⃣ Upload media lên Cloudinary
         if (dto.getMediaFiles() != null && dto.getMediaFiles().length > 0) {
 
