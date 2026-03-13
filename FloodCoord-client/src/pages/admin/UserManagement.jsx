@@ -20,6 +20,58 @@ import {
 
 const ITEMS_PER_PAGE = 10;
 
+const compareUserId = (leftId, rightId) => {
+    const leftNumber = Number(leftId);
+    const rightNumber = Number(rightId);
+
+    if (Number.isFinite(leftNumber) && Number.isFinite(rightNumber)) {
+        return leftNumber - rightNumber;
+    }
+
+    return String(leftId).localeCompare(String(rightId));
+};
+
+const preserveUserOrder = (incomingUsers, previousUsers) => {
+    const previousIndex = new Map(previousUsers.map((user, index) => [user.id, index]));
+
+    return [...incomingUsers].sort((leftUser, rightUser) => {
+        const leftPrevIndex = previousIndex.has(leftUser.id)
+            ? previousIndex.get(leftUser.id)
+            : Number.MAX_SAFE_INTEGER;
+        const rightPrevIndex = previousIndex.has(rightUser.id)
+            ? previousIndex.get(rightUser.id)
+            : Number.MAX_SAFE_INTEGER;
+
+        if (leftPrevIndex !== rightPrevIndex) {
+            return leftPrevIndex - rightPrevIndex;
+        }
+
+        return compareUserId(leftUser.id, rightUser.id);
+    });
+};
+
+const getDeleteUserErrorMessage = (error) => {
+    const responseData = error?.response?.data;
+    const rawMessage =
+        (typeof responseData === 'string' && responseData) ||
+        responseData?.message ||
+        responseData?.error ||
+        error?.message ||
+        '';
+
+    const normalized = rawMessage.toLowerCase();
+
+    if (
+        normalized.includes('violates foreign key constraint') ||
+        normalized.includes('is still referenced from table') ||
+        normalized.includes('rescue_requests')
+    ) {
+        return 'Không thể xóa tài khoản này vì đang có dữ liệu yêu cầu cứu hộ liên kết. Vui lòng vô hiệu hóa tài khoản thay vì xóa.';
+    }
+
+    return responseData?.message || 'Không thể xóa người dùng. Vui lòng thử lại sau.';
+};
+
 export default function UserManagement() {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -40,7 +92,7 @@ export default function UserManagement() {
         try {
             setLoading(true);
             const data = await adminUserApi.getAllUsers();
-            setUsers(data);
+            setUsers(prevUsers => preserveUserOrder(data, prevUsers));
             setError('');
         } catch (err) {
             setError('Không thể tải danh sách người dùng. Vui lòng kiểm tra kết nối với server.');
@@ -70,8 +122,7 @@ export default function UserManagement() {
             await fetchUsers();
             setError('');
         } catch (err) {
-            const errorMsg = err.response?.data?.message || 'Không thể xóa người dùng';
-            setError(errorMsg);
+            setError(getDeleteUserErrorMessage(err));
         }
     };
 

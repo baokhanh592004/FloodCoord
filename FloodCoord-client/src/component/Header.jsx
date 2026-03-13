@@ -43,7 +43,24 @@ export default function Header() {
   const navigate = useNavigate()
   const [setMobileMenuOpen] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const { profileName } = useAuth()
+  const { profileName, role } = useAuth()
+
+  const getDashboardPathByRole = (userRole) => {
+    const normalizedRole = userRole?.toUpperCase()
+
+    const dashboardMap = {
+      ADMIN: '/admin/dashboard',
+      MANAGER: '/manager/dashboard',
+      COORDINATOR: '/coordinator/dashboard',
+      RESCUE_TEAM: '/rescue-team/dashboard',
+    }
+
+    return dashboardMap[normalizedRole] || null
+  }
+
+  const dashboardPath = getDashboardPathByRole(role)
+  const isMemberRole = ['MEMBER', 'TEAM_MEMBER'].includes(role?.toUpperCase())
+  const canOpenDashboard = Boolean(dashboardPath) && !isMemberRole
 
   // Kiểm tra trạng thái đăng nhập
   useEffect(() => {
@@ -167,19 +184,39 @@ export default function Header() {
         <div className="hidden lg:flex lg:flex-1 lg:justify-end lg:items-center lg:gap-x-4">
           {isLoggedIn ? (
             <>
-              <Link
-                to="/profile"
-                className="flex items-center gap-x-2 text-sm/6 font-semibold text-black hover:text-blue-600 transition-colors"
-              >
-                <UserCircleIcon className="size-6 text-blue-500" />
-                <span>{profileName || 'Tài khoản'}</span>
-              </Link>
-              <button
-                onClick={handleLogout}
-                className="text-sm/6 font-semibold text-black hover:text-blue-600 transition-colors"
-              >
-                Đăng xuất <span aria-hidden="true">&rarr;</span>
-              </button>
+              <Popover className="relative">
+                <PopoverButton className="flex items-center gap-x-2 text-sm/6 font-semibold text-black hover:text-blue-600 transition-colors">
+                  <UserCircleIcon className="size-6 text-blue-500" />
+                  <span>{profileName || 'Tài khoản'}</span>
+                  <ChevronDownIcon aria-hidden="true" className="size-4 text-blue-400" />
+                </PopoverButton>
+
+                <PopoverPanel
+                  transition
+                  className="absolute right-0 z-20 mt-2 w-56 rounded-xl bg-white p-2 shadow-xl ring-1 ring-gray-200 transition data-closed:translate-y-1 data-closed:opacity-0 data-enter:duration-150 data-enter:ease-out data-leave:duration-100 data-leave:ease-in"
+                >
+                  {canOpenDashboard && (
+                    <Link
+                      to={dashboardPath}
+                      className="block rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors"
+                    >
+                      Đi đến Dashboard
+                    </Link>
+                  )}
+                  <Link
+                    to="/profile"
+                    className="block rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    Hồ sơ cá nhân
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full text-left rounded-lg px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+                  >
+                    Đăng xuất
+                  </button>
+                </PopoverPanel>
+              </Popover>
             </>
           ) : (
             <Link to="/login" className="text-sm/6 font-semibold text-black hover:text-blue-600 transition-colors bg-white/20 hover:bg-white/30 px-27 py-2 rounded-lg">
