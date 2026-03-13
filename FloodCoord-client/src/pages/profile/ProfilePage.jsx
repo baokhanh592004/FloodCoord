@@ -22,8 +22,7 @@ const ROLE_LABELS = {
   MANAGER: 'Quản lý',
   COORDINATOR: 'Điều phối viên',
   RESCUE_TEAM: 'Đội cứu hộ',
-  TEAM_MEMBER: 'Thành viên đội',
-  CITIZEN: 'Người dân',
+  MEMBER: 'Người dân',
 }
 
 const ROLE_COLORS = {
@@ -31,8 +30,7 @@ const ROLE_COLORS = {
   MANAGER: 'bg-purple-100 text-purple-700',
   COORDINATOR: 'bg-blue-100 text-blue-700',
   RESCUE_TEAM: 'bg-orange-100 text-orange-700',
-  TEAM_MEMBER: 'bg-orange-100 text-orange-700',
-  CITIZEN: 'bg-teal-100 text-teal-700',
+  MEMBER: 'bg-teal-100 text-teal-700',
 }
 
 export default function ProfilePage() {
@@ -63,7 +61,7 @@ export default function ProfilePage() {
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
-  // Rescue history state (citizen only)
+  // Rescue history state (member only)
   const [rescueHistory, setRescueHistory] = useState([])
   const [loadingHistory, setLoadingHistory] = useState(false)
 
@@ -72,13 +70,13 @@ export default function ProfilePage() {
   }, [])
 
   useEffect(() => {
-    if (activeTab === 'history' && isCitizen) {
+    if (activeTab === 'history' && isMember) {
       fetchRescueHistory()
     }
   }, [activeTab])
 
-  const isCitizen = role === 'CITIZEN'
-  const isRescueTeam = role === 'RESCUE_TEAM' || role === 'TEAM_MEMBER'
+  const isMember = role === 'MEMBER'
+  const isRescueTeam = role === 'RESCUE_TEAM' 
 
   const fetchProfile = async () => {
     try {
@@ -233,7 +231,7 @@ export default function ProfilePage() {
   const tabs = [
     { id: 'profile', label: 'Thông tin cá nhân', icon: UserCircleIcon },
     { id: 'password', label: 'Đổi mật khẩu', icon: LockClosedIcon },
-    ...(isCitizen
+    ...(isMember
       ? [{ id: 'history', label: 'Lịch sử yêu cầu cứu hộ', icon: ClockIcon }]
       : []),
   ]
@@ -550,7 +548,7 @@ export default function ProfilePage() {
           </div>
         )}
 
-        {activeTab === 'history' && isCitizen && (
+        {activeTab === 'history' && isMember && (
           <div>
             <div className="bg-white rounded-xl border border-gray-200 p-6">
               <div className="mb-6">
