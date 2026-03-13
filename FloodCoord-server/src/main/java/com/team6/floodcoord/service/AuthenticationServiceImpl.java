@@ -346,8 +346,8 @@ public class AuthenticationServiceImpl implements AuthenticationService{
             throw new IllegalArgumentException("Invalid password. " + PasswordUtils.getPasswordValidationMessage());
         }
 
-        Role role = roleRepository.findByRoleCode("CITIZEN")
-                .orElseThrow(() -> new RuntimeException("Default Role USER not found in database."));
+        Role role = roleRepository.findByRoleCode("MEMBER")
+                .orElseThrow(() -> new RuntimeException("Default Role MEMBER not found in database."));
 
         User user = User.builder()
                 .fullName(request.getFullName())
