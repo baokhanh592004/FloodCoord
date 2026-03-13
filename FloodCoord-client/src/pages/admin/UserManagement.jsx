@@ -50,6 +50,28 @@ const preserveUserOrder = (incomingUsers, previousUsers) => {
     });
 };
 
+const getDeleteUserErrorMessage = (error) => {
+    const responseData = error?.response?.data;
+    const rawMessage =
+        (typeof responseData === 'string' && responseData) ||
+        responseData?.message ||
+        responseData?.error ||
+        error?.message ||
+        '';
+
+    const normalized = rawMessage.toLowerCase();
+
+    if (
+        normalized.includes('violates foreign key constraint') ||
+        normalized.includes('is still referenced from table') ||
+        normalized.includes('rescue_requests')
+    ) {
+        return 'Không thể xóa tài khoản này vì đang có dữ liệu yêu cầu cứu hộ liên kết. Vui lòng vô hiệu hóa tài khoản thay vì xóa.';
+    }
+
+    return responseData?.message || 'Không thể xóa người dùng. Vui lòng thử lại sau.';
+};
+
 export default function UserManagement() {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -100,8 +122,7 @@ export default function UserManagement() {
             await fetchUsers();
             setError('');
         } catch (err) {
-            const errorMsg = err.response?.data?.message || 'Không thể xóa người dùng';
-            setError(errorMsg);
+            setError(getDeleteUserErrorMessage(err));
         }
     };
 
