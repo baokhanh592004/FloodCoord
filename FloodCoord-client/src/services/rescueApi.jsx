@@ -24,6 +24,19 @@ export const rescueApi = {
         const response = await axiosClient.get('/api/rescue-requests/my-requests');
         return response.data;
     },
+
+    // Alias theo tài liệu tích hợp Phone Number Sync
+    getMyRequests: async () => {
+        const response = await axiosClient.get('/api/rescue-requests/my-requests');
+        return response.data;
+    },
+
+    // Đồng bộ yêu cầu cứu hộ của khách vãng lai vào tài khoản
+    claimRequests: async (trackingCodes) => {
+        const response = await axiosClient.post('/api/rescue-requests/claim', trackingCodes);
+        return response.data;
+    },
+
     // Người dân gửi đánh giá / xác nhận hoàn thành (không cần login)
     confirmAndFeedback: async (requestId, payload) => {
         try {

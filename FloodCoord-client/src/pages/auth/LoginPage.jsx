@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { jwtDecode } from 'jwt-decode'
 import backgroundImage from '../../assets/images/background.png'
 import { loginApi } from '../../services/authApi'
+import { rescueApi } from '../../services/rescueApi';
 import { useAuth } from '../../context/AuthContext'
 import toast from 'react-hot-toast';
 import axiosClient from '../../api/axiosClient'; // Import thêm axiosClient để gọi API Profile
@@ -15,6 +16,10 @@ export default function LoginPage() {
   const [password, setPassword] = React.useState('');
   const [error, setError] = React.useState(null);
   const [loading, setLoading] = React.useState(false);
+  const [showClaimModal, setShowClaimModal] = React.useState(false);
+  const [guestCodesToClaim, setGuestCodesToClaim] = React.useState([]);
+  const [modalLoading, setModalLoading] = React.useState(false);
+  const [pendingAuth, setPendingAuth] = React.useState(null);
 
   const getRoleBasedDashboard = (token) => {
     // Decode token to get role
@@ -40,6 +45,46 @@ export default function LoginPage() {
       default:
         return '/';
     }
+  };
+
+  const completeLogin = (authData) => {
+    if (!authData) return;
+
+    login(authData.accessToken, authData.refreshToken);
+    window.dispatchEvent(new Event('authChange'));
+    toast.success('Login successful!');
+    navigate(authData.redirectPath);
+    setShowClaimModal(false);
+    setGuestCodesToClaim([]);
+    setPendingAuth(null);
+  };
+
+  const handleClaimNow = async () => {
+    if (!pendingAuth) return;
+
+    setModalLoading(true);
+    try {
+      if (guestCodesToClaim.length > 0) {
+        await rescueApi.claimRequests(guestCodesToClaim);
+        localStorage.removeItem('guestTrackingCodes');
+        toast.success('Đã đồng bộ các yêu cầu cứu hộ cũ.');
+      }
+    } catch (syncErr) {
+      console.error('Lỗi khi đồng bộ yêu cầu cũ:', syncErr);
+      toast.error('Đồng bộ thất bại, bạn có thể thử lại sau.');
+    } finally {
+      setModalLoading(false);
+      completeLogin(pendingAuth);
+    }
+  };
+
+  const handleClaimLater = () => {
+    completeLogin(pendingAuth);
+  };
+
+  const handleSkipAndClear = () => {
+    localStorage.removeItem('guestTrackingCodes');
+    completeLogin(pendingAuth);
   };
 
   const handleLogin = async (e) => {
@@ -69,16 +114,23 @@ export default function LoginPage() {
       } catch (err) {
         console.error("Lỗi khi lấy thông tin User Profile:", err);
       }
-
-      // 3. Use AuthContext to login
-      login(data.accessToken, data.refreshToken);
-      
-      window.dispatchEvent(new Event('authChange'));
-      toast.success('Login successful!');
-
-      // Redirect based on user role from token
       const redirectPath = getRoleBasedDashboard(data.accessToken);
-      navigate(redirectPath);
+
+      const guestCodes = JSON.parse(localStorage.getItem('guestTrackingCodes') || '[]');
+      const authData = {
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken,
+        redirectPath
+      };
+
+      if (guestCodes.length > 0) {
+        setPendingAuth(authData);
+        setGuestCodesToClaim(guestCodes);
+        setShowClaimModal(true);
+        return;
+      }
+
+      completeLogin(authData);
 
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed. Please try again.');
@@ -89,6 +141,7 @@ export default function LoginPage() {
 
   return (
     // Chiều cao = 100vh - Header (~85px) - Footer (~50px) = 100vh - 135px
+    <>
     <div className="flex h-[calc(100vh-73px)] w-full overflow-hidden">
             
       {/* Bên trái: Ảnh */}
@@ -158,5 +211,47 @@ export default function LoginPage() {
           </form>
       </div>
     </div>
+    {showClaimModal && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl overflow-hidden">
+          <div className="px-6 py-5 border-b border-gray-100">
+            <h3 className="text-lg font-bold text-gray-900">Đồng bộ yêu cầu cứu hộ trước đó?</h3>
+            <p className="text-sm text-gray-600 mt-1">
+              Phát hiện <strong>{guestCodesToClaim.length}</strong> mã tra cứu đã gửi khi chưa đăng nhập.
+            </p>
+          </div>
+
+          <div className="px-6 py-5 space-y-3 bg-gray-50">
+            <button
+              type="button"
+              onClick={handleClaimNow}
+              disabled={modalLoading}
+              className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-semibold transition"
+            >
+              {modalLoading ? 'Đang đồng bộ...' : 'Đồng bộ ngay vào tài khoản này'}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleClaimLater}
+              disabled={modalLoading}
+              className="w-full py-3 rounded-xl bg-white border border-gray-300 hover:bg-gray-100 disabled:opacity-60 text-gray-800 font-semibold transition"
+            >
+              Để sau
+            </button>
+
+            <button
+              type="button"
+              onClick={handleSkipAndClear}
+              disabled={modalLoading}
+              className="w-full py-3 rounded-xl bg-red-50 border border-red-200 hover:bg-red-100 disabled:opacity-60 text-red-700 font-semibold transition"
+            >
+              Không đồng bộ (xóa dữ liệu tạm)
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   )
 }

@@ -156,6 +156,11 @@ export default function Header() {
           <Link to="/about" className="text-sm/6 font-semibold text-black hover:text-blue-600 transition-colors">
             Giới thiệu
           </Link>
+          {isLoggedIn && (
+            <Link to="/my-requests" className="text-sm/6 font-semibold text-blue-600 hover:text-blue-800 transition-colors border border-blue-200 px-3 py-1.5 rounded-lg hover:bg-blue-50">
+              Yêu cầu của tôi
+            </Link>
+          )}
         </PopoverGroup>
 
         {/* Desktop Login/Logout */}
