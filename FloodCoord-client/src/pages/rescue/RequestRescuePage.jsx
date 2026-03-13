@@ -229,8 +229,17 @@ const RequestRescuePage = () => {
         });
 
         const response = await rescueApi.requestRescue(form);
+        const responseData = response.data || response;
 
-        setSuccessData(response.data || response);
+        setSuccessData(responseData);
+
+        if (responseData && responseData.trackingCode) {
+            const existingCodes = JSON.parse(localStorage.getItem('guestTrackingCodes') || '[]');
+            if (!existingCodes.includes(responseData.trackingCode)) {
+                existingCodes.push(responseData.trackingCode);
+                localStorage.setItem('guestTrackingCodes', JSON.stringify(existingCodes));
+            }
+        }
 
     } catch (error) {
         console.error(error);

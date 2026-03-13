@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { jwtDecode } from 'jwt-decode'
 import backgroundImage from '../../assets/images/background.png'
 import { loginApi } from '../../services/authApi'
+import { rescueApi } from '../../services/rescueApi';
 import { useAuth } from '../../context/AuthContext'
 import toast from 'react-hot-toast';
 import axiosClient from '../../api/axiosClient'; // Import thêm axiosClient để gọi API Profile
@@ -57,6 +58,17 @@ export default function LoginPage() {
       console.log('Login successful:', data);
       localStorage.setItem('accessToken', data.accessToken);
       localStorage.setItem('refreshToken', data.refreshToken);
+
+      try {
+        const guestCodes = JSON.parse(localStorage.getItem('guestTrackingCodes') || '[]');
+        if (guestCodes.length > 0) {
+          await rescueApi.claimRequests(guestCodes);
+          localStorage.removeItem('guestTrackingCodes');
+          console.log('Đã đồng bộ yêu cầu cũ thành công!');
+        }
+      } catch (syncErr) {
+        console.error('Lỗi khi đồng bộ yêu cầu cũ:', syncErr);
+      }
       
       // 2. [THÊM MỚI] Gọi API lấy Profile để lấy thông tin isTeamLeader
       try {

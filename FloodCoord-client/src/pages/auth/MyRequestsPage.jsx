@@ -249,16 +249,10 @@ function DetailModal({ request, onClose }) {
                             <UserGroupIcon className="w-3.5 h-3.5" />
                             {request.peopleCount} người
                         </span>
-                        {request.trackingCode && (
-                            <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold bg-slate-900 text-white border border-slate-900 tracking-[0.18em] uppercase">
-                                {request.trackingCode}
-                            </span>
-                        )}
                     </div>
 
                     {/* info grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <InfoBlock label="Mã tra cứu" value={request.trackingCode} />
                         <InfoBlock label="Người liên hệ" value={request.contactName} />
                         <InfoBlock label="Số điện thoại">
                             {request.contactPhone ? (
@@ -307,18 +301,16 @@ function DetailModal({ request, onClose }) {
                     )}
 
                     {/* track link */}
-                    {request.trackingCode && (
-                        <div className="pt-2 border-t border-gray-100">
-                            <Link
-                                to={`/track-rescue?code=${request.trackingCode}`}
-                                className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-medium hover:underline"
-                            >
-                                <ArrowPathIcon className="w-4 h-4" />
-                                Theo dõi chi tiết bằng mã tra cứu
-                                <ChevronRightIcon className="w-4 h-4" />
-                            </Link>
-                        </div>
-                    )}
+                    <div className="pt-2 border-t border-gray-100">
+                        <Link
+                            to={`/track-rescue?code=${request.trackingCode || ''}`}
+                            className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-medium hover:underline"
+                        >
+                            <ArrowPathIcon className="w-4 h-4" />
+                            Theo dõi chi tiết bằng mã tra cứu
+                            <ChevronRightIcon className="w-4 h-4" />
+                        </Link>
+                    </div>
                 </div>
             </div>
         </div>
@@ -356,16 +348,11 @@ function RequestCard({ request, onClick }) {
                             {request.title || 'Yêu cầu cứu hộ'}
                         </h3>
                         <div className="flex items-center gap-1.5 mt-1 text-gray-400 text-xs">
-                            <CalendarDaysIcon className="w-3.5 h-3.5 shrink-0" />
+                            <CalendarDaysIcon className="w-3.5 h-3.5 flex-shrink-0" />
                             <span>{formatDate(request.createdAt)}</span>
                         </div>
-                        {request.trackingCode && (
-                            <div className="mt-2 inline-flex items-center rounded-lg px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-black">
-                                Mã tra cứu: {request.trackingCode}
-                            </div>
-                        )}
                     </div>
-                    <ChevronRightIcon className="w-5 h-5 text-gray-300 group-hover:text-blue-400 shrink-0 mt-0.5 transition-colors" />
+                    <ChevronRightIcon className="w-5 h-5 text-gray-300 group-hover:text-blue-400 flex-shrink-0 mt-0.5 transition-colors" />
                 </div>
 
                 <div className="flex flex-wrap gap-2">
@@ -461,7 +448,7 @@ export default function MyRequestsPage() {
     };
 
     return (
-        <div className="min-h-screen bg-linear-to-br from-slate-50 via-blue-50/30 to-slate-50">
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-50">
             {/* ── page header ── */}
             <div className="bg-white border-b border-gray-100 shadow-sm">
                 <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
@@ -602,7 +589,7 @@ export default function MyRequestsPage() {
                 {/* ── phone sync notice ── */}
                 {!loading && !error && requests.length > 0 && (
                     <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex gap-3">
-                        <div className="shrink-0 mt-0.5">
+                        <div className="flex-shrink-0 mt-0.5">
                             <PhoneIcon className="w-5 h-5 text-blue-500" />
                         </div>
                         <div>
