@@ -2,6 +2,8 @@ package com.team6.floodcoord.service;
 
 import com.team6.floodcoord.dto.request.*;
 import com.team6.floodcoord.dto.response.*;
+import com.team6.floodcoord.mapper.RescueReportMapper;
+
 import com.team6.floodcoord.model.*;
 import com.team6.floodcoord.model.enums.RequestStatus;
 import com.team6.floodcoord.model.enums.TeamStatus;
@@ -38,7 +40,10 @@ public class RescueRequestServiceImpl implements RescueRequestService {
     private final CloudinaryService cloudinaryService;
     private final RescueRequestMapper requestMapper;
     private final UserRepository userRepo;
+    private final RescueReportRepository rescueReportRepository;
 
+    private final com.team6.floodcoord.mapper.RescueRequestMapper rescueRequestMapper;
+    private final RescueReportMapper rescueReportMapper;
 
     @Override
     public CreateRequestResponse createRescueRequest(CreateRescueRequestDTO dto, User currentUser) {
@@ -630,6 +635,37 @@ public class RescueRequestServiceImpl implements RescueRequestService {
 
         request.setCitizen(currentUser);
         requestRepo.save(request);
+    }
+
+    @Override
+    public List<CompletedRequestDTO> getReportedRequests() {
+        return requestRepo.findByStatus(RequestStatus.REPORTED)
+                .stream()
+                .map(rescueRequestMapper::toCompletedDTO)
+                .toList();
+    }
+
+    @Override
+    public ReportDetailDTO getReportDetail(UUID requestId) {
+
+        RescueRequest request = requestRepo.findById(requestId)
+                .orElseThrow(() -> new RuntimeException("Rescue request not found"));
+
+        if (request.getStatus() != RequestStatus.REPORTED) {
+            throw new RuntimeException("Report not available for this request");
+        }
+
+        RescueReport report = rescueReportRepository
+                .findByRequest_RequestId(requestId)
+                .orElseThrow(() -> new RuntimeException("Report not found"));
+
+        // map request -> base DTO
+        CompletedRequestDTO base = rescueRequestMapper.toCompletedDTO(request);
+
+        // map report -> report DTO
+        ReportDetailDTO dto = rescueReportMapper.toReportDTO(report);
+
+        return dto;
     }
 
     // Hàm kiểm tra logic chuyển trạng thái
