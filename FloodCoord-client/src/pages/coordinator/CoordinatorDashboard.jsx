@@ -1,5 +1,12 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { coordinatorApi } from '../../services/coordinatorApi';
+import {
+    getCurrentWeather,
+    getWeatherForecast,
+    getFloodRisk,
+    getActiveAlerts,
+    getWeatherLabel,
+} from '../../services/weatherService';
 import StatCard from '../../components/coordinator/StatCard';
 import {
     ExclamationTriangleIcon,
@@ -24,8 +31,16 @@ import {
  * - Auto-refresh mỗi 30 giây
  */
 export default function CoordinatorDashboard() {
+    const WEATHER_LOCATION = { name: 'Hồ Chí Minh', lat: 10.823, lon: 106.63 };
+
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [weatherLoading, setWeatherLoading] = useState(false);
+    const [weatherError, setWeatherError] = useState('');
+    const [currentWeather, setCurrentWeather] = useState(null);
+    const [forecast, setForecast] = useState(null);
+    const [floodRisk, setFloodRisk] = useState(null);
+    const [activeAlerts, setActiveAlerts] = useState([]);
     const [lineTimeRange, setLineTimeRange] = useState('day');    // day | week | month | year
     const [barTimeRange, setBarTimeRange] = useState('day');      // day | week | month | year
     const [barStatusFilter, setBarStatusFilter] = useState('all'); // all | validated | in_progress | completed
@@ -43,11 +58,43 @@ export default function CoordinatorDashboard() {
         }
     }, []);
 
+    const loadWeatherData = useCallback(async () => {
+        setWeatherLoading(true);
+        setWeatherError('');
+        try {
+            const [currentData, forecastData, riskData, alertsData] = await Promise.all([
+                getCurrentWeather(WEATHER_LOCATION.lat, WEATHER_LOCATION.lon),
+                getWeatherForecast(WEATHER_LOCATION.lat, WEATHER_LOCATION.lon, 2),
+                getFloodRisk(WEATHER_LOCATION.lat, WEATHER_LOCATION.lon),
+                getActiveAlerts(24),
+            ]);
+
+            setCurrentWeather(currentData);
+            setForecast(forecastData);
+            setFloodRisk(riskData);
+            setActiveAlerts(alertsData || []);
+        } catch (error) {
+            console.error('Failed to load weather dashboard data:', error);
+            setWeatherError('Không thể tải dữ liệu thời tiết. Vui lòng thử lại sau.');
+        } finally {
+            setWeatherLoading(false);
+        }
+    }, [WEATHER_LOCATION.lat, WEATHER_LOCATION.lon]);
+
     useEffect(() => {
         loadData();
+        loadWeatherData();
         const interval = setInterval(loadData, 30000);
-        return () => clearInterval(interval);
-    }, [loadData]);
+        const weatherInterval = setInterval(loadWeatherData, 10 * 60 * 1000);
+        return () => {
+            clearInterval(interval);
+            clearInterval(weatherInterval);
+        };
+    }, [loadData, loadWeatherData]);
+
+    const handleRefresh = async () => {
+        await Promise.all([loadData(), loadWeatherData()]);
+    };
 
     // ====== STAT CARDS ======
     const stats = useMemo(() => ({
@@ -164,6 +211,23 @@ export default function CoordinatorDashboard() {
         { key: 'year', label: 'Năm' },
     ];
 
+    const current = currentWeather?.current;
+    const rainValue = current?.precipitation ?? current?.rain;
+
+    const shortForecastItems = useMemo(() => {
+        const hourly = forecast?.hourly;
+        if (!hourly?.time?.length) return [];
+
+        const candidateIndexes = [0, 6, 12].filter((index) => index < hourly.time.length);
+        return candidateIndexes.map((index) => ({
+            time: hourly.time[index],
+            rain: hourly.rain?.[index],
+            temperature: hourly.temperature_2m?.[index],
+            rainProbability: hourly.precipitationProbability?.[index],
+            windSpeed: hourly.wind_speed_10m?.[index],
+        }));
+    }, [forecast]);
+
     return (
         <div className="p-6 space-y-6">
             {/* Header */}
@@ -173,7 +237,7 @@ export default function CoordinatorDashboard() {
                     <p className="text-sm text-gray-500">Thống kê tình hình yêu cầu cứu hộ hiện tại.</p>
                 </div>
                 <button
-                    onClick={loadData}
+                    onClick={handleRefresh}
                     disabled={loading}
                     className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-md text-sm font-medium hover:bg-teal-700 disabled:opacity-60"
                 >
@@ -339,10 +403,18 @@ export default function CoordinatorDashboard() {
                 <div className="flex items-center justify-between mb-4">
                     <div>
                         <h2 className="text-lg font-semibold text-gray-900">🌊 Thời tiết & Mực nước</h2>
-                        <p className="text-xs text-gray-500">Thông tin thời tiết và cảnh báo lũ lụt hiện tại</p>
+                        <p className="text-xs text-gray-500">{`Thông tin thời tiết và cảnh báo lũ lụt tại ${WEATHER_LOCATION.name}`}</p>
                     </div>
-                    <span className="text-[10px] text-gray-400 bg-gray-100 px-2 py-1 rounded-full">⚠️ Dữ liệu mẫu</span>
+                    <span className="text-[10px] text-gray-400 bg-gray-100 px-2 py-1 rounded-full">
+                        {weatherLoading ? 'Đang cập nhật...' : 'Live API'}
+                    </span>
                 </div>
+
+                {weatherError && (
+                    <div className="mb-4 text-xs text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+                        {weatherError}
+                    </div>
+                )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     {/* Nhiệt độ */}
@@ -351,8 +423,12 @@ export default function CoordinatorDashboard() {
                             <span className="text-lg">🌡️</span>
                             <p className="text-xs font-semibold text-sky-700">Nhiệt độ</p>
                         </div>
-                        <p className="text-2xl font-bold text-sky-900">28°C</p>
-                        <p className="text-xs text-sky-600 mt-1">Nhiều mây, ẩm cao</p>
+                        <p className="text-2xl font-bold text-sky-900">
+                            {current?.temperature_2m != null ? `${current.temperature_2m.toFixed(1)}°C` : '--'}
+                        </p>
+                        <p className="text-xs text-sky-600 mt-1">
+                            {current?.weatherCode != null ? getWeatherLabel(current.weatherCode) : 'Chưa có dữ liệu'}
+                        </p>
                     </div>
 
                     {/* Lượng mưa */}
@@ -361,18 +437,30 @@ export default function CoordinatorDashboard() {
                             <span className="text-lg">🌧️</span>
                             <p className="text-xs font-semibold text-blue-700">Lượng mưa</p>
                         </div>
-                        <p className="text-2xl font-bold text-blue-900">45 mm/h</p>
-                        <p className="text-xs text-blue-600 mt-1">Mưa vừa đến to</p>
+                        <p className="text-2xl font-bold text-blue-900">
+                            {rainValue != null ? `${Number(rainValue).toFixed(1)} mm` : '--'}
+                        </p>
+                        <p className="text-xs text-blue-600 mt-1">
+                            {current?.relative_humidity_2m != null
+                                ? `Độ ẩm ${current.relative_humidity_2m}%`
+                                : 'Không có dữ liệu độ ẩm'}
+                        </p>
                     </div>
 
                     {/* Mực nước */}
                     <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
                         <div className="flex items-center gap-2 mb-1">
                             <span className="text-lg">🌊</span>
-                            <p className="text-xs font-semibold text-amber-700">Mực nước sông</p>
+                            <p className="text-xs font-semibold text-amber-700">Lưu lượng sông</p>
                         </div>
-                        <p className="text-2xl font-bold text-amber-900">2.1 m</p>
-                        <p className="text-xs text-amber-600 mt-1">⚠️ Trên mức cảnh báo I</p>
+                        <p className="text-2xl font-bold text-amber-900">
+                            {floodRisk?.riverDischarge != null ? `${floodRisk.riverDischarge.toFixed(0)} m³/s` : '--'}
+                        </p>
+                        <p className="text-xs text-amber-600 mt-1">
+                            {floodRisk?.currentPrecipitation != null
+                                ? `Mưa hiện tại ${floodRisk.currentPrecipitation.toFixed(1)} mm`
+                                : 'Không có dữ liệu mưa hiện tại'}
+                        </p>
                     </div>
 
                     {/* Cảnh báo */}
@@ -381,8 +469,14 @@ export default function CoordinatorDashboard() {
                             <span className="text-lg">🚨</span>
                             <p className="text-xs font-semibold text-red-700">Cảnh báo</p>
                         </div>
-                        <p className="text-sm font-bold text-red-900">Cảnh báo lũ cấp 2</p>
-                        <p className="text-xs text-red-600 mt-1">Nguy cơ ngập úng vùng trũng</p>
+                        <p className="text-sm font-bold text-red-900">
+                            {floodRisk?.riskLevel ? `Mức ${floodRisk.riskLevel}` : 'Chưa có cảnh báo'}
+                        </p>
+                        <p className="text-xs text-red-600 mt-1">
+                            {floodRisk?.recommendation || (activeAlerts.length > 0
+                                ? `${activeAlerts.length} cảnh báo nguy cơ cao trong 24h`
+                                : 'Không có cảnh báo nguy cơ cao')}
+                        </p>
                     </div>
                 </div>
 
@@ -390,23 +484,30 @@ export default function CoordinatorDashboard() {
                 <div className="mt-4 bg-gray-50 rounded-lg p-3">
                     <h3 className="text-xs font-semibold text-gray-700 mb-2">📋 Dự báo 24h tới</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                        <div className="flex items-start gap-2">
-                            <span className="text-gray-400 font-medium min-w-[60px]">06:00</span>
-                            <span className="text-gray-700">🌧️ Mưa to, gió mạnh cấp 4-5. Lượng mưa dự kiến 30-50mm.</span>
-                        </div>
-                        <div className="flex items-start gap-2">
-                            <span className="text-gray-400 font-medium min-w-[60px]">12:00</span>
-                            <span className="text-gray-700">⛈️ Mưa rất to cục bộ. Mực nước có thể tăng thêm 0.3-0.5m.</span>
-                        </div>
-                        <div className="flex items-start gap-2">
-                            <span className="text-gray-400 font-medium min-w-[60px]">18:00</span>
-                            <span className="text-gray-700">🌦️ Mưa giảm dần. Mực nước dự kiến đạt đỉnh rồi rút chậm.</span>
-                        </div>
+                        {shortForecastItems.length > 0 ? shortForecastItems.map((item) => (
+                            <div key={item.time} className="flex items-start gap-2">
+                                <span className="text-gray-400 font-medium min-w-[60px]">
+                                    {new Date(item.time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                                <span className="text-gray-700">
+                                    {`🌧️ ${item.rainProbability ?? 0}% khả năng mưa, `}
+                                    {`lượng mưa ${item.rain != null ? Number(item.rain).toFixed(1) : '0.0'}mm, `}
+                                    {`nhiệt độ ${item.temperature != null ? Number(item.temperature).toFixed(1) : '--'}°C, `}
+                                    {`gió ${item.windSpeed != null ? Number(item.windSpeed).toFixed(0) : '--'}km/h.`}
+                                </span>
+                            </div>
+                        )) : (
+                            <div className="sm:col-span-3 text-center text-gray-400">
+                                Chưa có dữ liệu dự báo ngắn hạn
+                            </div>
+                        )}
                     </div>
                 </div>
 
                 <p className="text-[10px] text-gray-400 mt-3 text-center italic">
-                    Dữ liệu mẫu — sẽ tích hợp API thời tiết (OpenWeatherMap / Trung tâm KTTV Quốc gia) trong phiên bản tới
+                    {floodRisk?.evaluatedAt
+                        ? `Cập nhật gần nhất: ${new Date(floodRisk.evaluatedAt).toLocaleString('vi-VN')}`
+                        : 'Dữ liệu thời tiết đang được cập nhật định kỳ từ API'}
                 </p>
             </div>
         </div>
