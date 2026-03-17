@@ -48,7 +48,8 @@ public class FloodService {
     private FloodDischargeDTO fetchWithFallback(double lat, double lon) {
         FloodDischargeDTO result = fetchFromAPI(lat, lon);
 
-        if (result != null && result.getLatestDischarge() > 0) {
+        if (result != null && result.getLatestDischarge() != null
+                && result.getLatestDischarge() > 0) {
             return result;
         }
 
@@ -62,7 +63,10 @@ public class FloodService {
 
         for (double[] nudge : nudges) {
             FloodDischargeDTO nudged = fetchFromAPI(nudge[0], nudge[1]);
-            if (nudged != null && nudged.getLatestDischarge() > 0) {
+
+            if (nudged != null && nudged.getLatestDischarge() != null
+                    && nudged.getLatestDischarge() > 0) {
+
                 log.info("River data found at nudged coords [{},{}]",
                         nudge[0], nudge[1]);
                 return nudged;
