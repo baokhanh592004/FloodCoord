@@ -4,6 +4,7 @@ import {
   HomeIcon,
   ClipboardDocumentListIcon,
   MapIcon,
+  ExclamationTriangleIcon,
   ArrowRightOnRectangleIcon,
   ShieldCheckIcon,
   UserCircleIcon,
@@ -23,6 +24,7 @@ export default function CoordinatorLayout() {
     { name: 'Tổng quan', href: '/coordinator/dashboard', icon: HomeIcon },
     { name: 'Danh sách yêu cầu', href: '/coordinator/requests', icon: ClipboardDocumentListIcon },
     { name: 'Giám sát hoạt động', href: '/coordinator/operations', icon: MapIcon },
+    { name: 'Báo cáo sự cố', href: '/coordinator/incident-reports', icon: ExclamationTriangleIcon },
   ]
 
   return (

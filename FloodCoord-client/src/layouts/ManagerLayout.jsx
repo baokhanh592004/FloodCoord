@@ -4,6 +4,7 @@ import {
   TruckIcon,
   UserGroupIcon,
   ArchiveBoxIcon,
+  ExclamationTriangleIcon,
   ArrowRightOnRectangleIcon,
   ShieldCheckIcon,
   UserCircleIcon,
@@ -24,6 +25,7 @@ export default function ManagerLayout() {
     { name: 'Phương tiện', path: '/manager/vehicles', icon: TruckIcon },
     { name: 'Đội cứu hộ', path: '/manager/rescue-teams', icon: UserGroupIcon },
     { name: 'Vật tư', path: '/manager/supplies', icon: ArchiveBoxIcon },
+    { name: 'Báo cáo sự cố', path: '/manager/incident-reports', icon: ExclamationTriangleIcon },
   ]
 
   return (
