@@ -46,7 +46,10 @@ public class SecurityConfiguration {
             "/v3/api-docs/**",
             "/swagger-ui/**",
             "/swagger-ui.html",
-            "/api/rescue-requests/**"
+            "/api/rescue-requests/**",
+            "/api/weather/**",
+            "/api/flood/**",
+            "/api/cache/**"
     };
 
     private static final String CORS_MAPPING_PATTERN ="/**";
