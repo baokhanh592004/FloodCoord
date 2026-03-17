@@ -17,13 +17,13 @@ export default function ForgotPasswordPage() {
     try {
       await loginApi.forgotPassword(email)
       toast.success(
-        'If the email exists, a password reset link has been sent.'
+        'Nếu email tồn tại, hệ thống đã gửi một đường dẫn đặt lại mật khẩu cho bạn.'
       )
       setEmail('')
     } catch (err) {
       setError(
         err.response?.data?.message ||
-          'Failed to send reset email. Please try again.'
+          'Không thể gửi email đặt lại mật khẩu. Vui lòng thử lại.'
       )
     } finally {
       setLoading(false)
@@ -48,10 +48,10 @@ export default function ForgotPasswordPage() {
           className="md:w-96 w-80 flex flex-col items-center"
         >
           <h2 className="text-3xl font-medium text-gray-900">
-            Forgot password
+            Quên mật khẩu
           </h2>
           <p className="text-sm text-gray-500 mt-2 text-center">
-            Enter your email and we’ll send you a reset link
+            Nhập email của bạn và chúng tôi sẽ gửi cho bạn một đường dẫn đặt lại mật khẩu
           </p>
 
           {error && (
@@ -66,17 +66,18 @@ export default function ForgotPasswordPage() {
               height="10"
               viewBox="0 0 16 11"
               fill="none"
+              xmlns="http://www.w3.org/2000/svg"
             >
               <path
                 fillRule="evenodd"
                 clipRule="evenodd"
-                d="M0 .55.571 0H15.43l.57.55v9.9l-.571.55H.57L0 10.45z"
+                d="M0 .55.571 0H15.43l.57.55v9.9l-.571.55H.57L0 10.45zm1.143 1.138V9.9h13.714V1.69l-6.503 4.8h-.697zM13.749 1.1H2.25L8 5.356z"
                 fill="#6B7280"
               />
             </svg>
             <input
               type="email"
-              placeholder="Email address"
+              placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -89,16 +90,16 @@ export default function ForgotPasswordPage() {
             disabled={loading}
             className="mt-6 w-full h-11 rounded-full bg-indigo-500 text-white font-medium hover:opacity-90 disabled:opacity-60"
           >
-            {loading ? 'Sending...' : 'Send reset link'}
+            {loading ? 'Đang gửi...' : 'Gửi đường dẫn đặt lại'}
           </button>
 
           <p className="mt-4 text-sm text-gray-500">
-            Remember your password?{' '}
+            Ghi nhớ mật khẩu của bạn?{' '}
             <Link
               to="/login"
               className="text-indigo-500 hover:underline font-medium"
             >
-              Back to login
+              Quay lại đăng nhập
             </Link>
           </p>
         </form>
