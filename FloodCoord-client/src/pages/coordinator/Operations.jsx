@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { coordinatorApi } from '../../services/coordinatorApi';
+import { getCurrentWeather, getFloodRisk, getActiveAlerts, getWeatherLabel } from '../../services/weatherService';
 import StatusBadge from '../../components/coordinator/StatusBadge';
 import PriorityBadge from '../../components/coordinator/PriorityBadge';
 import RequestDetailModal from '../../components/coordinator/RequestDetailModal';
@@ -29,8 +30,15 @@ L.Marker.prototype.options.icon = DefaultIcon;
  * - Auto-refresh mỗi 15 giây
  */
 export default function Operations() {
+    const WEATHER_LOCATION = { name: 'Hồ Chí Minh', lat: 10.823, lon: 106.63 };
+
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [weatherLoading, setWeatherLoading] = useState(false);
+    const [weatherError, setWeatherError] = useState('');
+    const [currentWeather, setCurrentWeather] = useState(null);
+    const [floodRisk, setFloodRisk] = useState(null);
+    const [activeAlerts, setActiveAlerts] = useState([]);
     const [selectedRequest, setSelectedRequest] = useState(null);
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [lastRefresh, setLastRefresh] = useState(null);
@@ -48,12 +56,42 @@ export default function Operations() {
         }
     }, []);
 
+    const loadWeatherData = useCallback(async () => {
+        setWeatherLoading(true);
+        setWeatherError('');
+        try {
+            const [currentData, riskData, alertsData] = await Promise.all([
+                getCurrentWeather(WEATHER_LOCATION.lat, WEATHER_LOCATION.lon),
+                getFloodRisk(WEATHER_LOCATION.lat, WEATHER_LOCATION.lon),
+                getActiveAlerts(24),
+            ]);
+
+            setCurrentWeather(currentData);
+            setFloodRisk(riskData);
+            setActiveAlerts(alertsData || []);
+        } catch (error) {
+            console.error('Failed to load operations weather data:', error);
+            setWeatherError('Không thể tải dữ liệu thời tiết.');
+        } finally {
+            setWeatherLoading(false);
+        }
+    }, [WEATHER_LOCATION.lat, WEATHER_LOCATION.lon]);
+
+    const handleRefresh = async () => {
+        await Promise.all([loadData(), loadWeatherData()]);
+    };
+
     // Auto-refresh mỗi 15 giây
     useEffect(() => {
         loadData();
+        loadWeatherData();
         const interval = setInterval(loadData, 15000);
-        return () => clearInterval(interval);
-    }, [loadData]);
+        const weatherInterval = setInterval(loadWeatherData, 10 * 60 * 1000);
+        return () => {
+            clearInterval(interval);
+            clearInterval(weatherInterval);
+        };
+    }, [loadData, loadWeatherData]);
 
     // Nhiệm vụ đang active (IN_PROGRESS, MOVING, ARRIVED, RESCUING)
     const activeRequests = useMemo(
@@ -126,11 +164,11 @@ export default function Operations() {
                         </span>
                     </div>
                     <button
-                        onClick={loadData}
-                        disabled={loading}
+                        onClick={handleRefresh}
+                        disabled={loading || weatherLoading}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-teal-600 text-white text-xs font-medium rounded-md hover:bg-teal-700 disabled:opacity-60 transition-colors"
                     >
-                        <ArrowPathIcon className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+                        <ArrowPathIcon className={`h-3.5 w-3.5 ${(loading || weatherLoading) ? 'animate-spin' : ''}`} />
                         Làm mới
                     </button>
                 </div>
@@ -259,21 +297,48 @@ export default function Operations() {
                     {/* Thời tiết & Lũ lụt */}
                     <div className="flex-shrink-0 bg-white border border-gray-200 rounded-lg p-3">
                         <h3 className="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
-                            🌊 Thời tiết & Mực nước
+                            {`🌊 Thời tiết & Mực nước (${WEATHER_LOCATION.name})`}
                         </h3>
+
+                        {weatherError && (
+                            <div className="mb-2 text-[10px] text-red-600 bg-red-50 border border-red-200 rounded px-2 py-1">
+                                {weatherError}
+                            </div>
+                        )}
+
                         <div className="grid grid-cols-2 gap-2">
                             <div className="bg-blue-50 border border-blue-100 rounded p-2">
                                 <p className="text-[10px] text-blue-600 font-medium">Lượng mưa</p>
-                                <p className="text-sm font-bold text-blue-800">45 mm/h</p>
-                                <p className="text-[10px] text-blue-500">Mưa vừa đến to</p>
+                                <p className="text-sm font-bold text-blue-800">
+                                    {currentWeather?.current?.precipitation != null
+                                        ? `${Number(currentWeather.current.precipitation).toFixed(1)} mm`
+                                        : currentWeather?.current?.rain != null
+                                            ? `${Number(currentWeather.current.rain).toFixed(1)} mm`
+                                            : '--'}
+                                </p>
+                                <p className="text-[10px] text-blue-500">
+                                    {currentWeather?.current?.weatherCode != null
+                                        ? getWeatherLabel(currentWeather.current.weatherCode)
+                                        : 'Chưa có dữ liệu'}
+                                </p>
                             </div>
                             <div className="bg-amber-50 border border-amber-100 rounded p-2">
-                                <p className="text-[10px] text-amber-600 font-medium">Mực nước</p>
-                                <p className="text-sm font-bold text-amber-800">2.1 m</p>
-                                <p className="text-[10px] text-amber-500">Trên mức cảnh báo</p>
+                                <p className="text-[10px] text-amber-600 font-medium">Lưu lượng sông</p>
+                                <p className="text-sm font-bold text-amber-800">
+                                    {floodRisk?.riverDischarge != null ? `${floodRisk.riverDischarge.toFixed(0)} m³/s` : '--'}
+                                </p>
+                                <p className="text-[10px] text-amber-500">
+                                    {floodRisk?.riskLevel ? `Mức ${floodRisk.riskLevel}` : 'Chưa có cảnh báo'}
+                                </p>
                             </div>
                         </div>
-                        <p className="text-[10px] text-gray-400 mt-2 text-center">⚠️ Dữ liệu mẫu — sẽ tích hợp API thời tiết sau</p>
+                        <p className="text-[10px] text-gray-400 mt-2 text-center">
+                            {weatherLoading
+                                ? 'Đang cập nhật dữ liệu thời tiết...'
+                                : activeAlerts.length > 0
+                                    ? `${activeAlerts.length} cảnh báo nguy cơ cao trong 24h`
+                                    : 'Dữ liệu thời tiết được đồng bộ từ API'}
+                        </p>
                     </div>
                 </div>
             </div>
