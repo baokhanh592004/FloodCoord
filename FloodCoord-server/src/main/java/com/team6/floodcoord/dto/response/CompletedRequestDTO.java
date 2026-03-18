@@ -1,9 +1,8 @@
 package com.team6.floodcoord.dto.response;
 
 import com.team6.floodcoord.model.enums.RequestStatus;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -12,6 +11,8 @@ import java.util.UUID;
 @Getter
 @Setter
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class CompletedRequestDTO {
 
     private UUID requestId;
@@ -50,5 +51,7 @@ public class CompletedRequestDTO {
     private Long assignedTeamId;
     private String assignedTeamName;
     private String assignedTeamLeaderPhone;
+
+    private ReportDetailDTO report;
 
 }

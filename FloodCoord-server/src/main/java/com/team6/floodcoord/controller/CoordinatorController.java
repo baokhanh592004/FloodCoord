@@ -2,6 +2,7 @@ package com.team6.floodcoord.controller;
 
 import com.team6.floodcoord.dto.request.AssignTaskRequest;
 import com.team6.floodcoord.dto.request.VerifyRequestDTO;
+import com.team6.floodcoord.dto.response.CompletedRequestDTO;
 import com.team6.floodcoord.dto.response.RescueRequestDetailResponse;
 import com.team6.floodcoord.dto.response.RescueRequestSummaryResponse;
 import com.team6.floodcoord.model.User;
@@ -58,5 +59,27 @@ public class CoordinatorController {
         requestService.verifyRequest(requestId, requestDTO, coordinator);
         return ResponseEntity.ok("Request verified successfully. Status changed to VERIFIED.");
     }
+    @GetMapping("/reported")
+    @Operation(summary = "lấy tất cả rescue request đã được reported")
 
+    public ResponseEntity<List<CompletedRequestDTO>> getReportedRequests() {
+
+        return ResponseEntity.ok(
+                requestService.getReportedRequests()
+        );
+
+    }
+
+    @GetMapping("/{requestId}/report")
+    @Operation(summary = "lấy chi tiết report của 1 rescue-request")
+
+    public ResponseEntity<?> getReportDetail(
+            @PathVariable UUID requestId
+    ) {
+
+        return ResponseEntity.ok(
+                requestService.getReportDetail(requestId)
+        );
+
+    }
 }

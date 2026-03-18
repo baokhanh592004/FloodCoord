@@ -73,4 +73,7 @@ public class RescueRequest {
     // 🔹 Media (1 - N)
     @OneToMany(mappedBy = "request", cascade = CascadeType.ALL)
     private List<RequestMedia> mediaList;
+
+    @OneToOne(mappedBy = "request")
+    private RescueReport report;
 }

@@ -1,10 +1,7 @@
 package com.team6.floodcoord.service;
 
 import com.team6.floodcoord.dto.request.*;
-import com.team6.floodcoord.dto.response.CreateRequestResponse;
-import com.team6.floodcoord.dto.response.RescueRequestDetailResponse;
-import com.team6.floodcoord.dto.response.RescueRequestResponse;
-import com.team6.floodcoord.dto.response.RescueRequestSummaryResponse;
+import com.team6.floodcoord.dto.response.*;
 import com.team6.floodcoord.model.RescueRequest;
 import com.team6.floodcoord.model.User;
 import com.team6.floodcoord.model.enums.RequestStatus;
@@ -28,4 +25,7 @@ public interface RescueRequestService {
     void claimGuestRequests(List<String> trackingCodes, User currentUser);
     List<RescueRequestSummaryResponse> getMyRescueRequests(User currentUser);
     void claimRequestManually(String trackingCode, String phoneNumber, User currentUser);
+    List<CompletedRequestDTO> getReportedRequests();
+
+    ReportDetailDTO getReportDetail(UUID requestId);
 }

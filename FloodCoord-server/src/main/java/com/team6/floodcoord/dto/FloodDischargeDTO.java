@@ -41,7 +41,10 @@ public class FloodDischargeDTO {
                 || daily.getRiverDischarge().isEmpty()) {
             return 0.0;
         }
-        return daily.getRiverDischarge().get(0);
+        return daily.getRiverDischarge().stream()
+                .filter(v -> v != null)
+                .findFirst()
+                .orElse(0.0);
     }
 
     /** Convenience: max discharge over the forecast window */

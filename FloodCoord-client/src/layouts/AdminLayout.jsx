@@ -10,6 +10,7 @@ import {
   UserCircleIcon,
   TruckIcon,
   ArchiveBoxIcon,
+  ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline'
 import { useAuth } from '../context/AuthContext'
 
@@ -27,6 +28,7 @@ export default function AdminLayout() {
     { name: 'Phương tiện',  path: '/admin/vehicles',     icon: TruckIcon },
     { name: 'Đội cứu hộ',   path: '/admin/rescue-teams', icon: UserGroupIcon },
     { name: 'Vật tư',       path: '/admin/supplies',     icon: ArchiveBoxIcon },
+    { name: 'Báo cáo sự cố', path: '/admin/incident-reports', icon: ExclamationTriangleIcon },
     { name: 'Người dùng',   path: '/admin/users',        icon: UsersIcon },
   ]
 
