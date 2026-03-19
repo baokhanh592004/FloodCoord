@@ -13,9 +13,23 @@ export default function TeamFormModal({
     const [selectedLeaderId, setSelectedLeaderId] = useState('');
     const [selectedMemberIds, setSelectedMemberIds] = useState([]);
 
+    const mergedSelectableUsers = React.useMemo(() => {
+        const mapById = new Map();
+
+        (availableUsers || []).forEach((user) => {
+            mapById.set(user.id, user);
+        });
+
+        (editingTeam?.members || []).forEach((member) => {
+            mapById.set(member.id, member);
+        });
+
+        return Array.from(mapById.values());
+    }, [availableUsers, editingTeam]);
+
     useEffect(() => {
         if (editingTeam) {
-            setSelectedLeaderId(editingTeam.leader?.id || '');
+            setSelectedLeaderId(editingTeam.leaderId ? String(editingTeam.leaderId) : '');
             setSelectedMemberIds(editingTeam.members?.map(m => m.id) || []);
         } else {
             setSelectedLeaderId('');
@@ -93,7 +107,7 @@ export default function TeamFormModal({
 
                     {/* Team Leader Selection */}
                     <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+                        <label className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
                             <Shield size={16} className="text-orange-500" />
                             Đội trưởng
                         </label>
@@ -103,7 +117,7 @@ export default function TeamFormModal({
                             className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                         >
                             <option value="">-- Chọn đội trưởng --</option>
-                            {availableUsers.map(user => (
+                            {mergedSelectableUsers.map(user => (
                                 <option key={user.id} value={user.id}>
                                     {user.fullName || user.email} ({user.email})
                                 </option>
@@ -113,18 +127,18 @@ export default function TeamFormModal({
 
                     {/* Team Members Selection */}
                     <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
+                        <label className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
                             <UserPlus size={16} className="text-blue-500" />
                             Thành viên đội ({selectedMemberIds.length} người)
                         </label>
                         <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 max-h-60 overflow-y-auto">
-                            {availableUsers.length === 0 ? (
+                            {mergedSelectableUsers.length === 0 ? (
                                 <p className="text-slate-500 text-sm text-center py-4">
                                     Không có người dùng khả dụng
                                 </p>
                             ) : (
                                 <div className="space-y-2">
-                                    {availableUsers.map(user => (
+                                    {mergedSelectableUsers.map(user => (
                                         <label 
                                             key={user.id}
                                             className="flex items-center gap-3 p-3 bg-white rounded-lg hover:bg-blue-50 cursor-pointer transition border border-slate-100"
@@ -141,7 +155,7 @@ export default function TeamFormModal({
                                                 </p>
                                                 <p className="text-xs text-slate-500">{user.email}</p>
                                             </div>
-                                            {selectedLeaderId === user.id.toString() && (
+                                            {selectedLeaderId === String(user.id) && (
                                                 <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full font-semibold">
                                                     Đội trưởng
                                                 </span>

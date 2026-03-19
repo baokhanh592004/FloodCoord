@@ -91,14 +91,20 @@ export default function RescueTeamManagement() {
         }
     };
 
-    const handleEdit = (team) => {
-        setEditingTeam(team);
-        setFormData({
-            name: team.name,
-            description: team.description || '',
-            status: team.status || 'AVAILABLE'
-        });
-        setShowModal(true);
+    const handleEdit = async (team) => {
+        try {
+            const detailData = await adminTeamApi.getTeamById(team.id);
+            setEditingTeam(detailData);
+            setFormData({
+                name: detailData.name,
+                description: detailData.description || '',
+                status: detailData.status || 'AVAILABLE'
+            });
+            setShowModal(true);
+        } catch (err) {
+            setError('Không thể tải dữ liệu đội để chỉnh sửa');
+            console.error(err);
+        }
     };
 
     const handleDelete = async (teamId) => {
