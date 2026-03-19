@@ -50,6 +50,7 @@ import MissionDetail from '../pages/rescueteam/MissionDetail'
 import RescueReport from '../pages/rescueteam/RescueReport'
 import CompletedMissions from '../pages/rescueteam/CompletedMissions'
 import TeamMembers from '../pages/rescueteam/TeamMembers'
+import WeatherDashboard from '../pages/WeatherDashboard'
 
 export default function AppRoutes() {
   return (
@@ -64,6 +65,7 @@ export default function AppRoutes() {
         <Route path="/request-rescue" element={<RequestRescuePage />} />
         <Route path="/track-rescue" element={<TrackRescuePage />} />
         <Route path="/about" element={<AboutPage />} />
+        <Route path='/weather' element={<WeatherDashboard />}/>
         <Route
           path="/my-requests"
           element={
