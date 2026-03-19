@@ -41,8 +41,10 @@ public class AlertService {
         WeatherCurrentDTO weather = weatherService.getCurrentWeather(lat, lon);
         FloodDischargeDTO flood   = floodService.getRiverDischarge(lat, lon);
 
-        double discharge   = flood != null ? flood.getLatestDischarge() : 0.0;
-        double maxDischarge = flood != null ? flood.getMaxForecastDischarge() : 0.0;
+        double discharge   = (flood != null && flood.getLatestDischarge() != null)
+                ? flood.getLatestDischarge() : 0.0;
+        double maxDischarge = (flood != null && flood.getMaxForecastDischarge() != null)
+                ? flood.getMaxForecastDischarge() : 0.0;
         double rain        = extractRain(weather);
         double wind        = extractWind(weather);
         double temp        = extractTemp(weather);
@@ -93,13 +95,13 @@ public class AlertService {
 
     private String buildRecommendation(RiskLevel level) {
         return switch (level) {
-            case CRITICAL -> "DEPLOY RESCUE TEAMS IMMEDIATELY. Evacuate all low-lying areas. " +
-                    "Activate emergency coordination center.";
-            case HIGH     -> "Pre-position rescue teams at staging areas. " +
-                    "Issue evacuation warnings. Monitor continuously.";
-            case MEDIUM   -> "Place rescue resources on standby. " +
-                    "Notify local authorities. Increase monitoring frequency.";
-            case LOW      -> "Normal monitoring. No immediate action required.";
+            case CRITICAL -> "TRIỂN KHAI NGAY LẬP TỨC CÁC ĐỘI CỨU HỘ. Sơ tán tất cả các khu vực trũng thấp. " +
+                    "Liên hệ trung tâm điều phối khẩn cấp.";
+            case HIGH     -> "Bố trí sẵn các đội cứu hộ tại các khu vực tập kết. " +
+                    "Phát cảnh báo sơ tán. Giám sát liên tục.";
+            case MEDIUM   -> "Chuẩn bị sẵn sàng các nguồn lực cứu hộ. " +
+                    "Thông báo cho chính quyền địa phương. Tăng tần suất giám sát.";
+            case LOW      -> "Thời tiết bình thường. Không cần hành động ngay lúc này.";
         };
     }
 

@@ -7,7 +7,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
-import org.springframework.web.reactive.function.client.WebClientResponseException;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
@@ -45,11 +44,15 @@ public class FloodService {
      * GloFAS has 5 km resolution — if no river is found at exact coordinates,
      * we nudge by ±0.05° in four directions and retry.
      */
+
+    private boolean isValid(FloodDischargeDTO dto) {
+        return dto != null && dto.getLatestDischarge() != null && dto.getLatestDischarge() > 0;
+    }
+
     private FloodDischargeDTO fetchWithFallback(double lat, double lon) {
         FloodDischargeDTO result = fetchFromAPI(lat, lon);
 
-        if (result != null && result.getLatestDischarge() != null
-                && result.getLatestDischarge() > 0) {
+        if (isValid(result)) {
             return result;
         }
 
@@ -64,9 +67,7 @@ public class FloodService {
         for (double[] nudge : nudges) {
             FloodDischargeDTO nudged = fetchFromAPI(nudge[0], nudge[1]);
 
-            if (nudged != null && nudged.getLatestDischarge() != null
-                    && nudged.getLatestDischarge() > 0) {
-
+            if (isValid(nudged)) {
                 log.info("River data found at nudged coords [{},{}]",
                         nudge[0], nudge[1]);
                 return nudged;
@@ -74,11 +75,11 @@ public class FloodService {
         }
 
         log.warn("No river discharge data found near [{},{}]", lat, lon);
-        return result; // return empty result rather than null
+        return new FloodDischargeDTO();
     }
 
     private FloodDischargeDTO fetchFromAPI(double lat, double lon) {
-        // FIX: UriComponentsBuilder for correct URL construction
+        // UriComponentsBuilder for correct URL construction
         URI uri = UriComponentsBuilder
                 .fromHttpUrl(floodUrl)
                 .queryParam("latitude", lat)
@@ -91,16 +92,17 @@ public class FloodService {
 
         try {
             log.info("Fetching river discharge: {}", uri);
-            return restClient.get()
+             FloodDischargeDTO respone = restClient.get()
                     .uri(uri)
                     .retrieve()
                     .body(FloodDischargeDTO.class);
+             return respone != null ? respone : new FloodDischargeDTO();
         } catch (RestClientException e) {
             log.error("Flood API error for [{},{}]: {}", lat, lon, e.getMessage());
             return null;
         } catch (Exception e) {
             log.error("Flood API call failed for [{},{}]: {}", lat, lon, e.getMessage());
-            return null;
+            return new FloodDischargeDTO();
         }
     }
 }
