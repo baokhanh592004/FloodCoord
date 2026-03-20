@@ -7,6 +7,7 @@ import com.team6.floodcoord.dto.request.SupplyRemainDTO;
 import com.team6.floodcoord.dto.response.AttendanceResponseDTO;
 import com.team6.floodcoord.dto.response.*;
 import com.team6.floodcoord.model.*;
+import com.team6.floodcoord.model.enums.AttendanceStatus;
 import com.team6.floodcoord.model.enums.RequestStatus;
 import com.team6.floodcoord.model.enums.TeamStatus;
 import com.team6.floodcoord.model.enums.VehicleStatus;
@@ -95,12 +96,19 @@ public class TeamLeaderServiceImpl implements TeamLeaderService {
         // 3️⃣ Auto đổi trạng thái team nếu đủ người
         long totalMembers = team.getMembers().size();
 
-        long totalMarked = attendanceRepository
-                .findByRescueRequest_RequestId(request.getRequestId())
-                .size();
+        List<Attendance> attendanceList = attendanceRepository
+            .findByRescueRequest_RequestId(request.getRequestId());
 
-        if (totalMarked == totalMembers) {
+        long totalMarked = attendanceList.size();
+        long totalPresent = attendanceList.stream()
+            .filter(attendance -> attendance.getStatus() == AttendanceStatus.PRESENT)
+            .count();
+
+        if (totalMarked == totalMembers && totalPresent == totalMembers) {
             team.setStatus(TeamStatus.BUSY);
+            rescueTeamRepository.save(team);
+        } else if (team.getStatus() == TeamStatus.BUSY) {
+            team.setStatus(TeamStatus.AVAILABLE);
             rescueTeamRepository.save(team);
         }
     }
@@ -145,6 +153,12 @@ public class TeamLeaderServiceImpl implements TeamLeaderService {
         if (request.getAssignedTeam() == null ||
                 !request.getAssignedTeam().getId().equals(team.getId())) {
             throw new RuntimeException("This request is not assigned to your team");
+        }
+
+        if (request.getStatus() == RequestStatus.IN_PROGRESS
+                && newStatus == RequestStatus.MOVING
+                && team.getStatus() != TeamStatus.BUSY) {
+            throw new RuntimeException("Đội chưa được phép xuất phát. Hãy gửi báo cáo sự cố và chờ coordinator xác nhận CONTINUE.");
         }
 
         validateTransition(request.getStatus(), newStatus);

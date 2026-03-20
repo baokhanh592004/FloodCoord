@@ -1,9 +1,10 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { rescueTeamApi } from "../../services/rescueTeamApi";
+import { incidentReportApi } from "../../services/incidentReportApi";
 import MissionMap from "../../components/rescueteam/MissionMap";
 import toast from "react-hot-toast";
-import { CheckCircle2, Users, X, UserCheck, UserX, Search } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Users, X, UserCheck, UserX, Search } from "lucide-react";
 
 export default function MissionDetail() {
   const { id } = useParams();
@@ -18,6 +19,13 @@ export default function MissionDetail() {
   const [showAttendanceModal, setShowAttendanceModal] = useState(false);
   const [teamMembers, setTeamMembers] = useState([]);
   const [attendanceList, setAttendanceList] = useState([]);
+  const [showIncidentModal, setShowIncidentModal] = useState(false);
+  const [incidentSubmitting, setIncidentSubmitting] = useState(false);
+  const [incidentForm, setIncidentForm] = useState({
+    title: "",
+    description: "",
+    files: [],
+  });
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -60,6 +68,21 @@ export default function MissionDetail() {
     if (id) fetchDetail();
   }, [id]);
 
+  const waitingForCoordinator =
+    mission?.status === "IN_PROGRESS" &&
+    attendanceDone &&
+    mission?.assignedTeamStatus !== "BUSY";
+
+  useEffect(() => {
+    if (!waitingForCoordinator) return;
+
+    const timer = setInterval(() => {
+      fetchDetail();
+    }, 5000);
+
+    return () => clearInterval(timer);
+  }, [waitingForCoordinator]);
+
   // --- PHẦN THÊM MỚI: Hàm xử lý điểm danh ---
   const openAttendance = async () => {
     try {
@@ -79,18 +102,77 @@ export default function MissionDetail() {
         attendanceList: attendanceList.map(({memberId, status}) => ({memberId, status}))
       };
       await rescueTeamApi.markAttendance(data);
+
+      const absentCount = attendanceList.filter((item) => item.status === "ABSENT").length;
       setAttendanceDone(true);
       setShowAttendanceModal(false);
       toast.success("Điểm danh thành công!");
+
+      await fetchDetail();
+
+      if (absentCount >= 1 && absentCount <= 2) {
+        setIncidentForm({
+          title: "Vắng thành viên khi điểm danh",
+          description: `Đội hiện vắng ${absentCount} thành viên khi điểm danh. Đề nghị coordinator đánh giá CONTINUE hoặc ABORT nhiệm vụ.`,
+          files: [],
+        });
+        setShowIncidentModal(true);
+        toast("Đội thiếu người, vui lòng gửi báo cáo sự cố cho coordinator.", { icon: "⚠️" });
+      }
     } catch (err) {
       toast.error("Điểm danh thất bại!");
     }
   };
 
+  const openIncidentModal = () => {
+    setIncidentForm((prev) => ({
+      title: prev.title || "Sự cố khi thực hiện nhiệm vụ",
+      description: prev.description || "",
+      files: [],
+    }));
+    setShowIncidentModal(true);
+  };
+
+  const submitIncidentReport = async () => {
+    if (!incidentForm.title.trim() || !incidentForm.description.trim()) {
+      toast.error("Vui lòng nhập tiêu đề và mô tả sự cố.");
+      return;
+    }
+
+    try {
+      setIncidentSubmitting(true);
+      await incidentReportApi.createIncident({
+        rescueRequestId: id,
+        title: incidentForm.title,
+        description: incidentForm.description,
+        files: incidentForm.files,
+      });
+      setShowIncidentModal(false);
+      setIncidentForm({ title: "", description: "", files: [] });
+      toast.success("Đã gửi báo cáo sự cố cho coordinator.");
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Gửi báo cáo sự cố thất bại.");
+    } finally {
+      setIncidentSubmitting(false);
+    }
+  };
+
   const updateStatus = async (status) => {
+    const isTeamReadyToMove = !mission?.assignedTeamStatus || mission?.assignedTeamStatus === "BUSY";
+
+    if (
+      mission?.status === "IN_PROGRESS" &&
+      status === "MOVING" &&
+      !isTeamReadyToMove
+    ) {
+      toast.error("Đang chờ coordinator xác nhận CONTINUE. Chưa thể di chuyển.");
+      return;
+    }
+
     try {
       await rescueTeamApi.updateProgress(id, { status });
       setMission((prev) => ({ ...prev, status }));
+      await fetchDetail();
       if (status === "COMPLETED") {
         toast.success("Nhiệm vụ cứu hộ kết thúc thành công!");
       } else {
@@ -98,7 +180,7 @@ export default function MissionDetail() {
       }
     } catch (err) {
       console.error(err);
-      toast.error("Không thể cập nhật trạng thái!");
+      toast.error(err?.response?.data?.message || "Không thể cập nhật trạng thái!");
     }
   };
 
@@ -153,7 +235,7 @@ export default function MissionDetail() {
   return (
     <div className="p-6 h-[calc(100vh-80px)]">
 {showAttendanceModal && (
-  <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] z-[60] flex items-center justify-center p-4 animate-in fade-in duration-200">
+  <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] z-60 flex items-center justify-center p-4 animate-in fade-in duration-200">
     <div className="bg-white rounded-3xl w-full max-w-4xl overflow-hidden shadow-2xl border border-slate-200 flex flex-col max-h-[90vh]">
       
       {/* Header: Thiết kế dàn hàng ngang rộng */}
@@ -275,6 +357,80 @@ export default function MissionDetail() {
   </div>
 )}
 
+{showIncidentModal && (
+  <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] z-70 flex items-center justify-center p-4">
+    <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl border border-slate-200 overflow-hidden">
+      <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-amber-100 text-amber-700">
+            <AlertTriangle size={18} />
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-slate-800">Gửi báo cáo sự cố</h3>
+            <p className="text-xs text-slate-500">Nhiệm vụ #{id}</p>
+          </div>
+        </div>
+        <button onClick={() => setShowIncidentModal(false)} className="p-2 hover:bg-slate-100 rounded-full text-slate-400">
+          <X size={18} />
+        </button>
+      </div>
+
+      <div className="p-6 space-y-4">
+        <div>
+          <label className="text-sm font-semibold text-slate-700">Tiêu đề sự cố</label>
+          <input
+            value={incidentForm.title}
+            onChange={(event) => setIncidentForm((prev) => ({ ...prev, title: event.target.value }))}
+            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none"
+            placeholder="Ví dụ: Vắng 1 thành viên do sức khoẻ"
+          />
+        </div>
+
+        <div>
+          <label className="text-sm font-semibold text-slate-700">Mô tả chi tiết</label>
+          <textarea
+            rows={5}
+            value={incidentForm.description}
+            onChange={(event) => setIncidentForm((prev) => ({ ...prev, description: event.target.value }))}
+            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none"
+            placeholder="Nêu tình trạng sự cố và đề nghị coordinator xử lý..."
+          />
+        </div>
+
+        <div>
+          <label className="text-sm font-semibold text-slate-700">Hình ảnh đính kèm (tuỳ chọn)</label>
+          <input
+            type="file"
+            multiple
+            accept="image/*"
+            onChange={(event) => setIncidentForm((prev) => ({ ...prev, files: Array.from(event.target.files || []) }))}
+            className="mt-1 block w-full text-sm text-slate-600 file:mr-4 file:rounded-md file:border-0 file:bg-amber-100 file:px-3 file:py-2 file:font-semibold file:text-amber-800 hover:file:bg-amber-200"
+          />
+          {incidentForm.files?.length > 0 && (
+            <p className="mt-1 text-xs text-slate-500">Đã chọn {incidentForm.files.length} ảnh.</p>
+          )}
+        </div>
+      </div>
+
+      <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3">
+        <button
+          onClick={() => setShowIncidentModal(false)}
+          className="px-4 py-2 rounded-lg border border-slate-300 text-slate-600 font-semibold hover:bg-slate-50"
+        >
+          Hủy
+        </button>
+        <button
+          onClick={submitIncidentReport}
+          disabled={incidentSubmitting}
+          className="px-5 py-2 rounded-lg bg-amber-600 text-white font-semibold hover:bg-amber-700 disabled:opacity-60"
+        >
+          {incidentSubmitting ? "Đang gửi..." : "Gửi báo cáo"}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
       <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-900">Chi tiết nhiệm vụ cứu hộ</h1>
@@ -379,8 +535,17 @@ export default function MissionDetail() {
           {mission.status !== "COMPLETED" ? (
             <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm">
               <h2 className="font-bold mb-3 text-sm text-slate-700">Cập nhật tiến trình thực tế</h2>
+              <p className="mb-3 text-xs text-slate-500">
+                Trạng thái đội hiện tại: <span className="font-semibold">{mission.assignedTeamStatus || "(chưa đồng bộ)"}</span>
+              </p>
               {currentUser?.isTeamLeader ? (
                 <div className="flex gap-2 flex-wrap">
+                  <button
+                    onClick={openIncidentModal}
+                    className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-semibold transition-all shadow-sm"
+                  >
+                    Báo cáo sự cố
+                  </button>
                   {/* LUỒNG MỚI: Chỉ hiện Điểm danh nếu chưa làm */}
                   {mission.status === "IN_PROGRESS" && !attendanceDone && (
                     <button onClick={openAttendance} className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-semibold transition-all shadow-sm">Điểm danh đội</button>
@@ -389,8 +554,25 @@ export default function MissionDetail() {
                   {/* CHỈ HIỆN CÁC NÚT NÀY SAU KHI ĐÃ ĐIỂM DANH */}
                   {attendanceDone && (
                     <>
+                      {mission.status === "IN_PROGRESS" && mission.assignedTeamStatus !== "BUSY" && (
+                        <div className="w-full rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                          Đội đã điểm danh nhưng chưa được phép xuất phát. Hãy gửi báo cáo sự cố và chờ coordinator xác nhận CONTINUE.
+                          <button
+                            onClick={fetchDetail}
+                            className="ml-2 rounded-md border border-amber-300 bg-white px-2 py-1 font-semibold hover:bg-amber-100"
+                          >
+                            Làm mới trạng thái
+                          </button>
+                        </div>
+                      )}
                       {mission.status === "IN_PROGRESS" && (
-                        <button onClick={() => updateStatus("MOVING")} className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg font-semibold shadow-sm">Đang di chuyển</button>
+                        <button
+                          onClick={() => updateStatus("MOVING")}
+                          disabled={Boolean(mission.assignedTeamStatus) && mission.assignedTeamStatus !== "BUSY"}
+                          className="bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg font-semibold shadow-sm"
+                        >
+                          Đang di chuyển
+                        </button>
                       )}
                       {mission.status === "MOVING" && (
                         <button onClick={() => updateStatus("ARRIVED")} className="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold shadow-sm">Đã đến nơi</button>

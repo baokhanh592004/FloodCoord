@@ -35,5 +35,6 @@ public class RescueRequestLeaderDTO {
 
     private Long assignedTeamId;
     private String assignedTeamName;
+    private String assignedTeamStatus;
     private String assignedTeamLeaderPhone;
 }

@@ -592,6 +592,11 @@ public class RescueRequestServiceImpl implements RescueRequestService {
                             .assignedTeamName(
                                     r.getAssignedTeam() != null ? r.getAssignedTeam().getName() : null
                             )
+                                .assignedTeamStatus(
+                                    r.getAssignedTeam() != null && r.getAssignedTeam().getStatus() != null
+                                        ? r.getAssignedTeam().getStatus().name()
+                                        : null
+                                )
                             .assignedTeamLeaderPhone(
                                     r.getAssignedTeam() != null && r.getAssignedTeam().getLeader() != null
                                             ? r.getAssignedTeam().getLeader().getPhoneNumber()

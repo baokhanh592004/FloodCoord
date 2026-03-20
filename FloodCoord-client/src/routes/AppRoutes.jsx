@@ -41,7 +41,7 @@ import SupplyManagement from '../pages/manager/SupplyManagement'
 import CoordinatorDashboard from '../pages/coordinator/CoordinatorDashboard'
 import RequestQueue from '../pages/coordinator/RequestQueue'
 import Operations from '../pages/coordinator/Operations'
-import IncidentReportsPage from '../pages/shared/IncidentReportsPage'
+import IncidentManagementPage from '../pages/shared/IncidentManagementPage'
 
 /* Rescue Team */
 import RescueTeamDashboard from '../pages/rescueteam/RescueTeamDashboard'
@@ -97,7 +97,7 @@ export default function AppRoutes() {
         <Route path="users" element={<UserManagement />} />
         <Route path="vehicles" element={<AdminVehicleManagement />} />
         <Route path="supplies" element={<AdminSupplyManagement />} />
-        <Route path="incident-reports" element={<IncidentReportsPage />} />
+        <Route path="incident-reports" element={<IncidentManagementPage />} />
       </Route>
 
       {/* ================= MANAGER (WITH SIDEBAR) ================= */}
@@ -114,7 +114,7 @@ export default function AppRoutes() {
         <Route path="vehicles" element={<VehicleManagement />} />
         <Route path="rescue-teams" element={<RescueTeamManagement />} />
         <Route path="supplies" element={<SupplyManagement />} />
-        <Route path="incident-reports" element={<IncidentReportsPage />} />
+        <Route path="incident-reports" element={<IncidentManagementPage />} />
       </Route>
 
       {/* ================= COORDINATOR (WITH SIDEBAR) ================= */}
@@ -130,7 +130,7 @@ export default function AppRoutes() {
         <Route path="dashboard" element={<CoordinatorDashboard />} />
         <Route path="requests" element={<RequestQueue />} />
         <Route path="operations" element={<Operations />} />
-        <Route path="incident-reports" element={<IncidentReportsPage />} />
+        <Route path="incident-reports" element={<IncidentManagementPage />} />
       </Route>
 
 {/* ================= RESCUE TEAM (WITH SIDEBAR) ================= */}
