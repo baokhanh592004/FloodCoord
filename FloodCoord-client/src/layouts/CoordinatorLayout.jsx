@@ -25,6 +25,7 @@ export default function CoordinatorLayout() {
     { name: 'Danh sách yêu cầu', href: '/coordinator/requests', icon: ClipboardDocumentListIcon },
     { name: 'Giám sát hoạt động', href: '/coordinator/operations', icon: MapIcon },
     { name: 'Báo cáo sự cố', href: '/coordinator/incident-reports', icon: ExclamationTriangleIcon },
+    { name: 'Báo cáo cứu hộ hoàn thành', path: '/admin/rescue-reports', icon: ChartBarIcon },
   ]
 
   return (
