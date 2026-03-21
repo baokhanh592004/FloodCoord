@@ -29,6 +29,7 @@ export default function AdminLayout() {
     { name: 'Đội cứu hộ',   path: '/admin/rescue-teams', icon: UserGroupIcon },
     { name: 'Vật tư',       path: '/admin/supplies',     icon: ArchiveBoxIcon },
     { name: 'Báo cáo sự cố', path: '/admin/incident-reports', icon: ExclamationTriangleIcon },
+    { name: 'Báo cáo cứu hộ hoàn thành', path: '/admin/rescue-reports', icon: ChartBarIcon },
     { name: 'Người dùng',   path: '/admin/users',        icon: UsersIcon },
   ]
 

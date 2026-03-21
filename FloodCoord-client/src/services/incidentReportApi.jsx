@@ -1,22 +1,35 @@
 import axiosClient from '../api/axiosClient';
 
 export const incidentReportApi = {
-    getReportedRequests: async () => {
+    // Lấy toàn bộ lịch sử báo cáo sự cố (dành cho trang danh sách chung)
+    getAllIncidents: async () => {
         try {
-            const response = await axiosClient.get('/api/coordinator/requests/reported');
+            const response = await axiosClient.get('/api/incidents');
             return response.data;
         } catch (error) {
-            console.error('Get reported requests failed:', error);
+            console.error('Get all incidents failed:', error);
             throw error;
         }
     },
 
-    getReportDetail: async (requestId) => {
+    // Lấy danh sách sự cố đang chờ xử lý (tuỳ trang)
+    getPendingIncidents: async () => {
         try {
-            const response = await axiosClient.get(`/api/coordinator/requests/${requestId}/report`);
+            const response = await axiosClient.get('/api/incidents/pending');
             return response.data;
         } catch (error) {
-            console.error('Get report detail failed:', error);
+            console.error('Get pending incidents failed:', error);
+            throw error;
+        }
+    },
+
+    // Coordinator xử lý sự cố (quyết định CONTINUE hoặc ABORT)
+    resolveIncident: async (incidentId, resolveData) => {
+        try {
+            const response = await axiosClient.post(`/api/incidents/${incidentId}/resolve`, resolveData);
+            return response.data; // ResponseEntity<String>
+        } catch (error) {
+            console.error('Resolve incident failed:', error);
             throw error;
         }
     }
