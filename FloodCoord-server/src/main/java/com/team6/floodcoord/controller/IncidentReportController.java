@@ -15,6 +15,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/incidents")
@@ -56,5 +57,14 @@ public class IncidentReportController {
     @Operation(summary = "Lấy toàn bộ lịch sử báo cáo sự cố")
     public ResponseEntity<List<IncidentReportResponse>> getAllIncidents() {
         return ResponseEntity.ok(incidentService.getAllIncidents());
+    }
+
+    @GetMapping("/request/{requestId}/latest")
+    @PreAuthorize("hasRole('RESCUE_TEAM') or hasRole('COORDINATOR') or hasRole('ADMIN') or hasRole('MANAGER')")
+    @Operation(summary = "Lấy sự cố mới nhất theo nhiệm vụ (để team leader chờ quyết định coordinator)")
+    public ResponseEntity<IncidentReportResponse> getLatestIncidentByRequest(
+            @PathVariable UUID requestId,
+            @AuthenticationPrincipal User requester) {
+        return ResponseEntity.ok(incidentService.getLatestIncidentByRequest(requestId, requester));
     }
 }

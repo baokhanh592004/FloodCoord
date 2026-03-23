@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { rescueTeamApi } from "../../services/rescueTeamApi";
 import MissionMap from "../../components/rescueteam/MissionMap";
 import toast from "react-hot-toast";
@@ -8,11 +8,17 @@ import { CheckCircle2, Users, X, UserCheck, UserX, Search } from "lucide-react";
 export default function MissionDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const waitingStateKey = `mission_waiting_coordinator_${id}`;
 
   const [currentUser, setCurrentUser] = useState(null);
   const [mission, setMission] = useState(null);
   const [loading, setLoading] = useState(true);
   const [attendanceDone, setAttendanceDone] = useState(false);
+  const [waitingCoordinatorDecision, setWaitingCoordinatorDecision] = useState(false);
+  const [latestIncident, setLatestIncident] = useState(null);
+  // State khi nhiệm vụ đã bị hủy và giao đội khác (đội cũ vào lại trang)
+  const [missionAborted, setMissionAborted] = useState(false);
+  const lastAbortIncidentToastRef = useRef(null);
 
   // --- PHẦN THÊM MỚI: State cho điểm danh ---
   const [showAttendanceModal, setShowAttendanceModal] = useState(false);
@@ -29,6 +35,11 @@ export default function MissionDetail() {
   const fetchDetail = async () => {
     try {
       setLoading(true);
+      const persistedWaitingState = localStorage.getItem(waitingStateKey) === "1";
+      if (persistedWaitingState) {
+        setWaitingCoordinatorDecision(true);
+      }
+
       const [activeRes, completedRes] = await Promise.all([
         rescueTeamApi.getAssignedMissions().catch(() => []),
         rescueTeamApi.getCompletedMissions().catch(() => []),
@@ -42,11 +53,49 @@ export default function MissionDetail() {
         if (missionData.status === "COMPLETED") {
           setAttendanceDone(true);
         }
-        // Kiểm tra xem đã điểm danh chưa từ server
+
+        const members = await rescueTeamApi.getTeamMembers().catch(() => []);
+        setTeamMembers(members || []);
+
         const attStatus = await rescueTeamApi.checkAttendance(id).catch(() => []);
-        if (attStatus && attStatus.length > 0) setAttendanceDone(true);
+        const presentCount = Array.isArray(attStatus)
+          ? attStatus.filter((entry) => entry.status === "PRESENT").length
+          : 0;
+        const hasAttendanceRecord = Array.isArray(attStatus) && attStatus.length > 0;
+        const totalMembers = (members || []).length;
+
+        if (totalMembers > 0 && presentCount >= totalMembers) {
+          setAttendanceDone(true);
+          setWaitingCoordinatorDecision(false);
+          setLatestIncident(null);
+          localStorage.removeItem(waitingStateKey);
+        } else if (hasAttendanceRecord) {
+          setAttendanceDone(false);
+          await checkCoordinatorDecision();
+        } else if (persistedWaitingState) {
+          setAttendanceDone(false);
+          await checkCoordinatorDecision();
+        } else {
+          setAttendanceDone(false);
+          setWaitingCoordinatorDecision(false);
+          setLatestIncident(null);
+          localStorage.removeItem(waitingStateKey);
+        }
       } else {
-        toast.error("Không tìm thấy thông tin nhiệm vụ!");
+        // Nhiệm vụ không thuộc đội này nữa (có thể đã bị ABORT + reassign)
+        // Thử kiểm tra xem có incident ABORT nào không
+        try {
+          const incident = await rescueTeamApi.getLatestIncidentByRequest(id);
+          if (incident && incident.status === "RESOLVED" && incident.coordinatorAction === "ABORT") {
+            setLatestIncident(incident);
+            setMissionAborted(true);
+            localStorage.removeItem(waitingStateKey);
+          } else {
+            toast.error("Không tìm thấy thông tin nhiệm vụ!");
+          }
+        } catch {
+          toast.error("Không tìm thấy thông tin nhiệm vụ!");
+        }
       }
     } catch (err) {
       console.error("Lỗi fetch detail:", err);
@@ -59,6 +108,52 @@ export default function MissionDetail() {
   useEffect(() => {
     if (id) fetchDetail();
   }, [id]);
+
+  const checkCoordinatorDecision = async () => {
+    try {
+      const incident = await rescueTeamApi.getLatestIncidentByRequest(id);
+      setLatestIncident(incident || null);
+
+      if (!incident) {
+        const persistedWaitingState = localStorage.getItem(waitingStateKey) === "1";
+        setWaitingCoordinatorDecision(persistedWaitingState);
+        setAttendanceDone(false);
+        return;
+      }
+
+      if (incident.status === "PENDING") {
+        localStorage.setItem(waitingStateKey, "1");
+        setWaitingCoordinatorDecision(true);
+        setAttendanceDone(false);
+        return;
+      }
+
+      if (incident.status === "RESOLVED" && incident.coordinatorAction === "CONTINUE") {
+        localStorage.removeItem(waitingStateKey);
+        setWaitingCoordinatorDecision(false);
+        setAttendanceDone(true);
+        return;
+      }
+
+      if (incident.status === "RESOLVED" && incident.coordinatorAction === "ABORT") {
+        localStorage.removeItem(waitingStateKey);
+        setWaitingCoordinatorDecision(false);
+        setAttendanceDone(false);
+        // latestIncident đã set rồi, component sẽ hiện banner ABORT
+        return;
+      }
+
+      localStorage.setItem(waitingStateKey, "1");
+      setWaitingCoordinatorDecision(true);
+      setAttendanceDone(false);
+    } catch (err) {
+      const persistedWaitingState = localStorage.getItem(waitingStateKey) === "1";
+      setWaitingCoordinatorDecision(persistedWaitingState);
+      if (persistedWaitingState) {
+        setAttendanceDone(false);
+      }
+    }
+  };
 
   // --- PHẦN THÊM MỚI: Hàm xử lý điểm danh ---
   const openAttendance = async () => {
@@ -74,14 +169,43 @@ export default function MissionDetail() {
 
   const submitAttendance = async () => {
     try {
+      const presentMembers = attendanceList.filter((item) => item.status === "PRESENT");
+      const totalMembers = attendanceList.length;
+
       const data = {
         requestId: id,
-        attendanceList: attendanceList.map(({memberId, status}) => ({memberId, status}))
+        attendanceList: presentMembers.map(({ memberId }) => ({ memberId, status: "PRESENT" }))
       };
+
       await rescueTeamApi.markAttendance(data);
-      setAttendanceDone(true);
       setShowAttendanceModal(false);
-      toast.success("Điểm danh thành công!");
+
+      if (presentMembers.length < totalMembers) {
+        const absentMembers = attendanceList
+          .filter((item) => item.status !== "PRESENT")
+          .map((item) => item.fullName)
+          .join(", ");
+
+        const description = `Điểm danh thiếu người: ${presentMembers.length}/${totalMembers} có mặt. ${absentMembers ? `Vắng: ${absentMembers}.` : ""} Xin chỉ thị từ Điều phối viên.`;
+
+        await rescueTeamApi.createIncidentReport({
+          rescueRequestId: id,
+          title: "Thiếu quân số khi điểm danh",
+          description,
+          files: [],
+        });
+
+        localStorage.setItem(waitingStateKey, "1");
+        setAttendanceDone(false);
+        setWaitingCoordinatorDecision(true);
+        toast("Số lượng thành viên không đủ. Đã gửi báo cáo sự cố cho Coordinator.", { icon: "⚠️" });
+        await checkCoordinatorDecision();
+      } else {
+        localStorage.removeItem(waitingStateKey);
+        setAttendanceDone(true);
+        setWaitingCoordinatorDecision(false);
+        toast.success("Điểm danh đủ quân số. Có thể tiếp tục nhiệm vụ!");
+      }
     } catch (err) {
       toast.error("Điểm danh thất bại!");
     }
@@ -141,6 +265,38 @@ export default function MissionDetail() {
     );
   }
 
+  // Khi nhiệm vụ đã bị hủy (ABORT) và giao cho đội khác
+  if (!mission && missionAborted && latestIncident) {
+    return (
+      <div className="p-8 max-w-xl mx-auto">
+        <div className="rounded-2xl border-2 border-red-300 bg-red-50 p-6 space-y-4">
+          <div className="flex items-start gap-4">
+            <span className="text-4xl">🚫</span>
+            <div>
+              <h2 className="text-xl font-black text-red-900">Nhiệm vụ đã bị hủy</h2>
+              <p className="text-sm text-red-700 mt-1">
+                Điều phối viên đã hủy nhiệm vụ này và đã được giao lại cho đội khác.<br />
+                Đội bạn đã được giải phóng và chuyển về trạng thái sẵn sàng.
+              </p>
+              {latestIncident.coordinatorResponse && (
+                <div className="mt-3 rounded-lg bg-white border border-red-200 px-4 py-3">
+                  <p className="text-xs font-bold text-gray-500 mb-1">Lý do từ Coordinator:</p>
+                  <p className="text-sm text-gray-800">{latestIncident.coordinatorResponse}</p>
+                </div>
+              )}
+            </div>
+          </div>
+          <button
+            onClick={() => navigate("/rescue-team/missions")}
+            className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl shadow-md transition-all active:scale-95"
+          >
+            Quay về danh sách nhiệm vụ
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (!mission) {
     return (
       <div className="p-8 text-center text-slate-500">
@@ -153,7 +309,7 @@ export default function MissionDetail() {
   return (
     <div className="p-6 h-[calc(100vh-80px)]">
 {showAttendanceModal && (
-  <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] z-[60] flex items-center justify-center p-4 animate-in fade-in duration-200">
+  <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] z-60 flex items-center justify-center p-4 animate-in fade-in duration-200">
     <div className="bg-white rounded-3xl w-full max-w-4xl overflow-hidden shadow-2xl border border-slate-200 flex flex-col max-h-[90vh]">
       
       {/* Header: Thiết kế dàn hàng ngang rộng */}
@@ -382,12 +538,54 @@ export default function MissionDetail() {
               {currentUser?.isTeamLeader ? (
                 <div className="flex gap-2 flex-wrap">
                   {/* LUỒNG MỚI: Chỉ hiện Điểm danh nếu chưa làm */}
-                  {mission.status === "IN_PROGRESS" && !attendanceDone && (
+                  {mission.status === "IN_PROGRESS" && !attendanceDone && !waitingCoordinatorDecision && (
                     <button onClick={openAttendance} className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-semibold transition-all shadow-sm">Điểm danh đội</button>
+                  )}
+
+                  {/* ===== BANNER KHI COORDINATOR ĐÃ HỦY NHIỆM VỤ (ABORT) ===== */}
+                  {latestIncident?.status === "RESOLVED" && latestIncident?.coordinatorAction === "ABORT" && (
+                    <div className="w-full rounded-xl border-2 border-red-300 bg-red-50 p-4 space-y-3">
+                      <div className="flex items-start gap-3">
+                        <span className="text-2xl">🚫</span>
+                        <div>
+                          <p className="font-bold text-red-800 text-sm">Nhiệm vụ đã bị hủy bởi Điều phối viên</p>
+                          <p className="text-xs text-red-700 mt-0.5">
+                            Đội bạn đã được giải phóng. Nhiệm vụ này đã được giao lại hoặc đưa vào hàng chờ.
+                          </p>
+                          {latestIncident.coordinatorResponse && (
+                            <p className="mt-2 text-xs text-gray-700 bg-white border border-red-200 rounded-lg px-3 py-2">
+                              <span className="font-semibold">Phản hồi của Coordinator:</span> {latestIncident.coordinatorResponse}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => navigate("/rescue-team/missions")}
+                        className="w-full bg-red-600 hover:bg-red-700 text-white text-sm font-bold px-4 py-2.5 rounded-lg shadow-sm transition-all active:scale-95"
+                      >
+                        Quay về danh sách nhiệm vụ
+                      </button>
+                    </div>
+                  )}
+
+                  {/* ===== BANNER KHI ĐANG CHỜ QUYẾT ĐỊNH COORDINATOR ===== */}
+                  {waitingCoordinatorDecision && !(latestIncident?.status === "RESOLVED" && latestIncident?.coordinatorAction === "ABORT") && (
+                    <>
+                      <div className="w-full rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                        Đã gửi báo cáo thiếu quân số. Đang chờ quyết định từ Coordinator.
+                        {latestIncident?.coordinatorResponse ? ` Phản hồi: ${latestIncident.coordinatorResponse}` : ""}
+                      </div>
+                      <button
+                        onClick={checkCoordinatorDecision}
+                        className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg font-semibold shadow-sm"
+                      >
+                        Kiểm tra quyết định Coordinator
+                      </button>
+                    </>
                   )}
                   
                   {/* CHỈ HIỆN CÁC NÚT NÀY SAU KHI ĐÃ ĐIỂM DANH */}
-                  {attendanceDone && (
+                  {attendanceDone && !waitingCoordinatorDecision && (
                     <>
                       {mission.status === "IN_PROGRESS" && (
                         <button onClick={() => updateStatus("MOVING")} className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg font-semibold shadow-sm">Đang di chuyển</button>

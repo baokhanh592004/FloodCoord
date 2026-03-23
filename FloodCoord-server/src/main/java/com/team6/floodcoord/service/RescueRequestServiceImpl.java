@@ -731,6 +731,11 @@ public class RescueRequestServiceImpl implements RescueRequestService {
         dto.setCreatedAt(request.getCreatedAt());
         dto.setContactName(request.getContactName());
         dto.setContactPhone(request.getContactPhone());
+        // Thêm thông tin đội đã phân công
+        if (request.getAssignedTeam() != null) {
+            dto.setAssignedTeamId(request.getAssignedTeam().getId());
+            dto.setAssignedTeamName(request.getAssignedTeam().getName());
+        }
         return dto;
     }
 }

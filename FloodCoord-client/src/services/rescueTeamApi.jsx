@@ -67,6 +67,51 @@ export const rescueTeamApi = {
     }
   },
 
+  // Leader báo cáo sự cố (multipart/form-data)
+  createIncidentReport: async ({ rescueRequestId, title, description, files = [] }) => {
+    try {
+      const formData = new FormData();
+      formData.append("rescueRequestId", rescueRequestId);
+      formData.append("title", title);
+      formData.append("description", description);
+
+      if (files?.length > 0) {
+        files.forEach((file) => formData.append("files", file));
+      }
+
+      const response = await axiosClient.post("/api/incidents", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Create incident failed:", error);
+      throw error;
+    }
+  },
+
+  // Leader kiểm tra quyết định mới nhất của Coordinator cho sự cố của request này
+  getLatestIncidentByRequest: async (requestId) => {
+    try {
+      const response = await axiosClient.get(`/api/incidents/request/${requestId}/latest`);
+      return response.data;
+    } catch (error) {
+      console.error("Get latest incident by request failed:", error);
+      throw error;
+    }
+  },
+
+  // Lấy danh sách các đội có trạng thái AVAILABLE (Dành cho Coordinator reassign)
+  getAvailableTeams: async () => {
+    try {
+      const response = await axiosClient.get("/api/teams/available");
+      console.log("Available teams response:", response.data);
+      return response.data || [];
+    } catch (error) {
+      console.error("Get available teams failed:", error);
+      throw error;
+    }
+  },
+
   /**
    * Gửi báo cáo hoàn thành nhiệm vụ kèm hình ảnh/video
    * Đã sửa định dạng FormData để khớp với @ModelAttribute List<DTO> của Spring Boot

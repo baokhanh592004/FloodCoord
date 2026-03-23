@@ -16,6 +16,7 @@ public interface RescueTeamService {
     RescueTeamResponse updateTeam(Long id, RescueTeamRequest request);
     RescueTeamResponse getTeamById(Long id);
     List<RescueTeamResponse> getAllTeams();
+    List<RescueTeamResponse> getAvailableTeams();  // For coordinator to reassign when incident ABORT
     void deleteTeam(Long id); // Xóa mềm hoặc xóa cứng tùy logic
     void removeMemberFromTeam(Long teamId, Long userId);
 }
