@@ -17,6 +17,7 @@ import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 import org.springframework.util.StringUtils;
 
+import java.net.URI;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
@@ -24,10 +25,15 @@ import java.util.Map;
 @Slf4j
 @Configuration
 public class RedisConfiguration {
-    @Value("${data.redis.host}")
+//    @Value("${data.redis.host}")
+//    private String host;
+//
+//    @Value("${data.redis.port}")
+//    private int port;
+//Dùng REDIS_URL thay vì host/port
+    @Value("${REDIS_URL}")
+    private String redisUrl;
     private String host;
-
-    @Value("${data.redis.port}")
     private int port;
 
     @Value("${weather.cache.ttl-minutes:30}")
@@ -52,14 +58,30 @@ public class RedisConfiguration {
         }
         log.info("Redis configuration validated - Host: {}, Port {}", host, port);
     }
+    @PostConstruct
+    public void parseRedisUrl() {
+        try {
+            URI uri = new URI(redisUrl);
+            this.host = uri.getHost();
+            this.port = uri.getPort();
+
+            log.info("Redis parsed - Host: {}, Port: {}", host, port);
+        } catch (Exception e) {
+            throw new RuntimeException("Invalid REDIS_URL format", e);
+        }
+    }
 
     @Bean
     public LettuceConnectionFactory redisConnectionFactory() {
-        RedisStandaloneConfiguration redisConfig = new RedisStandaloneConfiguration(host,port);
-        LettuceConnectionFactory factory = new LettuceConnectionFactory(redisConfig);
-        log.info("Redis connection factory created successfully");
+//        RedisStandaloneConfiguration redisConfig = new RedisStandaloneConfiguration(host,port);
+//        LettuceConnectionFactory factory = new LettuceConnectionFactory(redisConfig);
+//        log.info("Redis connection factory created successfully");
 
-        return factory;
+//        return factory;
+        RedisStandaloneConfiguration config =
+                new RedisStandaloneConfiguration(host, port);
+
+        return new LettuceConnectionFactory(config);
     }
 
     @Bean
