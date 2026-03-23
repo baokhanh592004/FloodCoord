@@ -28,16 +28,16 @@ import java.util.Map;
 @Slf4j
 @Configuration
 public class RedisConfiguration {
-//    @Value("${data.redis.host}")
-//    private String host;
-//
-//    @Value("${data.redis.port}")
-//    private int port;
-//Dùng REDIS_URL thay vì host/port
-    @Value("${REDIS_URL}")
-    private String redisUrl;
+    @Value("${data.redis.host}")
     private String host;
+
+    @Value("${data.redis.port}")
     private int port;
+//Dùng REDIS_URL thay vì host/port
+//    @Value("${REDIS_URL}")
+//    private String redisUrl;
+//    private String host;
+//    private int port;
 
     @Value("${weather.cache.ttl-minutes:30}")
     private long cacheTtlMinutes;
@@ -49,25 +49,32 @@ public class RedisConfiguration {
     private long riskTtlMinutes;
 
     @PostConstruct
-    public void validateConfiguration(){
-        try {
-            URI uri = new URI(redisUrl);
-            this.host = uri.getHost();
-            this.port = uri.getPort();
-
-            if (!StringUtils.hasText(host)) {
-                throw new IllegalStateException("Redis host is not configured");
-            }
-
-            if (port <= 0 || port >= 65535) {
-                throw new IllegalStateException("Invalid redis port: " + port);
-            }
-
-            log.info("Redis ready - Host: {}, Port: {}", host, port);
-
-        } catch (Exception e) {
-            throw new RuntimeException("Invalid REDIS_URL format", e);
+    public void validateConfiguration() {
+//        try {
+//            URI uri = new URI(redisUrl);
+//            this.host = uri.getHost();
+//            this.port = uri.getPort();
+//
+//            if (!StringUtils.hasText(host)) {
+//                throw new IllegalStateException("Redis host is not configured");
+//            }
+//
+//            if (port <= 0 || port >= 65535) {
+//                throw new IllegalStateException("Invalid redis port: " + port);
+//            }
+//
+//            log.info("Redis ready - Host: {}, Port: {}", host, port);
+//
+//        } catch (Exception e) {
+//            throw new RuntimeException("Invalid REDIS_URL format", e);
+//        }
+        if (!StringUtils.hasText(host)) {
+            throw new IllegalStateException("Redis host is not configured");
         }
+        if (port <= 0 || port >= 65535) {
+            throw new IllegalStateException(String.format("Invalid redis port: %d. Port must be between 1 and 65535", port));
+        }
+        log.info("Redis configuration validated - Host: {}, Port {}", host, port);
     }
 //    @PostConstruct
 //    public void parseRedisUrl() {
@@ -96,7 +103,7 @@ public class RedisConfiguration {
     }
 
     @Bean
-    public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory factory){
+    public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory factory) {
         RedisTemplate<String, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(factory);
         template.setKeySerializer(new StringRedisSerializer());
@@ -136,6 +143,7 @@ public class RedisConfiguration {
                 .withInitialCacheConfigurations(cacheConfigs)
                 .build();
     }
+
     @Bean
     public RedisKeyValueTemplate redisKeyValueTemplate(RedisTemplate<String, Object> redisTemplate) {
 
