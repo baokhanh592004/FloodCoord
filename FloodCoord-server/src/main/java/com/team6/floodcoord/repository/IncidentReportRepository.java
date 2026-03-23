@@ -9,6 +9,7 @@ import java.util.UUID;
 
 public interface IncidentReportRepository extends JpaRepository<IncidentReport, Long> {
     List<IncidentReport> findByRescueRequest_RequestId(UUID requestId);
+    List<IncidentReport> findByRescueRequest_RequestIdOrderByCreatedAtDesc(UUID requestId);
     List<IncidentReport> findByStatus(IncidentStatus status);
     List<IncidentReport> findByStatusOrderByCreatedAtDesc(IncidentStatus status);
     List<IncidentReport> findAllByOrderByCreatedAtDesc();

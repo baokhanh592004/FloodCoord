@@ -16,6 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -82,27 +83,21 @@ public class IncidentReportServiceImpl implements IncidentReportService{
 
         RescueRequest rescueRequest = incidentReport.getRescueRequest();
         RescueTeam team = rescueRequest.getAssignedTeam();
+        RescueTeam fallbackTeamFromReporter = incidentReport.getReportedBy() != null
+                ? incidentReport.getReportedBy().getRescueTeam()
+                : null;
+
+        RescueTeam teamToRelease = team != null ? team : fallbackTeamFromReporter;
         Vehicle vehicle = rescueRequest.getAssignedVehicle();
 
         if (resolveRequest.getAction() == IncidentAction.ABORT){
-            //1. giai phong team ve AVAILABLE
-            if (team != null){
-                team.setStatus(TeamStatus.AVAILABLE);
-                teamRepo.save(team);
+            //1. giai phong team cu ve AVAILABLE
+            if (teamToRelease != null){
+                teamToRelease.setStatus(TeamStatus.AVAILABLE);
+                teamRepo.save(teamToRelease);
             }
 
-            //2. Xu ly phuong tien
-            if (vehicle != null){
-                if (resolveRequest.getVehicleStatus() != null){
-                    vehicle.setStatus(VehicleStatus.valueOf(resolveRequest.getVehicleStatus()));
-                } else {
-                    vehicle.setStatus(VehicleStatus.AVAILABLE);
-                }
-                //rut xe khoi doi
-                vehicle.setCurrentTeam(null);
-                vehicleRepo.save(vehicle);
-            }
-            //3. Thu hoi toan bo vat tu vao kho
+            //2. Thu hoi toan bo vat tu vao kho (trước khi xử lý vehicle)
             List<RequestSupply> requestSupplies = requestSupplyRepo.findByRequest(rescueRequest);
             for (RequestSupply rs : requestSupplies) {
                 Supply supply = rs.getSupply();
@@ -112,24 +107,78 @@ public class IncidentReportServiceImpl implements IncidentReportService{
             //Xoa lich su xuat kho cua request nay vi nvu huy giua chung
             requestSupplyRepo.deleteAll(requestSupplies);
 
-            //4. Tra nhiem vu ve VERIFIED, cat lien ket team, vehicle
-            rescueRequest.setStatus(RequestStatus.VERIFIED);
-            rescueRequest.setAssignedTeam(null);
-            rescueRequest.setAssignedVehicle(null);
+            //3. Xu ly phuong tien cu
+            Vehicle vehicleForReassign = null;
+            if (vehicle != null){
+                // Nếu coordinator chọn MAINTENANCE hoặc trạng thái khác, đừng dùng vehicle này
+                if (resolveRequest.getVehicleStatus() != null && 
+                    !resolveRequest.getVehicleStatus().equals("AVAILABLE")) {
+                    vehicle.setStatus(VehicleStatus.valueOf(resolveRequest.getVehicleStatus()));
+                    vehicle.setCurrentTeam(null);
+                    vehicleRepo.save(vehicle);
+                    // Không dùng vehicle này cho team mới
+                } else {
+                    // Nếu AVAILABLE, giữ lại để gán cho team mới
+                    vehicle.setStatus(VehicleStatus.AVAILABLE);
+                    vehicleForReassign = vehicle;  // Sẽ dùng sau
+                }
+            }
 
-            //Note lai cho nguoi dan biet
-            String oldNote = rescueRequest.getCoordinatorNote() != null ? rescueRequest.getCoordinatorNote() : "";
-            String abortNote = String.format("[%s - %s]: Xảy ra sự cố. Nhiệm vụ đang được điều phối lại cho đội khác.",
-                    LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm dd/MM")),
-                    coordinator.getFullName());
-            rescueRequest.setCoordinatorNote(oldNote.isEmpty() ? abortNote : oldNote + "\n" + abortNote);
+            //4. Gan doi moi neu coordinator chon reassign
+            if (resolveRequest.getNewTeamId() != null) {
+                RescueTeam newTeam = teamRepo.findById(resolveRequest.getNewTeamId())
+                        .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đội mới để reassign."));
+
+                // Kiểm tra xem đội mới có sẵn sàng không
+                if (newTeam.getStatus() != TeamStatus.AVAILABLE) {
+                    throw new IllegalStateException("Đội " + newTeam.getName() + " không sẵn sàng (trạng thái: " + newTeam.getStatus() + ")");
+                }
+
+                // Gán đội mới vào request
+                rescueRequest.setAssignedTeam(newTeam);
+                
+                // Set đội mới thành BUSY
+                newTeam.setStatus(TeamStatus.BUSY);
+                teamRepo.save(newTeam);
+                
+                // Gán vehicle cho đội mới nếu có
+                if (vehicleForReassign != null) {
+                    vehicleForReassign.setCurrentTeam(newTeam);
+                    vehicleRepo.save(vehicleForReassign);
+                    rescueRequest.setAssignedVehicle(vehicleForReassign);
+                }
+                
+                // Set request về VERIFIED (team mới chủ động nhận) hoặc IN_PROGRESS (sẵn sàng)
+                // Dùng VERIFIED để team mới phải chủ động nhận
+                rescueRequest.setStatus(RequestStatus.VERIFIED);
+
+                // Ghi chú về reassign
+                String oldNote = rescueRequest.getCoordinatorNote() != null ? rescueRequest.getCoordinatorNote() : "";
+                String reassignNote = String.format("[%s - %s]: Sự cố đã được xử lý. Nhiệm vụ được gán lại cho đội %s.",
+                        LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm dd/MM")),
+                        coordinator.getFullName(),
+                        newTeam.getName());
+                rescueRequest.setCoordinatorNote(oldNote.isEmpty() ? reassignNote : oldNote + "\n" + reassignNote);
+            } else {
+                // Nếu không reassign, trả request về VERIFIED
+                rescueRequest.setStatus(RequestStatus.VERIFIED);
+                rescueRequest.setAssignedTeam(null);
+                rescueRequest.setAssignedVehicle(null);
+
+                //Note lai cho nguoi dan biet
+                String oldNote = rescueRequest.getCoordinatorNote() != null ? rescueRequest.getCoordinatorNote() : "";
+                String abortNote = String.format("[%s - %s]: Sự cố đã được báo cáo. Nhiệm vụ đang được điều phối lại cho đội khác.",
+                        LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm dd/MM")),
+                        coordinator.getFullName());
+                rescueRequest.setCoordinatorNote(oldNote.isEmpty() ? abortNote : oldNote + "\n" + abortNote);
+            }
 
             requestRepo.save(rescueRequest);
         } else if (resolveRequest.getAction() == IncidentAction.CONTINUE){
             //Ep team sang BUSY de vuot qua rao can diem danh
-            if (team != null && team.getStatus() != TeamStatus.BUSY){
-                team.setStatus(TeamStatus.BUSY);
-                teamRepo.save(team);
+            if (teamToRelease != null && teamToRelease.getStatus() != TeamStatus.BUSY){
+                teamToRelease.setStatus(TeamStatus.BUSY);
+                teamRepo.save(teamToRelease);
             }
         }
 
@@ -155,6 +204,27 @@ public class IncidentReportServiceImpl implements IncidentReportService{
     public List<IncidentReportResponse> getAllIncidents() {
         return incidentRepo.findAllByOrderByCreatedAtDesc()
                 .stream().map(this::mapToResponse).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public IncidentReportResponse getLatestIncidentByRequest(UUID requestId, User requester) {
+        IncidentReport latestIncident = incidentRepo
+                .findByRescueRequest_RequestIdOrderByCreatedAtDesc(requestId)
+                .stream()
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy báo cáo sự cố cho nhiệm vụ này."));
+
+        String roleCode = requester.getRole() != null ? requester.getRole().getRoleCode() : "";
+        boolean isCoordinatorSide = "COORDINATOR".equals(roleCode) || "ADMIN".equals(roleCode) || "MANAGER".equals(roleCode);
+
+        if (!isCoordinatorSide) {
+            if (latestIncident.getReportedBy() == null || !latestIncident.getReportedBy().getId().equals(requester.getId())) {
+                throw new IllegalStateException("Bạn không có quyền xem báo cáo sự cố này.");
+            }
+        }
+
+        return mapToResponse(latestIncident);
     }
 
     private IncidentReportResponse mapToResponse(IncidentReport incident) {

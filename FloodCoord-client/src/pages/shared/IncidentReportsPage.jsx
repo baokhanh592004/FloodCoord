@@ -7,6 +7,7 @@ import {
     CheckCircleIcon
 } from '@heroicons/react/24/outline';
 import { incidentReportApi } from '../../services/incidentReportApi';
+import { rescueTeamApi } from '../../services/rescueTeamApi';
 
 const STATUS_META = {
     PENDING: 'bg-yellow-100 text-yellow-800 border-yellow-200',
@@ -28,6 +29,10 @@ export default function IncidentReportsPage() {
 
     const [resolveNote, setResolveNote] = useState('');
     const [actionType, setActionType] = useState('CONTINUE');
+    const [vehicleStatus, setVehicleStatus] = useState('AVAILABLE');
+    const [newTeamId, setNewTeamId] = useState('');
+    const [availableTeams, setAvailableTeams] = useState([]);
+    const [loadingTeams, setLoadingTeams] = useState(false);
     const [resolving, setResolving] = useState(false);
 
     const loadIncidents = useCallback(async () => {
@@ -51,10 +56,28 @@ export default function IncidentReportsPage() {
         loadIncidents();
     }, [loadIncidents]);
 
+    const loadAvailableTeams = async () => {
+        setLoadingTeams(true);
+        try {
+            const response = await rescueTeamApi.getAvailableTeams();
+            console.log('Available teams response:', response);
+            setAvailableTeams(Array.isArray(response) ? response : []);
+        } catch (error) {
+            console.error('Lỗi khi tải danh sách đội:', error);
+            console.error('Error details:', error?.response?.data);
+            setAvailableTeams([]);
+        } finally {
+            setLoadingTeams(false);
+        }
+    };
+
     const handleOpenDetail = (item) => {
         setSelectedItem(item);
         setResolveNote('');
         setActionType('CONTINUE');
+        setVehicleStatus('AVAILABLE');
+        setNewTeamId('');
+        loadAvailableTeams();
     };
 
     const handleCloseDetail = () => {
@@ -63,11 +86,18 @@ export default function IncidentReportsPage() {
 
     const handleResolve = async () => {
         if (!selectedItem) return;
+        
+        // Với ABORT, không bắt buộc phải chọn team mới
+        // Nếu coordinator không chọn team, request sẽ trở thành VERIFIED (chờ điều phối khác)
+        // Nếu chọn team, request sẽ được gán cho team mới ngay
+
         setResolving(true);
         try {
             await incidentReportApi.resolveIncident(selectedItem.id, {
                 action: actionType,
-                response: resolveNote
+                coordinatorResponse: resolveNote,
+                vehicleStatus: actionType === 'ABORT' ? vehicleStatus : null,
+                newTeamId: actionType === 'ABORT' && newTeamId ? newTeamId : null
             });
             // Tải lại sau khi xử lý thành công
             await loadIncidents();
@@ -341,6 +371,42 @@ export default function IncidentReportsPage() {
                                                 className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
                                             />
                                         </div>
+                                        {actionType === 'ABORT' && (
+                                            <>
+                                                <div>
+                                                    <label className="block text-xs font-medium text-gray-700 mb-1">Trạng thái phương tiện sau sự cố</label>
+                                                    <select
+                                                        value={vehicleStatus}
+                                                        onChange={(e) => setVehicleStatus(e.target.value)}
+                                                        className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                                                    >
+                                                        <option value="AVAILABLE">Sẵn sàng (AVAILABLE)</option>
+                                                        <option value="MAINTENANCE">Bảo trì (MAINTENANCE)</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-xs font-medium text-gray-700 mb-1">Chọn đội để reassign (tuỳ chọn)</label>
+                                                    {loadingTeams ? (
+                                                        <p className="text-sm text-gray-500 py-2">Đang tải danh sách đội...</p>
+                                                    ) : availableTeams.length === 0 ? (
+                                                        <p className="text-sm text-orange-600 py-2 font-medium">⚠️ Không có đội sẵn sàng để reassign</p>
+                                                    ) : (
+                                                        <select
+                                                            value={newTeamId}
+                                                            onChange={(e) => setNewTeamId(e.target.value)}
+                                                            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                                                        >
+                                                            <option value="">-- Để trống nếu không reassign --</option>
+                                                            {availableTeams.map((team) => (
+                                                                <option key={team.id} value={team.id}>
+                                                                    {team.name}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                    )}
+                                                </div>
+                                            </>
+                                        )}
                                         <div className="flex justify-end gap-2 pt-2">
                                             <button
                                                 type="button"

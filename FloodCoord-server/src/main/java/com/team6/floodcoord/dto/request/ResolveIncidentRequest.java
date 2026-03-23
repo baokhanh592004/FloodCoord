@@ -8,4 +8,5 @@ public class ResolveIncidentRequest {
     private IncidentAction action;
     private String coordinatorResponse;
     private String vehicleStatus;
+    private Long newTeamId;  // For ABORT: assign new team to the request (RescueTeam ID is Long)
 }
