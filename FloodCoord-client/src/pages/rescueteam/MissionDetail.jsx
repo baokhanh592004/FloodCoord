@@ -16,6 +16,8 @@ export default function MissionDetail() {
   const [attendanceDone, setAttendanceDone] = useState(false);
   const [waitingCoordinatorDecision, setWaitingCoordinatorDecision] = useState(false);
   const [latestIncident, setLatestIncident] = useState(null);
+  // State khi nhiệm vụ đã bị hủy và giao đội khác (đội cũ vào lại trang)
+  const [missionAborted, setMissionAborted] = useState(false);
   const lastAbortIncidentToastRef = useRef(null);
 
   // --- PHẦN THÊM MỚI: State cho điểm danh ---
@@ -80,7 +82,20 @@ export default function MissionDetail() {
           localStorage.removeItem(waitingStateKey);
         }
       } else {
-        toast.error("Không tìm thấy thông tin nhiệm vụ!");
+        // Nhiệm vụ không thuộc đội này nữa (có thể đã bị ABORT + reassign)
+        // Thử kiểm tra xem có incident ABORT nào không
+        try {
+          const incident = await rescueTeamApi.getLatestIncidentByRequest(id);
+          if (incident && incident.status === "RESOLVED" && incident.coordinatorAction === "ABORT") {
+            setLatestIncident(incident);
+            setMissionAborted(true);
+            localStorage.removeItem(waitingStateKey);
+          } else {
+            toast.error("Không tìm thấy thông tin nhiệm vụ!");
+          }
+        } catch {
+          toast.error("Không tìm thấy thông tin nhiệm vụ!");
+        }
       }
     } catch (err) {
       console.error("Lỗi fetch detail:", err);
@@ -124,10 +139,7 @@ export default function MissionDetail() {
         localStorage.removeItem(waitingStateKey);
         setWaitingCoordinatorDecision(false);
         setAttendanceDone(false);
-        if (lastAbortIncidentToastRef.current !== incident.id) {
-          toast.error("Coordinator đã hủy nhiệm vụ này. Vui lòng chờ điều phối lại.");
-          lastAbortIncidentToastRef.current = incident.id;
-        }
+        // latestIncident đã set rồi, component sẽ hiện banner ABORT
         return;
       }
 
@@ -249,6 +261,38 @@ export default function MissionDetail() {
     return (
       <div className="p-8 flex justify-center items-center min-h-[50vh]">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  // Khi nhiệm vụ đã bị hủy (ABORT) và giao cho đội khác
+  if (!mission && missionAborted && latestIncident) {
+    return (
+      <div className="p-8 max-w-xl mx-auto">
+        <div className="rounded-2xl border-2 border-red-300 bg-red-50 p-6 space-y-4">
+          <div className="flex items-start gap-4">
+            <span className="text-4xl">🚫</span>
+            <div>
+              <h2 className="text-xl font-black text-red-900">Nhiệm vụ đã bị hủy</h2>
+              <p className="text-sm text-red-700 mt-1">
+                Điều phối viên đã hủy nhiệm vụ này và đã được giao lại cho đội khác.<br />
+                Đội bạn đã được giải phóng và chuyển về trạng thái sẵn sàng.
+              </p>
+              {latestIncident.coordinatorResponse && (
+                <div className="mt-3 rounded-lg bg-white border border-red-200 px-4 py-3">
+                  <p className="text-xs font-bold text-gray-500 mb-1">Lý do từ Coordinator:</p>
+                  <p className="text-sm text-gray-800">{latestIncident.coordinatorResponse}</p>
+                </div>
+              )}
+            </div>
+          </div>
+          <button
+            onClick={() => navigate("/rescue-team/missions")}
+            className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl shadow-md transition-all active:scale-95"
+          >
+            Quay về danh sách nhiệm vụ
+          </button>
+        </div>
       </div>
     );
   }
@@ -498,7 +542,34 @@ export default function MissionDetail() {
                     <button onClick={openAttendance} className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-semibold transition-all shadow-sm">Điểm danh đội</button>
                   )}
 
-                  {waitingCoordinatorDecision && (
+                  {/* ===== BANNER KHI COORDINATOR ĐÃ HỦY NHIỆM VỤ (ABORT) ===== */}
+                  {latestIncident?.status === "RESOLVED" && latestIncident?.coordinatorAction === "ABORT" && (
+                    <div className="w-full rounded-xl border-2 border-red-300 bg-red-50 p-4 space-y-3">
+                      <div className="flex items-start gap-3">
+                        <span className="text-2xl">🚫</span>
+                        <div>
+                          <p className="font-bold text-red-800 text-sm">Nhiệm vụ đã bị hủy bởi Điều phối viên</p>
+                          <p className="text-xs text-red-700 mt-0.5">
+                            Đội bạn đã được giải phóng. Nhiệm vụ này đã được giao lại hoặc đưa vào hàng chờ.
+                          </p>
+                          {latestIncident.coordinatorResponse && (
+                            <p className="mt-2 text-xs text-gray-700 bg-white border border-red-200 rounded-lg px-3 py-2">
+                              <span className="font-semibold">Phản hồi của Coordinator:</span> {latestIncident.coordinatorResponse}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => navigate("/rescue-team/missions")}
+                        className="w-full bg-red-600 hover:bg-red-700 text-white text-sm font-bold px-4 py-2.5 rounded-lg shadow-sm transition-all active:scale-95"
+                      >
+                        Quay về danh sách nhiệm vụ
+                      </button>
+                    </div>
+                  )}
+
+                  {/* ===== BANNER KHI ĐANG CHỜ QUYẾT ĐỊNH COORDINATOR ===== */}
+                  {waitingCoordinatorDecision && !(latestIncident?.status === "RESOLVED" && latestIncident?.coordinatorAction === "ABORT") && (
                     <>
                       <div className="w-full rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
                         Đã gửi báo cáo thiếu quân số. Đang chờ quyết định từ Coordinator.
