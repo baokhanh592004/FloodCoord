@@ -102,6 +102,16 @@ public class RescueTeamServiceImpl implements RescueTeamService{
     }
 
     @Override
+    public List<RescueTeamResponse> getAvailableTeams() {
+        List<RescueTeamResponse> availableTeams = teamRepo.findByStatus(com.team6.floodcoord.model.enums.TeamStatus.AVAILABLE).stream()
+                .map(RescueTeamMapper::mapToResponse)
+                .collect(Collectors.toList());
+        log.info("Found {} available teams", availableTeams.size());
+        availableTeams.forEach(team -> log.info("- Team: {} (ID: {})", team.getName(), team.getId()));
+        return availableTeams;
+    }
+
+    @Override
     public void deleteTeam(Long id) {
         RescueTeam team = teamRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Team not found"));

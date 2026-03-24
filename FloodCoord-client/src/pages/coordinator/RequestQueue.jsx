@@ -227,6 +227,7 @@ export default function RequestQueue() {
                                 <th className="text-left px-3 py-2 font-semibold text-gray-600">Tiêu đề</th>
                                 <th className="text-left px-3 py-2 font-semibold text-gray-600">Người gửi</th>
                                 <th className="text-left px-3 py-2 font-semibold text-gray-600">Địa điểm cứu trợ</th>
+                                <th className="text-left px-3 py-2 font-semibold text-gray-600 w-32">Đội phân công</th>
                                 <th className="text-left px-3 py-2 font-semibold text-gray-600 w-28">Thời gian</th>
                                 <th className="text-center px-3 py-2 font-semibold text-gray-600 w-24">Mức độ</th>
                                 <th className="text-center px-3 py-2 font-semibold text-gray-600 w-28">Trạng thái</th>
@@ -263,6 +264,17 @@ export default function RequestQueue() {
                                         <p className="text-gray-700">
                                             {req.location?.addressText || 'Đang tải...'}
                                         </p>
+                                    </td>
+
+                                    {/* Đội phân công */}
+                                    <td className="px-3 py-2">
+                                        {req.assignedTeamName ? (
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-teal-50 text-teal-700 border border-teal-200 rounded-full text-[11px] font-medium">
+                                                🚨 {req.assignedTeamName}
+                                            </span>
+                                        ) : (
+                                            <span className="text-gray-400 text-[11px] italic">Chưa phân công</span>
+                                        )}
                                     </td>
 
                                     {/* Thời gian gửi */}
@@ -303,8 +315,8 @@ export default function RequestQueue() {
                                                 </button>
                                             )}
 
-                                            {/* Phân công đội — chỉ hiện nếu VERIFIED/VALIDATED */}
-                                            {(req.status === 'VERIFIED' || req.status === 'VALIDATED') && (
+                                            {/* Phân công đội — chỉ hiện nếu VERIFIED/VALIDATED VÀ chưa có đội */}
+                                            {(req.status === 'VERIFIED' || req.status === 'VALIDATED') && !req.assignedTeamName && (
                                                 <button
                                                     onClick={() => { setSelectedRequest(req); setShowAssignModal(true); }}
                                                     title="Phân công đội cứu hộ"
