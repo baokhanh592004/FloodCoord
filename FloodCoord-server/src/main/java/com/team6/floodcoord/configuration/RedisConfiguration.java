@@ -28,11 +28,11 @@ import java.util.Map;
 @Slf4j
 @Configuration
 public class RedisConfiguration {
-    @Value("${data.redis.host}")
-    private String host;
-
-    @Value("${data.redis.port}")
-    private int port;
+//    @Value("${data.redis.host}")
+//    private String host;
+//
+//    @Value("${data.redis.port}")
+//    private int port;
 //Dùng REDIS_URL thay vì host/port
 //    @Value("${REDIS_URL}")
 //    private String redisUrl;
@@ -48,8 +48,8 @@ public class RedisConfiguration {
     @Value("${weather.cache.risk-ttl-minutes:15}")
     private long riskTtlMinutes;
 
-    @PostConstruct
-    public void validateConfiguration() {
+//    @PostConstruct
+//    public void validateConfiguration() {
 //        try {
 //            URI uri = new URI(redisUrl);
 //            this.host = uri.getHost();
@@ -68,14 +68,14 @@ public class RedisConfiguration {
 //        } catch (Exception e) {
 //            throw new RuntimeException("Invalid REDIS_URL format", e);
 //        }
-        if (!StringUtils.hasText(host)) {
-            throw new IllegalStateException("Redis host is not configured");
-        }
-        if (port <= 0 || port >= 65535) {
-            throw new IllegalStateException(String.format("Invalid redis port: %d. Port must be between 1 and 65535", port));
-        }
-        log.info("Redis configuration validated - Host: {}, Port {}", host, port);
-    }
+//        if (!StringUtils.hasText(host)) {
+//            throw new IllegalStateException("Redis host is not configured");
+//        }
+//        if (port <= 0 || port >= 65535) {
+//            throw new IllegalStateException(String.format("Invalid redis port: %d. Port must be between 1 and 65535", port));
+//        }
+//        log.info("Redis configuration validated - Host: {}, Port {}", host, port);
+//    }
 //    @PostConstruct
 //    public void parseRedisUrl() {
 //        try {
@@ -89,19 +89,42 @@ public class RedisConfiguration {
 //        }
 //    }
 
-    @Bean
-    public LettuceConnectionFactory redisConnectionFactory() {
+//    @Bean
+//    public LettuceConnectionFactory redisConnectionFactory() {
 //        RedisStandaloneConfiguration redisConfig = new RedisStandaloneConfiguration(host,port);
 //        LettuceConnectionFactory factory = new LettuceConnectionFactory(redisConfig);
 //        log.info("Redis connection factory created successfully");
 
 //        return factory;
-        RedisStandaloneConfiguration config =
-                new RedisStandaloneConfiguration(host, port);
 
-        return new LettuceConnectionFactory(config);
+
+//        RedisStandaloneConfiguration config =
+//                new RedisStandaloneConfiguration(host, port);
+//
+//        return new LettuceConnectionFactory(config);
+//    }
+
+//    @Bean
+//    public LettuceConnectionFactory redisConnectionFactory(
+//            @Value("${spring.data.redis.url:}") String redisUrl,
+//            @Value("${spring.data.redis.host}") String host,
+//            @Value("${spring.data.redis.port}") int port
+//    ) {
+//        // Nếu có REDIS_URL → dùng
+//        if (StringUtils.hasText(redisUrl)) {
+//            log.info("Using Redis URL: {}", redisUrl);
+//            return new LettuceConnectionFactory(RedisStandaloneConfiguration.fromUrl(redisUrl));
+//        }
+//
+//        // Không có thì dùng host/port (local)
+//        log.info("Using Redis host/port: {}:{}", host, port);
+//        return new LettuceConnectionFactory(new RedisStandaloneConfiguration(host, port));
+//    }
+
+    @PostConstruct
+    public void logRedis() {
+        log.info("Redis config loaded");
     }
-
     @Bean
     public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory factory) {
         RedisTemplate<String, Object> template = new RedisTemplate<>();
