@@ -4,7 +4,7 @@ import com.team6.floodcoord.dto.request.SupplyRequest;
 import com.team6.floodcoord.dto.response.SupplyResponse;
 import com.team6.floodcoord.model.Supply;
 import com.team6.floodcoord.model.enums.SupplyType;
-import com.team6.floodcoord.repository.SupplyRepository;
+import com.team6.floodcoord.repository.jpa.SupplyRepository;
 import com.team6.floodcoord.utils.SupplyMapper;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.*;

@@ -1,7 +1,7 @@
 package com.team6.floodcoord.service;
 
 import com.team6.floodcoord.dto.response.RoleResponse;
-import com.team6.floodcoord.repository.RoleRepository;
+import com.team6.floodcoord.repository.jpa.RoleRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

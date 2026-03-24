@@ -1,4 +1,4 @@
-package com.team6.floodcoord.repository;
+package com.team6.floodcoord.repository.jpa;
 
 
 

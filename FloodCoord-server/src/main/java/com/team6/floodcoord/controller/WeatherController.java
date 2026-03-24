@@ -5,7 +5,7 @@ import com.team6.floodcoord.dto.RiskLevelDTO;
 import com.team6.floodcoord.dto.WeatherCurrentDTO;
 import com.team6.floodcoord.dto.WeatherForecastDTO;
 import com.team6.floodcoord.model.WeatherSnapshot;
-import com.team6.floodcoord.repository.WeatherSnapshotRepository;
+import com.team6.floodcoord.repository.jpa.WeatherSnapshotRepository;
 import com.team6.floodcoord.service.AlertService;
 import com.team6.floodcoord.service.CacheService;
 import com.team6.floodcoord.service.FloodService;

@@ -3,7 +3,6 @@ package com.team6.floodcoord.controller;
 import com.team6.floodcoord.dto.request.RescueTeamRequest;
 import com.team6.floodcoord.dto.response.RescueTeamResponse;
 import com.team6.floodcoord.dto.response.UserResponse;
-import com.team6.floodcoord.repository.RescueTeamRepository;
 import com.team6.floodcoord.service.RescueTeamService;
 import com.team6.floodcoord.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;

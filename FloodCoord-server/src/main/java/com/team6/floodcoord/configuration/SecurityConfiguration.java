@@ -1,7 +1,7 @@
 package com.team6.floodcoord.configuration;
 
 import com.team6.floodcoord.model.User;
-import com.team6.floodcoord.repository.UserRepository;
+import com.team6.floodcoord.repository.jpa.UserRepository;
 import com.team6.floodcoord.service.UserDetailServiceCustomizer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

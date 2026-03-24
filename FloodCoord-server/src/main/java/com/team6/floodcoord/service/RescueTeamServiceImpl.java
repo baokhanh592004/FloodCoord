@@ -1,22 +1,16 @@
 package com.team6.floodcoord.service;
 
-import com.team6.floodcoord.dto.request.AssignSupplyDTO;
-import com.team6.floodcoord.dto.request.AssignTaskRequest;
 import com.team6.floodcoord.dto.request.RescueTeamRequest;
 import com.team6.floodcoord.dto.response.RescueTeamResponse;
 import com.team6.floodcoord.model.*;
-import com.team6.floodcoord.model.enums.RequestStatus;
-import com.team6.floodcoord.model.enums.VehicleStatus;
-import com.team6.floodcoord.repository.*;
+import com.team6.floodcoord.repository.jpa.*;
 import com.team6.floodcoord.utils.RescueTeamMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Slf4j
