@@ -25,7 +25,7 @@ FROM eclipse-temurin:21-jre-alpine
 LABEL maintainer="Team 4"
 LABEL description="Laboratory Management Application"
 
-ENV SPRING_PROFILES_ACTIVE=docker
+ENV SPRING_PROFILES_ACTIVE=prod
 # Cấu hình múi giờ Việt Nam
 ENV TZ=Asia/Ho_Chi_Minh
 
@@ -44,8 +44,8 @@ RUN chown spring:spring app.jar
 USER spring:spring
 
 # Expose port
-EXPOSE 8083
-
+#EXPOSE 8083 neu chay localhost || 10000 neu chay prod(render)
+EXPOSE 10000
 ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+UseG1GC -XX:+UseStringDeduplication"
 
 # Run application
