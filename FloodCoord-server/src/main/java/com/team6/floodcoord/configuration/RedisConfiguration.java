@@ -167,13 +167,13 @@ public class RedisConfiguration {
                 .build();
     }
 
-    @Bean
-    public RedisKeyValueTemplate redisKeyValueTemplate(RedisTemplate<String, Object> redisTemplate) {
-
-        RedisKeyValueAdapter adapter = new RedisKeyValueAdapter(redisTemplate);
-
-        RedisMappingContext context = new RedisMappingContext();
-
-        return new RedisKeyValueTemplate(adapter, context);
-    }
+    //    @Bean
+    //    public RedisKeyValueTemplate redisKeyValueTemplate(RedisTemplate<String, Object> redisTemplate) {
+    //
+    //        RedisKeyValueAdapter adapter = new RedisKeyValueAdapter(redisTemplate);
+    //
+    //        RedisMappingContext context = new RedisMappingContext();
+    //
+    //        return new RedisKeyValueTemplate(adapter, context);
+    //    }
 }
