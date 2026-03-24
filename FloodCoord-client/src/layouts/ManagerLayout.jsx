@@ -8,6 +8,7 @@ import {
   ArrowRightOnRectangleIcon,
   ShieldCheckIcon,
   UserCircleIcon,
+  ChartBarIcon,
 } from '@heroicons/react/24/outline'
 import { useAuth } from '../context/AuthContext'
 
@@ -26,7 +27,7 @@ export default function ManagerLayout() {
     { name: 'Đội cứu hộ', path: '/manager/rescue-teams', icon: UserGroupIcon },
     { name: 'Vật tư', path: '/manager/supplies', icon: ArchiveBoxIcon },
     { name: 'Báo cáo sự cố', path: '/manager/incident-reports', icon: ExclamationTriangleIcon },
-    { name: 'Báo cáo cứu hộ hoàn thành', path: '/admin/rescue-reports', icon: ChartBarIcon },
+    { name: 'Báo cáo cứu hộ hoàn thành', path: '/manager/rescue-reports', icon: ChartBarIcon },
   ]
 
   return (
