@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { rescueTeamApi } from "../../services/rescueTeamApi";
 import MissionMap from "../../components/rescueteam/MissionMap";
 import toast from "react-hot-toast";
-import { CheckCircle2, Users, X, UserCheck, UserX, Search } from "lucide-react";
+import { CheckCircle2, Users, X, UserCheck, UserX, Search, AlertTriangle } from "lucide-react";
 
 export default function MissionDetail() {
   const { id } = useParams();
@@ -24,6 +24,10 @@ export default function MissionDetail() {
   const [showAttendanceModal, setShowAttendanceModal] = useState(false);
   const [teamMembers, setTeamMembers] = useState([]);
   const [attendanceList, setAttendanceList] = useState([]);
+
+  // --- State cho báo cáo sự cố trên đường ---
+  const [showIncidentModal, setShowIncidentModal] = useState(false);
+  const [incidentForm, setIncidentForm] = useState({ title: "", description: "", files: [] });
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -208,6 +212,38 @@ export default function MissionDetail() {
       }
     } catch (err) {
       toast.error("Điểm danh thất bại!");
+    }
+  };
+
+  // --- Hàm báo cáo sự cố trên đường ---
+  const openIncidentModal = () => {
+    setIncidentForm({ title: "", description: "", files: [] });
+    setShowIncidentModal(true);
+  };
+
+  const submitIncidentReport = async () => {
+    if (!incidentForm.title.trim()) {
+      toast.error("Vui lòng nhập tiêu đề sự cố!");
+      return;
+    }
+    if (!incidentForm.description.trim()) {
+      toast.error("Vui lòng mô tả sự cố!");
+      return;
+    }
+    try {
+      await rescueTeamApi.createIncidentReport({
+        rescueRequestId: id,
+        title: incidentForm.title.trim(),
+        description: incidentForm.description.trim(),
+        files: incidentForm.files,
+      });
+      setShowIncidentModal(false);
+      localStorage.setItem(waitingStateKey, "1");
+      setWaitingCoordinatorDecision(true);
+      toast("Đã gửi báo cáo sự cố. Đang chờ quyết định từ Coordinator.", { icon: "⚠️" });
+      await checkCoordinatorDecision();
+    } catch (err) {
+      toast.error("Gửi báo cáo sự cố thất bại!");
     }
   };
 
@@ -431,6 +467,86 @@ export default function MissionDetail() {
   </div>
 )}
 
+{/* ===== MODAL BÁO CÁO SỰ CỐ TRÊN ĐƯỜNG ===== */}
+{showIncidentModal && (
+  <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] z-60 flex items-center justify-center p-4 animate-in fade-in duration-200">
+    <div className="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl border border-slate-200 flex flex-col">
+      {/* Header */}
+      <div className="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-white">
+        <div className="flex items-center gap-3">
+          <div className="bg-orange-50 p-2.5 rounded-xl text-orange-500">
+            <AlertTriangle size={22} />
+          </div>
+          <div>
+            <h3 className="text-lg font-black text-slate-800 tracking-tight">Báo cáo sự cố trên đường</h3>
+            <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-0.5">Mã nhiệm vụ: #{id}</p>
+          </div>
+        </div>
+        <button
+          onClick={() => setShowIncidentModal(false)}
+          className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400"
+        >
+          <X size={20} />
+        </button>
+      </div>
+
+      {/* Body */}
+      <div className="p-6 space-y-4">
+        <div>
+          <label className="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wider">Tiêu đề sự cố <span className="text-red-500">*</span></label>
+          <input
+            type="text"
+            placeholder="VD: Xe bị hỏng, đường bị ngập, sạt lở..."
+            value={incidentForm.title}
+            onChange={e => setIncidentForm(prev => ({ ...prev, title: e.target.value }))}
+            className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-all"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wider">Mô tả chi tiết <span className="text-red-500">*</span></label>
+          <textarea
+            rows={4}
+            placeholder="Mô tả tình huống sự cố, mức độ ảnh hưởng và yêu cầu hỗ trợ..."
+            value={incidentForm.description}
+            onChange={e => setIncidentForm(prev => ({ ...prev, description: e.target.value }))}
+            className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-all resize-none"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wider">Hình ảnh (tùy chọn)</label>
+          <input
+            type="file"
+            multiple
+            accept="image/*"
+            onChange={e => setIncidentForm(prev => ({ ...prev, files: Array.from(e.target.files) }))}
+            className="block w-full text-sm text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-600 hover:file:bg-orange-100 transition-all"
+          />
+          {incidentForm.files.length > 0 && (
+            <p className="text-xs text-slate-400 mt-1">{incidentForm.files.length} ảnh được chọn</p>
+          )}
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="px-6 py-4 bg-white border-t border-slate-100 flex justify-end gap-3">
+        <button
+          onClick={() => setShowIncidentModal(false)}
+          className="px-5 py-2.5 border border-slate-200 text-slate-500 rounded-xl font-bold text-sm hover:bg-slate-50 transition-all"
+        >
+          Đóng
+        </button>
+        <button
+          onClick={submitIncidentReport}
+          className="px-6 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-black text-sm shadow-lg shadow-orange-100 transition-all active:scale-95 flex items-center gap-2"
+        >
+          <AlertTriangle size={16} />
+          GỬI BÁO CÁO
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
       <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-900">Chi tiết nhiệm vụ cứu hộ</h1>
@@ -571,9 +687,14 @@ export default function MissionDetail() {
                   {/* ===== BANNER KHI ĐANG CHỜ QUYẾT ĐỊNH COORDINATOR ===== */}
                   {waitingCoordinatorDecision && !(latestIncident?.status === "RESOLVED" && latestIncident?.coordinatorAction === "ABORT") && (
                     <>
-                      <div className="w-full rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                        Đã gửi báo cáo thiếu quân số. Đang chờ quyết định từ Coordinator.
-                        {latestIncident?.coordinatorResponse ? ` Phản hồi: ${latestIncident.coordinatorResponse}` : ""}
+                      <div className="w-full rounded-lg border border-amber-200 bg-amber-50 px-3 py-3 text-xs text-amber-800 space-y-1">
+                        <p className="font-bold text-amber-900 flex items-center gap-1.5">
+                          <span>⏳</span>
+                          Đã gửi báo cáo. Đang chờ quyết định từ Điều phối viên.
+                        </p>
+                        {latestIncident?.coordinatorResponse && (
+                          <p className="text-amber-700">Phản hồi: {latestIncident.coordinatorResponse}</p>
+                        )}
                       </div>
                       <button
                         onClick={checkCoordinatorDecision}
@@ -583,7 +704,7 @@ export default function MissionDetail() {
                       </button>
                     </>
                   )}
-                  
+
                   {/* CHỈ HIỆN CÁC NÚT NÀY SAU KHI ĐÃ ĐIỂM DANH */}
                   {attendanceDone && !waitingCoordinatorDecision && (
                     <>
@@ -598,6 +719,17 @@ export default function MissionDetail() {
                       )}
                       {mission.status === "RESCUING" && (
                         <button onClick={() => updateStatus("COMPLETED")} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-bold shadow-md transition-all active:scale-95">Hoàn thành nhiệm vụ</button>
+                      )}
+
+                      {/* NÚT BÁO CÁO SỰ CỐ TRÊN ĐƯỜNG — hiện ở mọi trạng thái sau điểm danh (trừ COMPLETED) */}
+                      {["IN_PROGRESS", "MOVING", "ARRIVED", "RESCUING"].includes(mission.status) && (
+                        <button
+                          onClick={openIncidentModal}
+                          className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-semibold shadow-sm transition-all active:scale-95"
+                        >
+                          <AlertTriangle size={16} />
+                          Báo cáo sự cố
+                        </button>
                       )}
                     </>
                   )}
