@@ -61,7 +61,7 @@ public class WeatherPollingScheduler {
      * Results are stored in Redis automatically by WeatherService / FloodService.
      */
     @Scheduled(fixedDelayString = "${weather.cache.ttl-minutes:30}000",
-            initialDelay = 100000)  // 100s delay on startup to let context load
+            initialDelay = 10000)  // 10s delay on startup to let context load
     public void pollAllLocations() {
         if (!schedulerEnabled) {
             log.debug("Weather polling scheduler is disabled");
