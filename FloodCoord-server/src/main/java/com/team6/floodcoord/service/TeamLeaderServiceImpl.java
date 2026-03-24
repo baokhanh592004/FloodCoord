@@ -10,7 +10,7 @@ import com.team6.floodcoord.model.*;
 import com.team6.floodcoord.model.enums.RequestStatus;
 import com.team6.floodcoord.model.enums.TeamStatus;
 import com.team6.floodcoord.model.enums.VehicleStatus;
-import com.team6.floodcoord.repository.*;
+import com.team6.floodcoord.repository.jpa.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -35,7 +35,7 @@ public class TeamLeaderServiceImpl implements TeamLeaderService {
     private final SupplyRepository supplyRepository;
     private final CloudinaryService cloudinaryService;
     private final ReportMediaRepository reportMediaRepository;
-    private final com.team6.floodcoord.repository.VehicleRepository vehicleRepository;
+    private final VehicleRepository vehicleRepository;
 
     @Override
     @Transactional

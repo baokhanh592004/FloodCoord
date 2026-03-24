@@ -5,7 +5,7 @@ import com.team6.floodcoord.dto.RiskLevelDTO;
 import com.team6.floodcoord.dto.WeatherCurrentDTO;
 import com.team6.floodcoord.model.WeatherSnapshot;
 import com.team6.floodcoord.model.enums.RiskLevel;
-import com.team6.floodcoord.repository.WeatherSnapshotRepository;
+import com.team6.floodcoord.repository.jpa.WeatherSnapshotRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

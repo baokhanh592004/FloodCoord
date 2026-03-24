@@ -5,7 +5,7 @@ import com.team6.floodcoord.dto.request.ResolveIncidentRequest;
 import com.team6.floodcoord.dto.response.IncidentReportResponse;
 import com.team6.floodcoord.model.*;
 import com.team6.floodcoord.model.enums.*;
-import com.team6.floodcoord.repository.*;
+import com.team6.floodcoord.repository.jpa.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

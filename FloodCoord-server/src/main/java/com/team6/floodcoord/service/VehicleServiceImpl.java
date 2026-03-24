@@ -4,7 +4,7 @@ import com.team6.floodcoord.dto.request.VehicleRequest;
 import com.team6.floodcoord.dto.response.VehicleResponse;
 import com.team6.floodcoord.model.Vehicle;
 import com.team6.floodcoord.model.enums.VehicleStatus;
-import com.team6.floodcoord.repository.VehicleRepository;
+import com.team6.floodcoord.repository.jpa.VehicleRepository;
 import com.team6.floodcoord.utils.VehicleMapper;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.*;

@@ -1,8 +1,7 @@
-package com.team6.floodcoord.repository;
+package com.team6.floodcoord.repository.redis;
 
 import com.team6.floodcoord.model.BlackListedAccessToken;
 import org.springframework.data.keyvalue.repository.KeyValueRepository;
-import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;
 
 @Repository

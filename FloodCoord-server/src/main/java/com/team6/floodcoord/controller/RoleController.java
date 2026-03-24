@@ -1,7 +1,6 @@
 package com.team6.floodcoord.controller;
 
 import com.team6.floodcoord.dto.response.RoleResponse;
-import com.team6.floodcoord.repository.RoleRepository;
 import com.team6.floodcoord.service.RoleService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -12,7 +11,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/roles")
