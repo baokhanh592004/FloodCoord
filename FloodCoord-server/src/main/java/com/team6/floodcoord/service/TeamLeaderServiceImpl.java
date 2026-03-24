@@ -115,8 +115,7 @@ public class TeamLeaderServiceImpl implements TeamLeaderService {
                         .memberId(a.getMember().getId())
                         .memberName(a.getMember().getFullName())
                         .status(a.getStatus())
-                        .build()
-                )
+                        .build())
                 .toList();
     }
 
@@ -140,7 +139,6 @@ public class TeamLeaderServiceImpl implements TeamLeaderService {
 
         RescueRequest request = rescueRequestRepository.findById(requestId)
                 .orElseThrow(() -> new RuntimeException("Rescue request not found"));
-
 
         if (request.getAssignedTeam() == null ||
                 !request.getAssignedTeam().getId().equals(team.getId())) {
@@ -172,7 +170,6 @@ public class TeamLeaderServiceImpl implements TeamLeaderService {
     @Override
     @Transactional
     public void submitReport(ReportRequestDTO dto) {
-
 
         String email = SecurityContextHolder.getContext()
                 .getAuthentication()
@@ -218,28 +215,28 @@ public class TeamLeaderServiceImpl implements TeamLeaderService {
         rescueRequestRepository.save(request);
 
         // 🔥 Xử lý hoàn kho
-        if (dto.getRemainSupplies() != null){
+        if (dto.getRemainSupplies() != null) {
             for (SupplyRemainDTO item : dto.getRemainSupplies()) {
 
-            if (item.getRemainingQuantity() < 0) {
-                throw new RuntimeException("Remaining quantity cannot be negative");
-            }
-            RequestSupply rs = requestSupplyRepository
-                    .findById(item.getRequestSupplyId())
-                    .orElseThrow();
+                if (item.getRemainingQuantity() < 0) {
+                    throw new RuntimeException("Remaining quantity cannot be negative");
+                }
+                RequestSupply rs = requestSupplyRepository
+                        .findById(item.getRequestSupplyId())
+                        .orElseThrow();
 
-            int remain = item.getRemainingQuantity();
+                int remain = item.getRemainingQuantity();
 
-            if (remain > 0) {
-                Supply supply = rs.getSupply();
-                supply.setQuantity(supply.getQuantity() + remain);
-                supplyRepository.save(supply);
+                if (remain > 0) {
+                    Supply supply = rs.getSupply();
+                    supply.setQuantity(supply.getQuantity() + remain);
+                    supplyRepository.save(supply);
 
-                rs.setRemainingQuantity(remain);
-                requestSupplyRepository.save(rs);
+                    rs.setRemainingQuantity(remain);
+                    requestSupplyRepository.save(rs);
+                }
             }
         }
-            }
         // 7️⃣ Upload media lên Cloudinary
         if (dto.getMediaFiles() != null && dto.getMediaFiles().length > 0) {
 
@@ -258,8 +255,8 @@ public class TeamLeaderServiceImpl implements TeamLeaderService {
 
                 String mediaType = file.getContentType() != null &&
                         file.getContentType().startsWith("video")
-                        ? "VIDEO"
-                        : "IMAGE";
+                                ? "VIDEO"
+                                : "IMAGE";
 
                 ReportMedia media = ReportMedia.builder()
                         .report(report)
@@ -278,18 +275,15 @@ public class TeamLeaderServiceImpl implements TeamLeaderService {
 
         Long teamId = leader.getRescueTeam().getId();
 
-        List<RescueRequest> requests =
-                rescueRequestRepository.findByAssignedTeam_IdAndStatusIn(
-                        teamId,
-                        List.of(RequestStatus.COMPLETED)
-                );
+        List<RescueRequest> requests = rescueRequestRepository.findByAssignedTeam_IdAndStatusIn(
+                teamId,
+                   List.of(RequestStatus.COMPLETED, RequestStatus.REPORTED));
 
         return requests.stream()
                 .map(this::mapToCompletedDTO)
                 .toList();
 
     }
-
 
     @Override
     @Transactional(readOnly = true)
@@ -317,7 +311,6 @@ public class TeamLeaderServiceImpl implements TeamLeaderService {
         // 4️⃣ Lấy member của team
         List<User> members = userRepository.findByRescueTeam(team);
 
-
         Long leaderId = team.getLeader().getId();
 
         // 5️⃣ Convert sang DTO
@@ -328,11 +321,9 @@ public class TeamLeaderServiceImpl implements TeamLeaderService {
                         user.getEmail(),
                         user.getPhoneNumber(),
                         user.getRole().getRoleCode(),
-                        user.getId().equals(leaderId)
-                ))
+                        user.getId().equals(leaderId)))
                 .toList();
     }
-
 
     private void validateTransition(RequestStatus current, RequestStatus next) {
 
@@ -408,13 +399,11 @@ public class TeamLeaderServiceImpl implements TeamLeaderService {
                     .currentTeamId(
                             r.getAssignedTeam() != null
                                     ? r.getAssignedTeam().getId()
-                                    : null
-                    )
+                                    : null)
                     .currentTeamName(
                             r.getAssignedTeam() != null
                                     ? r.getAssignedTeam().getName()
-                                    : null
-                    )
+                                    : null)
 
                     .build();
         }
@@ -427,8 +416,7 @@ public class TeamLeaderServiceImpl implements TeamLeaderService {
                             rs.getId(),
                             rs.getSupply().getName(),
                             rs.getQuantity(),
-                            rs.getSupply().getUnit()
-                    ))
+                            rs.getSupply().getUnit()))
                     .toList();
         }
 
@@ -451,16 +439,13 @@ public class TeamLeaderServiceImpl implements TeamLeaderService {
                 .vehicle(vehicleResponse)
                 .supplies(suppliesList)
                 .assignedTeamId(
-                        r.getAssignedTeam() != null ? r.getAssignedTeam().getId() : null
-                )
+                        r.getAssignedTeam() != null ? r.getAssignedTeam().getId() : null)
                 .assignedTeamName(
-                        r.getAssignedTeam() != null ? r.getAssignedTeam().getName() : null
-                )
+                        r.getAssignedTeam() != null ? r.getAssignedTeam().getName() : null)
                 .assignedTeamLeaderPhone(
                         r.getAssignedTeam() != null && r.getAssignedTeam().getLeader() != null
                                 ? r.getAssignedTeam().getLeader().getPhoneNumber()
-                                : null
-                )
+                                : null)
                 .build();
     }
 }

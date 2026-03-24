@@ -6,7 +6,7 @@ import {
   ArrowPathIcon,
   EyeIcon,
   ClipboardDocumentListIcon,
-  CheckBadgeIcon 
+  CheckBadgeIcon
 } from '@heroicons/react/24/outline';
 
 export default function MyMissions() {
@@ -27,13 +27,13 @@ export default function MyMissions() {
         rescueTeamApi.getAssignedMissions().catch(() => []),
         rescueTeamApi.getCompletedMissions().catch(() => []),
       ]);
-      
+
       const allMissions = [...(activeRes || []), ...(completedRes || [])];
-      
+
       const mappedMissions = allMissions.map(m => ({
         ...m,
         // Logic kiểm tra báo cáo dựa trên dữ liệu Backend trả về
-        isReported: m.status === 'COMPLETED' && (m.reportId || m.isReported || false)
+        isReported: m.status === 'REPORTED' || Boolean(m.reportId || m.isReported)
       }));
 
       mappedMissions.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -67,11 +67,11 @@ export default function MyMissions() {
 
       let matchesStatus = true;
       if (statusFilter === 'COMPLETED') {
-        matchesStatus = m.status === 'COMPLETED';
+        matchesStatus = m.status === 'COMPLETED' || m.status === 'REPORTED';
       } else if (statusFilter === 'REPORTED') {
         matchesStatus = m.isReported === true;
       } else if (statusFilter === 'NOT_REPORTED') {
-        matchesStatus = m.status !== 'COMPLETED' || (m.status === 'COMPLETED' && !m.isReported);
+        matchesStatus = m.status !== 'COMPLETED' && m.status !== 'REPORTED';
       }
 
       return matchesSearch && matchesStatus;
@@ -85,11 +85,11 @@ export default function MyMissions() {
 
   const statusMap = {
     MOVING: "Đang di chuyển", ARRIVED: "Đã đến nơi",
-    RESCUING: "Đang cứu hộ", COMPLETED: "Hoàn thành", IN_PROGRESS: "Đang thực hiện",
+    RESCUING: "Đang cứu hộ", COMPLETED: "Hoàn thành", REPORTED: "Đã báo cáo", IN_PROGRESS: "Đang thực hiện",
   };
 
   const statusColor = (s) => {
-    if (s === "COMPLETED") return "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-600/20";
+    if (s === "COMPLETED" || s === "REPORTED") return "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-600/20";
     return "bg-blue-100 text-blue-700 ring-1 ring-blue-600/20";
   };
 
@@ -123,7 +123,7 @@ export default function MyMissions() {
             className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-2xl text-xs font-medium focus:ring-4 focus:ring-blue-500/5 focus:border-blue-500 transition-all outline-none"
           />
         </div>
-        
+
         <div className="flex gap-1 bg-slate-200/50 p-1 rounded-2xl border border-slate-200">
           {[
             { key: 'ALL', label: 'Tất cả' },
@@ -134,19 +134,18 @@ export default function MyMissions() {
             <button
               key={tab.key}
               onClick={() => { setStatusFilter(tab.key); setCurrentPage(1); }}
-              className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-xl transition-all ${
-                statusFilter === tab.key 
-                ? 'bg-white text-blue-600 shadow-sm scale-105' 
-                : 'text-slate-500 hover:text-slate-700'
-              }`}
+              className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-xl transition-all ${statusFilter === tab.key
+                  ? 'bg-white text-blue-600 shadow-sm scale-105'
+                  : 'text-slate-500 hover:text-slate-700'
+                }`}
             >
               {tab.label}
               <span className="ml-1 opacity-40 font-bold">
                 ({
                   tab.key === 'ALL' ? missions.length :
-                  tab.key === 'REPORTED' ? missions.filter(m => m.isReported).length :
-                  tab.key === 'NOT_REPORTED' ? missions.filter(m => !m.isReported).length :
-                  missions.filter(m => m.status === 'COMPLETED').length
+                    tab.key === 'REPORTED' ? missions.filter(m => m.isReported).length :
+                      tab.key === 'NOT_REPORTED' ? missions.filter(m => !m.isReported).length :
+                        missions.filter(m => m.status === 'COMPLETED' || m.status === 'REPORTED').length
                 })
               </span>
             </button>
@@ -175,12 +174,12 @@ export default function MyMissions() {
               ) : currentMissions.map((m, index) => (
                 <tr key={m.requestId || m.id} className={`hover:bg-blue-50/30 transition-colors group ${m.isReported ? 'opacity-70' : ''}`}>
                   <td className="px-6 py-5 text-slate-400 font-mono font-bold">{(currentPage - 1) * itemsPerPage + index + 1}</td>
-                  
+
                   {/* Cột Nhiệm vụ & Liên hệ */}
                   <td className="px-6 py-5">
                     <p className="font-black text-slate-800 text-sm">{m.title || "Yêu cầu SOS"}</p>
                     <p className="text-slate-500 font-bold mb-0.5">{m.contactName}</p>
-                    <span className="text-[13px] text-blue-500 font-mono font-bold">#{m.trackingCode || m.requestId?.slice(0,8)}</span>
+                    <span className="text-[13px] text-blue-500 font-mono font-bold">#{m.trackingCode || m.requestId?.slice(0, 8)}</span>
                   </td>
 
                   {/* CỘT ĐỊA ĐIỂM CỨU TRỢ (ĐÃ KHÔI PHỤC) */}
@@ -193,7 +192,7 @@ export default function MyMissions() {
                       {m.floodDepth > 0 && <span className="bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded-md font-bold text-[9px]">🌊 {m.floodDepth}m</span>}
                     </div>
                   </td>
-                  
+
                   <td className="px-6 py-5 text-center">
                     <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm ${statusColor(m.status)}`}>
                       {statusMap[m.status] || m.status}
@@ -212,8 +211,8 @@ export default function MyMissions() {
                   </td>
 
                   <td className="px-6 py-5 text-center">
-                    <button 
-                      onClick={() => navigate(`/rescue-team/missions/${m.requestId || m.id}`)} 
+                    <button
+                      onClick={() => navigate(`/rescue-team/missions/${m.requestId || m.id}`)}
                       className="p-2.5 bg-slate-50 text-slate-400 hover:bg-blue-600 hover:text-white rounded-xl transition-all shadow-sm active:scale-90"
                     >
                       <EyeIcon className="h-4 w-4" />
@@ -223,7 +222,7 @@ export default function MyMissions() {
               ))}
             </tbody>
           </table>
-          
+
           {!loading && filteredMissions.length === 0 && (
             <div className="flex flex-col items-center justify-center py-32 text-slate-300">
               <ClipboardDocumentListIcon className="h-16 w-16 opacity-10 mb-4" />
