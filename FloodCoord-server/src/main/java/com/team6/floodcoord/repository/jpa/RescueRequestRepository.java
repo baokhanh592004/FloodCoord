@@ -39,4 +39,16 @@ public interface RescueRequestRepository
     List<RescueRequest> findByStatus(RequestStatus status);
     long countByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
     long countByStatusAndCompletedAtBetween(RequestStatus status, LocalDateTime start, LocalDateTime end);
+
+    // 1. Đếm số nhiệm vụ hoàn thành của Đội
+    long countByAssignedTeam_IdAndStatusAndCompletedAtBetween(Long teamId, RequestStatus status, java.time.LocalDateTime start, java.time.LocalDateTime end);
+
+    // 2. Tính tổng số người cứu được của Đội (Lấy từ RescueReport)
+    // LƯU Ý: Chữ "rescuedPeople" dưới đây bạn phải sửa lại cho ĐÚNG VỚI TÊN BIẾN trong file RescueReport.java của bạn nhé.
+    @Query("SELECT COALESCE(SUM(r.report.rescuedPeople), 0) FROM RescueRequest r WHERE r.assignedTeam.id = :teamId AND r.status = :status AND r.completedAt BETWEEN :start AND :end")
+    Long sumRescuedPeopleByTeamAndDateRange(@Param("teamId") Long teamId, @Param("status") RequestStatus status, @Param("start") java.time.LocalDateTime start, @Param("end") java.time.LocalDateTime end);
+
+    // 3. Tính điểm đánh giá sao trung bình của Đội
+    @Query("SELECT COALESCE(AVG(r.citizenRating), 0.0) FROM RescueRequest r WHERE r.assignedTeam.id = :teamId AND r.status = :status AND r.completedAt BETWEEN :start AND :end AND r.citizenRating IS NOT NULL")
+    Double getAverageRatingByTeamAndDateRange(@Param("teamId") Long teamId, @Param("status") RequestStatus status, @Param("start") java.time.LocalDateTime start, @Param("end") java.time.LocalDateTime end);
 }
