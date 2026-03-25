@@ -1,6 +1,7 @@
 package com.team6.floodcoord.repository.jpa;
 
 import com.team6.floodcoord.model.Vehicle;
+import com.team6.floodcoord.model.enums.VehicleStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -8,4 +9,5 @@ import org.springframework.stereotype.Repository;
 public interface VehicleRepository extends JpaRepository<Vehicle, Long> {
     boolean existsByName(String name);
     boolean existsByLicensePlate(String licensePlate);
+    long countByStatus(VehicleStatus status);
 }
