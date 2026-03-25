@@ -52,4 +52,11 @@ public class IncidentReport {
 
     private LocalDateTime createdAt;
     private LocalDateTime resolvedAt;
+
+    @PrePersist
+    protected void onCreate() {
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+    }
 }
