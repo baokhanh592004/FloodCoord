@@ -23,4 +23,5 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
     List<User> findByStatusTrueAndLastLoginDateBefore(LocalDateTime thresholdDate);
     List<User> findByRole_RoleCodeAndRescueTeamIsNull(String roleCode);
     List<User> findByRescueTeam(RescueTeam rescueTeam);
+    long countByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
 }
