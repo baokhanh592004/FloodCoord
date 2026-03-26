@@ -9,7 +9,9 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.connection.RedisPassword;
 import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
+import org.springframework.data.redis.connection.lettuce.LettuceClientConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
@@ -29,6 +31,12 @@ public class RedisConfiguration {
 
     @Value("${data.redis.port}")
     private int port;
+
+    @Value("${data.redis.password:}")
+    private String password;
+
+    @Value("${data.redis.ssl:false}")
+    private boolean useSsl;
 
     @Value("${weather.cache.ttl-minutes:30}")
     private long cacheTtlMinutes;
@@ -55,11 +63,22 @@ public class RedisConfiguration {
 
     @Bean
     public LettuceConnectionFactory redisConnectionFactory() {
-        RedisStandaloneConfiguration redisConfig = new RedisStandaloneConfiguration(host,port);
-        LettuceConnectionFactory factory = new LettuceConnectionFactory(redisConfig);
-        log.info("Redis connection factory created successfully");
+        RedisStandaloneConfiguration redisConfig = new RedisStandaloneConfiguration(host, port);
+        if (StringUtils.hasText(password)) {
+            redisConfig.setPassword(RedisPassword.of(password));
+        }
 
-        return factory;
+        LettuceClientConfiguration.LettuceClientConfigurationBuilder builder = LettuceClientConfiguration.builder();
+        if (useSsl) {
+            builder.useSsl();
+            log.info("Redis kết nối qua chế độ bảo mật SSL/TLS");
+        } else {
+            log.info("Redis kết nối qua chế độ thông thường (Plain Text)");
+        }
+
+        LettuceClientConfiguration clientConfig = builder.build();
+
+        return new LettuceConnectionFactory(redisConfig, clientConfig);
     }
 
     @Bean
