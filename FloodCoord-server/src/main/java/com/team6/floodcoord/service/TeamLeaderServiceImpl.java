@@ -148,10 +148,10 @@ public class TeamLeaderServiceImpl implements TeamLeaderService {
         validateTransition(request.getStatus(), newStatus);
 
         request.setStatus(newStatus);
-        rescueRequestRepository.save(request);
 
         // Nếu completed thì trả team về available và trả xe
         if (newStatus == RequestStatus.COMPLETED) {
+            request.setCompletedAt(LocalDateTime.now());
             team.setStatus(TeamStatus.AVAILABLE);
             rescueTeamRepository.save(team);
 
@@ -165,6 +165,7 @@ public class TeamLeaderServiceImpl implements TeamLeaderService {
                 }
             }
         }
+        rescueRequestRepository.save(request);
     }
 
     @Override
