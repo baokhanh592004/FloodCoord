@@ -13,6 +13,8 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
+import java.util.Arrays;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -38,20 +40,22 @@ public class TeamLeaderAnalyticsService {
         LocalDateTime endCompare = compareEndDate.atTime(23, 59, 59);
 
         // 3. Query DB
-        long currentMissions = rescueRequestRepository.countByAssignedTeam_IdAndStatusAndCompletedAtBetween(
-                teamId, RequestStatus.COMPLETED, startTarget, endTarget);
-        long lastMissions = rescueRequestRepository.countByAssignedTeam_IdAndStatusAndCompletedAtBetween(
-                teamId, RequestStatus.COMPLETED, startCompare, endCompare);
+        List<RequestStatus> validStatuses = Arrays.asList(RequestStatus.COMPLETED, RequestStatus.REPORTED);
+
+        long currentMissions = rescueRequestRepository.countByAssignedTeam_IdAndStatusInAndCompletedAtBetween(
+                teamId, validStatuses, startTarget, endTarget);
+        long lastMissions = rescueRequestRepository.countByAssignedTeam_IdAndStatusInAndCompletedAtBetween(
+                teamId, validStatuses, startCompare, endCompare);
 
         long currentRescued = rescueRequestRepository.sumRescuedPeopleByTeamAndDateRange(
-                teamId, RequestStatus.COMPLETED, startTarget, endTarget);
+                teamId, validStatuses, startTarget, endTarget);
         long lastRescued = rescueRequestRepository.sumRescuedPeopleByTeamAndDateRange(
-                teamId, RequestStatus.COMPLETED, startCompare, endCompare);
+                teamId, validStatuses, startCompare, endCompare);
 
         double currentRating = rescueRequestRepository.getAverageRatingByTeamAndDateRange(
-                teamId, RequestStatus.COMPLETED, startTarget, endTarget);
+                teamId, validStatuses, startTarget, endTarget);
         double lastRating = rescueRequestRepository.getAverageRatingByTeamAndDateRange(
-                teamId, RequestStatus.COMPLETED, startCompare, endCompare);
+                teamId, validStatuses, startCompare, endCompare);
 
         return TeamLeaderDashboardResponse.builder()
                 .completedMissions(buildMonthlyStat(currentMissions, lastMissions))
