@@ -29,6 +29,10 @@ export default function MissionDetail() {
   const [showIncidentModal, setShowIncidentModal] = useState(false);
   const [incidentForm, setIncidentForm] = useState({ title: "", description: "", files: [] });
 
+  // --- State cho modal xác nhận cập nhật tiến độ ---
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState(null);
+
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
@@ -547,6 +551,68 @@ export default function MissionDetail() {
   </div>
 )}
 
+{/* ===== MODAL XÁC NHẬN CẬP NHẬT TIẾN ĐỘ ===== */}
+{showConfirmModal && pendingStatus && (
+  <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-[2px] z-60 flex items-center justify-center p-4 animate-in fade-in duration-200">
+    <div className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl border border-slate-200">
+      {/* Header */}
+      <div className="px-6 py-5 border-b border-slate-100 flex items-center gap-3">
+        <div className="bg-blue-50 p-2.5 rounded-xl text-blue-600">
+          <CheckCircle2 size={22} />
+        </div>
+        <div>
+          <h3 className="text-lg font-black text-slate-800 tracking-tight">Xác nhận cập nhật</h3>
+          <p className="text-xs text-slate-400 font-medium mt-0.5">Vui lòng kiểm tra trước khi xác nhận</p>
+        </div>
+      </div>
+      {/* Body */}
+      <div className="px-6 py-5 space-y-3">
+        <p className="text-sm text-slate-600">
+          Bạn có chắc muốn cập nhật trạng thái sang:
+        </p>
+        <div className={`text-center py-2.5 px-4 rounded-xl font-black text-base ring-1 ${
+          pendingStatus === 'MOVING' ? 'bg-amber-50 text-amber-700 ring-amber-300' :
+          pendingStatus === 'ARRIVED' ? 'bg-indigo-50 text-indigo-700 ring-indigo-300' :
+          pendingStatus === 'RESCUING' ? 'bg-blue-50 text-blue-700 ring-blue-300' :
+          'bg-emerald-50 text-emerald-700 ring-emerald-300'
+        }`}>
+          {{
+            MOVING: '🚗 Đang di chuyển',
+            ARRIVED: '📍 Đã đến nơi',
+            RESCUING: '🛟 Đang cứu hộ',
+            COMPLETED: '✅ Hoàn thành nhiệm vụ',
+          }[pendingStatus]}
+        </div>
+        <p className="text-xs text-slate-400 text-center">Hành động này sẽ được ghi nhận và thông báo đến Điều phối viên.</p>
+      </div>
+      {/* Footer */}
+      <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex gap-3">
+        <button
+          onClick={() => { setShowConfirmModal(false); setPendingStatus(null); }}
+          className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-100 transition-all"
+        >
+          Huỷ
+        </button>
+        <button
+          onClick={async () => {
+            setShowConfirmModal(false);
+            await updateStatus(pendingStatus);
+            setPendingStatus(null);
+          }}
+          className={`flex-1 px-4 py-2.5 text-white rounded-xl font-black text-sm shadow-md transition-all active:scale-95 ${
+            pendingStatus === 'MOVING' ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-100' :
+            pendingStatus === 'ARRIVED' ? 'bg-indigo-500 hover:bg-indigo-600 shadow-indigo-100' :
+            pendingStatus === 'RESCUING' ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-100' :
+            'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-100'
+          }`}
+        >
+          Xác nhận
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
       <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-900">Chi tiết nhiệm vụ cứu hộ</h1>
@@ -709,16 +775,16 @@ export default function MissionDetail() {
                   {attendanceDone && !waitingCoordinatorDecision && (
                     <>
                       {mission.status === "IN_PROGRESS" && (
-                        <button onClick={() => updateStatus("MOVING")} className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg font-semibold shadow-sm">Đang di chuyển</button>
+                        <button onClick={() => { setPendingStatus("MOVING"); setShowConfirmModal(true); }} className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg font-semibold shadow-sm">Đang di chuyển</button>
                       )}
                       {mission.status === "MOVING" && (
-                        <button onClick={() => updateStatus("ARRIVED")} className="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold shadow-sm">Đã đến nơi</button>
+                        <button onClick={() => { setPendingStatus("ARRIVED"); setShowConfirmModal(true); }} className="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold shadow-sm">Đã đến nơi</button>
                       )}
                       {mission.status === "ARRIVED" && (
-                        <button onClick={() => updateStatus("RESCUING")} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold shadow-sm">Đang cứu hộ</button>
+                        <button onClick={() => { setPendingStatus("RESCUING"); setShowConfirmModal(true); }} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold shadow-sm">Đang cứu hộ</button>
                       )}
                       {mission.status === "RESCUING" && (
-                        <button onClick={() => updateStatus("COMPLETED")} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-bold shadow-md transition-all active:scale-95">Hoàn thành nhiệm vụ</button>
+                        <button onClick={() => { setPendingStatus("COMPLETED"); setShowConfirmModal(true); }} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-bold shadow-md transition-all active:scale-95">Hoàn thành nhiệm vụ</button>
                       )}
 
                       {/* NÚT BÁO CÁO SỰ CỐ TRÊN ĐƯỜNG — hiện ở mọi trạng thái sau điểm danh (trừ COMPLETED) */}
