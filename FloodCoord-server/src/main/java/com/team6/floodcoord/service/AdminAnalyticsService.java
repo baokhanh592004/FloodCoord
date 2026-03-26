@@ -10,6 +10,7 @@ import com.team6.floodcoord.repository.jpa.VehicleRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 
@@ -20,29 +21,31 @@ public class AdminAnalyticsService {
     private final RescueRequestRepository rescueRequestRepository;
     private final VehicleRepository vehicleRepository;
 
-    public AdminDashboardResponse getDashboardStats() {
-        YearMonth currentMonth = YearMonth.now();
-        YearMonth lastMonth = currentMonth.minusMonths(1);
+    public AdminDashboardResponse getDashboardStats(LocalDate startDate, LocalDate endDate, LocalDate compareStartDate, LocalDate compareEndDate) {
 
-        LocalDateTime startOfCurrentMoth = currentMonth.atDay(1).atStartOfDay();
-        LocalDateTime endOfCurrentMoth = currentMonth.atEndOfMonth().atTime(23, 59, 59);
+        // Convert LocalDate (Ngày) sang LocalDateTime (Ngày + Giờ) để so sánh chính xác trong DB
+        LocalDateTime startTarget = startDate.atStartOfDay(); // 00:00:00
+        LocalDateTime endTarget = endDate.atTime(23, 59, 59); // 23:59:59
 
-        LocalDateTime startOfLastMoth = lastMonth.atDay(1).atStartOfDay();
-        LocalDateTime endOfLastMoth = lastMonth.atEndOfMonth().atTime(23, 59, 59);
+        LocalDateTime startCompare = compareStartDate.atStartOfDay();
+        LocalDateTime endCompare = compareEndDate.atTime(23, 59, 59);
 
-        long currentMonthUsers = userRepository.countByCreatedAtBetween(startOfCurrentMoth, endOfCurrentMoth);
-        long lastMonthUsers = userRepository.countByCreatedAtBetween(startOfLastMoth, endOfLastMoth);
+        // 1. Thống kê User (Truyền startTarget, endTarget thay vì hardcode)
+        long currentMonthUsers = userRepository.countByCreatedAtBetween(startTarget, endTarget);
+        long lastMonthUsers = userRepository.countByCreatedAtBetween(startCompare, endCompare);
 
-        long currentMothRequests = rescueRequestRepository.countByCreatedAtBetween(startOfCurrentMoth, endOfCurrentMoth);
-        long lastMothRequests = rescueRequestRepository.countByCreatedAtBetween(startOfLastMoth, endOfLastMoth);
+        // 2. Thống kê Yêu cầu cứu hộ
+        long currentMonthRequests = rescueRequestRepository.countByCreatedAtBetween(startTarget, endTarget);
+        long lastMonthRequests = rescueRequestRepository.countByCreatedAtBetween(startCompare, endCompare);
 
+        // 3. Thống kê Phương tiện (Cái này là Real-time tại thời điểm xem, nên không cần tham số ngày tháng)
         long available = vehicleRepository.countByStatus(VehicleStatus.AVAILABLE);
         long inUse = vehicleRepository.countByStatus(VehicleStatus.IN_USE);
         long maintenance = vehicleRepository.countByStatus(VehicleStatus.MAINTENANCE);
 
         return AdminDashboardResponse.builder()
                 .newUsers(buildMonthlyStat(currentMonthUsers, lastMonthUsers))
-                .rescueRequests(buildMonthlyStat(lastMothRequests, currentMothRequests))
+                .rescueRequests(buildMonthlyStat(currentMonthRequests, lastMonthRequests))
                 .vehicles(VehicleStatDTO.builder()
                         .availableCount(available)
                         .inUseCount(inUse)
@@ -51,7 +54,6 @@ public class AdminAnalyticsService {
                         .build())
                 .build();
     }
-
     private MonthlyStatDTO buildMonthlyStat(long current, long last) {
         double growthRate = 0.0;
         if (last > 0){
