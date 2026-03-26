@@ -1,6 +1,21 @@
 import axiosClient from "../api/axiosClient";
 
 export const rescueTeamApi = {
+
+
+// Thêm vào rescueTeamApi object
+getDashboardStats: async (startDate, endDate, compareStartDate, compareEndDate) => {
+  try {
+    const response = await axiosClient.get("/api/leader/dashboard", {
+      params: { startDate, endDate, compareStartDate, compareEndDate }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Get dashboard stats failed:", error);
+    throw error;
+  }
+},
+
   // Lấy các nhiệm vụ đang thực hiện
   getAssignedMissions: async () => {
     try {
