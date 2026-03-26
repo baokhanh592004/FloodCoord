@@ -10,6 +10,7 @@ import com.team6.floodcoord.repository.jpa.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 
@@ -19,8 +20,9 @@ public class TeamLeaderAnalyticsService {
     private final RescueRequestRepository rescueRequestRepository;
     private final UserRepository userRepository;
 
-    public TeamLeaderDashboardResponse getDashboardStats(String email) {
-        // 1. Lấy thông tin Team của người đang đăng nhập
+    public TeamLeaderDashboardResponse getDashboardStats(String email, LocalDate startDate, LocalDate endDate, LocalDate compareStartDate, LocalDate compareEndDate) {
+
+        // 1. Tìm Team ID của người đang login
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
 
@@ -29,36 +31,28 @@ public class TeamLeaderAnalyticsService {
         }
         Long teamId = user.getRescueTeam().getId();
 
-        // 2. Tính toán thời gian
-        YearMonth currentMonth = YearMonth.now();
-        YearMonth lastMonth = currentMonth.minusMonths(1);
+        // 2. Convert sang LocalDateTime
+        LocalDateTime startTarget = startDate.atStartOfDay();
+        LocalDateTime endTarget = endDate.atTime(23, 59, 59);
+        LocalDateTime startCompare = compareStartDate.atStartOfDay();
+        LocalDateTime endCompare = compareEndDate.atTime(23, 59, 59);
 
-        LocalDateTime startOfCurrentMonth = currentMonth.atDay(1).atStartOfDay();
-        LocalDateTime endOfCurrentMonth = currentMonth.atEndOfMonth().atTime(23, 59, 59);
-
-        LocalDateTime startOfLastMonth = lastMonth.atDay(1).atStartOfDay();
-        LocalDateTime endOfLastMonth = lastMonth.atEndOfMonth().atTime(23, 59, 59);
-
-        // 3. Query số liệu
-        // - Số nhiệm vụ hoàn thành
+        // 3. Query DB
         long currentMissions = rescueRequestRepository.countByAssignedTeam_IdAndStatusAndCompletedAtBetween(
-                teamId, RequestStatus.COMPLETED, startOfCurrentMonth, endOfCurrentMonth);
+                teamId, RequestStatus.COMPLETED, startTarget, endTarget);
         long lastMissions = rescueRequestRepository.countByAssignedTeam_IdAndStatusAndCompletedAtBetween(
-                teamId, RequestStatus.COMPLETED, startOfLastMonth, endOfLastMonth);
+                teamId, RequestStatus.COMPLETED, startCompare, endCompare);
 
-        // - Số người đã cứu
         long currentRescued = rescueRequestRepository.sumRescuedPeopleByTeamAndDateRange(
-                teamId, RequestStatus.COMPLETED, startOfCurrentMonth, endOfCurrentMonth);
+                teamId, RequestStatus.COMPLETED, startTarget, endTarget);
         long lastRescued = rescueRequestRepository.sumRescuedPeopleByTeamAndDateRange(
-                teamId, RequestStatus.COMPLETED, startOfLastMonth, endOfLastMonth);
+                teamId, RequestStatus.COMPLETED, startCompare, endCompare);
 
-        // - Điểm đánh giá
         double currentRating = rescueRequestRepository.getAverageRatingByTeamAndDateRange(
-                teamId, RequestStatus.COMPLETED, startOfCurrentMonth, endOfCurrentMonth);
+                teamId, RequestStatus.COMPLETED, startTarget, endTarget);
         double lastRating = rescueRequestRepository.getAverageRatingByTeamAndDateRange(
-                teamId, RequestStatus.COMPLETED, startOfLastMonth, endOfLastMonth);
+                teamId, RequestStatus.COMPLETED, startCompare, endCompare);
 
-        // 4. Trả về kết quả
         return TeamLeaderDashboardResponse.builder()
                 .completedMissions(buildMonthlyStat(currentMissions, lastMissions))
                 .rescuedPeople(buildMonthlyStat(currentRescued, lastRescued))
