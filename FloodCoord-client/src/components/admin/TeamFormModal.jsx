@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { X, UserPlus, Shield } from 'lucide-react';
 
 export default function TeamFormModal({ 
@@ -13,10 +13,30 @@ export default function TeamFormModal({
     const [selectedLeaderId, setSelectedLeaderId] = useState('');
     const [selectedMemberIds, setSelectedMemberIds] = useState([]);
 
+    const normalizeId = (id) => {
+        if (id === null || id === undefined || id === '') return '';
+        return String(id);
+    };
+
+    const toApiId = (id) => (/^\d+$/.test(id) ? Number(id) : id);
+
+    const selectableUsers = useMemo(() => {
+        const userMap = new Map();
+        const editingMembers = editingTeam?.members || [];
+        const editingLeader = editingTeam?.leader ? [editingTeam.leader] : [];
+
+        [...availableUsers, ...editingMembers, ...editingLeader].forEach((user) => {
+            if (!user?.id) return;
+            userMap.set(normalizeId(user.id), user);
+        });
+
+        return Array.from(userMap.values());
+    }, [availableUsers, editingTeam]);
+
     useEffect(() => {
         if (editingTeam) {
-            setSelectedLeaderId(editingTeam.leader?.id || '');
-            setSelectedMemberIds(editingTeam.members?.map(m => m.id) || []);
+            setSelectedLeaderId(normalizeId(editingTeam.leader?.id || editingTeam.leaderId || ''));
+            setSelectedMemberIds(editingTeam.members?.map((member) => normalizeId(member.id)) || []);
         } else {
             setSelectedLeaderId('');
             setSelectedMemberIds([]);
@@ -24,10 +44,11 @@ export default function TeamFormModal({
     }, [editingTeam]);
 
     const handleMemberToggle = (userId) => {
+        const normalizedUserId = normalizeId(userId);
         setSelectedMemberIds(prev => 
-            prev.includes(userId) 
-                ? prev.filter(id => id !== userId)
-                : [...prev, userId]
+            prev.includes(normalizedUserId)
+                ? prev.filter(id => id !== normalizedUserId)
+                : [...prev, normalizedUserId]
         );
     };
 
@@ -35,8 +56,8 @@ export default function TeamFormModal({
         e.preventDefault();
         const submitData = {
             ...formData,
-            leaderId: selectedLeaderId || null,
-            memberIds: selectedMemberIds
+            leaderId: selectedLeaderId ? toApiId(selectedLeaderId) : null,
+            memberIds: selectedMemberIds.map(toApiId)
         };
         onSubmit(submitData);
     };
@@ -99,12 +120,12 @@ export default function TeamFormModal({
                         </label>
                         <select
                             value={selectedLeaderId}
-                            onChange={(e) => setSelectedLeaderId(e.target.value)}
+                            onChange={(e) => setSelectedLeaderId(normalizeId(e.target.value))}
                             className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                         >
                             <option value="">-- Chọn đội trưởng --</option>
-                            {availableUsers.map(user => (
-                                <option key={user.id} value={user.id}>
+                            {selectableUsers.map(user => (
+                                <option key={user.id} value={normalizeId(user.id)}>
                                     {user.fullName || user.email} ({user.email})
                                 </option>
                             ))}
@@ -118,20 +139,20 @@ export default function TeamFormModal({
                             Thành viên đội ({selectedMemberIds.length} người)
                         </label>
                         <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 max-h-60 overflow-y-auto">
-                            {availableUsers.length === 0 ? (
+                            {selectableUsers.length === 0 ? (
                                 <p className="text-slate-500 text-sm text-center py-4">
                                     Không có người dùng khả dụng
                                 </p>
                             ) : (
                                 <div className="space-y-2">
-                                    {availableUsers.map(user => (
+                                    {selectableUsers.map(user => (
                                         <label 
                                             key={user.id}
                                             className="flex items-center gap-3 p-3 bg-white rounded-lg hover:bg-blue-50 cursor-pointer transition border border-slate-100"
                                         >
                                             <input
                                                 type="checkbox"
-                                                checked={selectedMemberIds.includes(user.id)}
+                                                checked={selectedMemberIds.includes(normalizeId(user.id))}
                                                 onChange={() => handleMemberToggle(user.id)}
                                                 className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
                                             />
@@ -141,7 +162,7 @@ export default function TeamFormModal({
                                                 </p>
                                                 <p className="text-xs text-slate-500">{user.email}</p>
                                             </div>
-                                            {selectedLeaderId === user.id.toString() && (
+                                            {selectedLeaderId === normalizeId(user.id) && (
                                                 <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full font-semibold">
                                                     Đội trưởng
                                                 </span>
