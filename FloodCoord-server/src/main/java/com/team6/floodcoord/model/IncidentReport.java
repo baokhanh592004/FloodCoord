@@ -53,6 +53,14 @@ public class IncidentReport {
     private LocalDateTime createdAt;
     private LocalDateTime resolvedAt;
 
+    /**
+     * true = coordinator xác nhận đội đã xuất phát khi xử lý ABORT
+     * → Đội cũ OFF_DUTY, xe MAINTENANCE, vật tư không hoàn lại kho
+     */
+    @Builder.Default
+    @Column(name = "is_post_departure")
+    private Boolean isPostDeparture = false;
+
     @PrePersist
     protected void onCreate() {
         if (createdAt == null) {

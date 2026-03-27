@@ -312,6 +312,45 @@ export default function MissionDetail() {
 
   // Khi nhiệm vụ đã bị hủy (ABORT) và giao cho đội khác
   if (!mission && missionAborted && latestIncident) {
+    // Post-departure: đội đang nghỉ trực, chờ gửi báo cáo tình trạng
+    if (latestIncident.isPostDeparture) {
+      return (
+        <div className="p-8 max-w-xl mx-auto">
+          <div className="rounded-2xl border-2 border-orange-300 bg-orange-50 p-6 space-y-4">
+            <div className="flex items-start gap-4">
+              <span className="text-4xl">💤</span>
+              <div>
+                <h2 className="text-xl font-black text-orange-900">Đội đang nghỉ trực</h2>
+                <p className="text-sm text-orange-700 mt-1">
+                  Nhiệm vụ đã được giao lại cho đội khác.<br />
+                  Đội bạn đang ở trạng thái <strong>nghỉ trực (OFF_DUTY)</strong>, xe đang được bảo trì.
+                </p>
+                <p className="text-sm text-orange-700 mt-2">
+                  ⚠️ Vật tư đã mang đi <strong>không được hoàn lại kho</strong>.
+                </p>
+                {latestIncident.coordinatorResponse && (
+                  <div className="mt-3 rounded-lg bg-white border border-orange-200 px-4 py-3">
+                    <p className="text-xs font-bold text-gray-500 mb-1">Lý do từ Coordinator:</p>
+                    <p className="text-sm text-gray-800">{latestIncident.coordinatorResponse}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="bg-orange-100 rounded-xl px-4 py-3 text-sm text-orange-900 font-medium">
+              📋 Đội trưởng cần gửi báo cáo tình trạng xe và vật tư để Coordinator cập nhật.
+            </div>
+            <button
+              onClick={() => navigate(`/rescue-team/missions/${latestIncident.rescueRequestId}/standby-report`)}
+              className="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 rounded-xl shadow-md transition-all active:scale-95"
+            >
+              Gửi báo cáo tình trạng xe &amp; vật tư
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // Pre-departure: đội đã được giải phóng về AVAILABLE
     return (
       <div className="p-8 max-w-xl mx-auto">
         <div className="rounded-2xl border-2 border-red-300 bg-red-50 p-6 space-y-4">
@@ -748,28 +787,57 @@ export default function MissionDetail() {
 
                   {/* ===== BANNER KHI COORDINATOR ĐÃ HỦY NHIỆM VỤ (ABORT) ===== */}
                   {latestIncident?.status === "RESOLVED" && latestIncident?.coordinatorAction === "ABORT" && (
-                    <div className="w-full rounded-xl border-2 border-red-300 bg-red-50 p-4 space-y-3">
-                      <div className="flex items-start gap-3">
-                        <span className="text-2xl">🚫</span>
-                        <div>
-                          <p className="font-bold text-red-800 text-sm">Nhiệm vụ đã bị hủy bởi Điều phối viên</p>
-                          <p className="text-xs text-red-700 mt-0.5">
-                            Đội bạn đã được giải phóng. Nhiệm vụ này đã được giao lại hoặc đưa vào hàng chờ.
-                          </p>
-                          {latestIncident.coordinatorResponse && (
-                            <p className="mt-2 text-xs text-gray-700 bg-white border border-red-200 rounded-lg px-3 py-2">
-                              <span className="font-semibold">Phản hồi của Coordinator:</span> {latestIncident.coordinatorResponse}
+                    latestIncident?.isPostDeparture ? (
+                      /* POST-DEPARTURE: Đội đang nghỉ trực */
+                      <div className="w-full rounded-xl border-2 border-orange-300 bg-orange-50 p-4 space-y-3">
+                        <div className="flex items-start gap-3">
+                          <span className="text-2xl">💤</span>
+                          <div>
+                            <p className="font-bold text-orange-800 text-sm">Đội đang nghỉ trực (OFF_DUTY)</p>
+                            <p className="text-xs text-orange-700 mt-0.5">
+                              Nhiệm vụ đã được giao lại đội khác. Xe đang bảo trì. Vật tư đã mang đi không hoàn lại kho.
                             </p>
-                          )}
+                            {latestIncident.coordinatorResponse && (
+                              <p className="mt-2 text-xs text-gray-700 bg-white border border-orange-200 rounded-lg px-3 py-2">
+                                <span className="font-semibold">Lý do Coordinator:</span> {latestIncident.coordinatorResponse}
+                              </p>
+                            )}
+                          </div>
                         </div>
+                        {currentUser?.isTeamLeader && (
+                          <button
+                            onClick={() => navigate(`/rescue-team/missions/${mission?.requestId || id}/standby-report`)}
+                            className="w-full bg-orange-600 hover:bg-orange-700 text-white text-sm font-bold px-4 py-2.5 rounded-lg shadow-sm transition-all active:scale-95"
+                          >
+                            📋 Gửi báo cáo tình trạng xe &amp; vật tư
+                          </button>
+                        )}
                       </div>
-                      <button
-                        onClick={() => navigate("/rescue-team/missions")}
-                        className="w-full bg-red-600 hover:bg-red-700 text-white text-sm font-bold px-4 py-2.5 rounded-lg shadow-sm transition-all active:scale-95"
-                      >
-                        Quay về danh sách nhiệm vụ
-                      </button>
-                    </div>
+                    ) : (
+                      /* PRE-DEPARTURE: Đội đã được giải phóng */
+                      <div className="w-full rounded-xl border-2 border-red-300 bg-red-50 p-4 space-y-3">
+                        <div className="flex items-start gap-3">
+                          <span className="text-2xl">🚫</span>
+                          <div>
+                            <p className="font-bold text-red-800 text-sm">Nhiệm vụ đã bị hủy bởi Điều phối viên</p>
+                            <p className="text-xs text-red-700 mt-0.5">
+                              Đội bạn đã được giải phóng. Nhiệm vụ này đã được giao lại hoặc đưa vào hàng chờ.
+                            </p>
+                            {latestIncident.coordinatorResponse && (
+                              <p className="mt-2 text-xs text-gray-700 bg-white border border-red-200 rounded-lg px-3 py-2">
+                                <span className="font-semibold">Phản hồi của Coordinator:</span> {latestIncident.coordinatorResponse}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => navigate("/rescue-team/missions")}
+                          className="w-full bg-red-600 hover:bg-red-700 text-white text-sm font-bold px-4 py-2.5 rounded-lg shadow-sm transition-all active:scale-95"
+                        >
+                          Quay về danh sách nhiệm vụ
+                        </button>
+                      </div>
+                    )
                   )}
 
                   {/* ===== BANNER KHI ĐANG CHỜ QUYẾT ĐỊNH COORDINATOR ===== */}
