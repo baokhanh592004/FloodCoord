@@ -28,6 +28,7 @@ export default function MissionDetail() {
   // --- State cho báo cáo sự cố trên đường ---
   const [showIncidentModal, setShowIncidentModal] = useState(false);
   const [incidentForm, setIncidentForm] = useState({ title: "", description: "", files: [] });
+  const [submittingIncident, setSubmittingIncident] = useState(false);
 
   // --- State cho modal xác nhận cập nhật tiến độ ---
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -226,6 +227,7 @@ export default function MissionDetail() {
   };
 
   const submitIncidentReport = async () => {
+    if (submittingIncident) return;
     if (!incidentForm.title.trim()) {
       toast.error("Vui lòng nhập tiêu đề sự cố!");
       return;
@@ -235,6 +237,7 @@ export default function MissionDetail() {
       return;
     }
     try {
+      setSubmittingIncident(true);
       await rescueTeamApi.createIncidentReport({
         rescueRequestId: id,
         title: incidentForm.title.trim(),
@@ -248,6 +251,8 @@ export default function MissionDetail() {
       await checkCoordinatorDecision();
     } catch (err) {
       toast.error("Gửi báo cáo sự cố thất bại!");
+    } finally {
+      setSubmittingIncident(false);
     }
   };
 
@@ -541,10 +546,27 @@ export default function MissionDetail() {
         </button>
         <button
           onClick={submitIncidentReport}
-          className="px-6 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-black text-sm shadow-lg shadow-orange-100 transition-all active:scale-95 flex items-center gap-2"
+          disabled={submittingIncident}
+          className={`px-6 py-2.5 text-white rounded-xl font-black text-sm shadow-lg shadow-orange-100 transition-all flex items-center gap-2 ${
+            submittingIncident
+              ? 'bg-orange-400 cursor-not-allowed opacity-80'
+              : 'bg-orange-500 hover:bg-orange-600 active:scale-95'
+          }`}
         >
-          <AlertTriangle size={16} />
-          GỬI BÁO CÁO
+          {submittingIncident ? (
+            <>
+              <svg className="animate-spin" width={16} height={16} viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+              </svg>
+              Đang gửi...
+            </>
+          ) : (
+            <>
+              <AlertTriangle size={16} />
+              GỬI BÁO CÁO
+            </>
+          )}
         </button>
       </div>
     </div>
