@@ -21,7 +21,6 @@ export default function RescueTeamManagement() {
     const [showModal, setShowModal] = useState(false);
     const [editingTeam, setEditingTeam] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
-    const [showDetailModal, setShowDetailModal] = useState(false);
     const [selectedTeam, setSelectedTeam] = useState(null);
 
     const [formData, setFormData] = useState({
@@ -62,7 +61,7 @@ export default function RescueTeamManagement() {
     const stats = useMemo(() => ({
         total: teams.length,
         available: teams.filter(t => t.status === 'AVAILABLE').length,
-        inMission: teams.filter(t => t.status === 'IN_MISSION').length,
+        inMission: teams.filter(t => t.status === 'BUSY').length,
         totalMembers: teams.reduce((acc, t) => acc + (t.memberCount || t.members?.length || 0), 0),
     }), [teams]);
 
@@ -78,6 +77,7 @@ export default function RescueTeamManagement() {
 
     const handleSubmit = async (submitData) => {
         try {
+            const updateTeamId = submitData.teamId || editingTeam?.id;
             const teamData = {
                 name: submitData.name,
                 description: submitData.description,
@@ -85,8 +85,8 @@ export default function RescueTeamManagement() {
                 leaderId: submitData.leaderId,
                 memberIds: submitData.memberIds,
             };
-            if (editingTeam) {
-                await adminTeamApi.updateTeam(editingTeam.id, teamData);
+            if (updateTeamId) {
+                await adminTeamApi.updateTeam(updateTeamId, teamData);
             } else {
                 await adminTeamApi.createTeam(teamData);
             }
@@ -95,7 +95,7 @@ export default function RescueTeamManagement() {
             fetchTeams();
             fetchAvailableUsers();
         } catch (err) {
-            setError(editingTeam ? 'Không thể cập nhật đội' : 'Không thể tạo đội');
+            setError((submitData.teamId || editingTeam?.id) ? 'Không thể cập nhật đội' : 'Không thể tạo đội');
             console.error(err);
         }
     };
@@ -133,7 +133,6 @@ export default function RescueTeamManagement() {
         try {
             const detailData = await adminTeamApi.getTeamById(team.id);
             setSelectedTeam(detailData);
-            setShowDetailModal(true);
         } catch (err) {
             setError('Không thể tải chi tiết đội');
             console.error(err);
@@ -271,6 +270,7 @@ export default function RescueTeamManagement() {
 
             {/* Modals */}
             <TeamFormModal
+                key={`${editingTeam?.id || 'create'}-${showModal ? 'open' : 'closed'}`}
                 showModal={showModal}
                 editingTeam={editingTeam}
                 formData={formData}
@@ -281,7 +281,7 @@ export default function RescueTeamManagement() {
             />
             <TeamDetailModal
                 team={selectedTeam}
-                onClose={() => { setShowDetailModal(false); setSelectedTeam(null); }}
+                onClose={() => { setSelectedTeam(null); }}
                 onRemoveMember={handleRemoveMember}
             />
         </div>

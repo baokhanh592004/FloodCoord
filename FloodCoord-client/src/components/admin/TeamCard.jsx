@@ -5,9 +5,8 @@ export default function TeamCard({ team, onEdit, onDelete, onViewDetails }) {
     const getStatusColor = (status) => {
         const colors = {
             AVAILABLE: 'bg-emerald-100 text-emerald-700',
-            IN_MISSION: 'bg-blue-100 text-blue-700',
-            RESTING: 'bg-orange-100 text-orange-700',
-            INACTIVE: 'bg-gray-100 text-gray-700'
+            BUSY: 'bg-blue-100 text-blue-700',
+            OFF_DUTY: 'bg-orange-100 text-orange-700'
         };
         return colors[status] || 'bg-gray-100 text-gray-700';
     };
@@ -15,18 +14,26 @@ export default function TeamCard({ team, onEdit, onDelete, onViewDetails }) {
     const getStatusLabel = (status) => {
         const labels = {
             AVAILABLE: 'Sẵn sàng',
-            IN_MISSION: 'Đang nhiệm vụ',
-            RESTING: 'Nghỉ ngơi',
-            INACTIVE: 'Không hoạt động'
+            BUSY: 'Đang nhiệm vụ',
+            OFF_DUTY: 'Nghỉ trực'
         };
         return labels[status] || status;
+    };
+
+    const getStatusDotColor = (status) => {
+        const dotColors = {
+            AVAILABLE: 'bg-emerald-500',
+            BUSY: 'bg-blue-500',
+            OFF_DUTY: 'bg-orange-500'
+        };
+        return dotColors[status] || 'bg-gray-500';
     };
 
     const getStatusBadge = () => {
         const color = getStatusColor(team.status);
         return (
             <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold tracking-wide ${color}`}>
-                <span className={`w-2 h-2 rounded-full ${team.status === 'AVAILABLE' ? 'bg-emerald-500' : 'bg-blue-500'} animate-pulse`} />
+                <span className={`w-2 h-2 rounded-full ${getStatusDotColor(team.status)} animate-pulse`} />
                 {getStatusLabel(team.status)}
             </span>
         );
@@ -70,12 +77,12 @@ export default function TeamCard({ team, onEdit, onDelete, onViewDetails }) {
             </div>
 
             <div className="space-y-3 mb-6 relative z-10">
-                {team.leader && (
+                {(team.leader || team.leaderName) && (
                     <div className="flex items-center gap-2 py-2 border-b border-slate-100/50">
                         <Shield size={16} className="text-orange-500" />
                         <span className="text-sm text-slate-500">Đội trưởng:</span>
                         <span className="font-semibold text-slate-700 ml-auto">
-                            {team.leader.fullName || team.leader.email}
+                            {team.leader?.fullName || team.leader?.email || team.leaderName}
                         </span>
                     </div>
                 )}

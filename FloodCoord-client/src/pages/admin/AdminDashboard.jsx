@@ -52,7 +52,7 @@ export default function AdminDashboard() {
   const teamStats = useMemo(() => ({
     total: teams.length,
     available: teams.filter(t => t.status === 'AVAILABLE').length,
-    inMission: teams.filter(t => t.status === 'IN_MISSION').length,
+    inMission: teams.filter(t => t.status === 'BUSY').length,
     totalMembers: teams.reduce((sum, t) => sum + (t.memberCount || t.members?.length || 0), 0),
   }), [teams]);
 

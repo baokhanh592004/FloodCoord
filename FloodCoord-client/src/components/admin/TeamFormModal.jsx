@@ -1,5 +1,12 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { X, UserPlus, Shield } from 'lucide-react';
+
+const normalizeId = (id) => {
+    if (id === null || id === undefined || id === '') return '';
+    return String(id);
+};
+
+const toApiId = (id) => (/^\d+$/.test(id) ? Number(id) : id);
 
 export default function TeamFormModal({ 
     showModal, 
@@ -10,15 +17,12 @@ export default function TeamFormModal({
     onClose,
     availableUsers = []
 }) {
-    const [selectedLeaderId, setSelectedLeaderId] = useState('');
-    const [selectedMemberIds, setSelectedMemberIds] = useState([]);
-
-    const normalizeId = (id) => {
-        if (id === null || id === undefined || id === '') return '';
-        return String(id);
-    };
-
-    const toApiId = (id) => (/^\d+$/.test(id) ? Number(id) : id);
+    const [selectedLeaderId, setSelectedLeaderId] = useState(
+        normalizeId(editingTeam?.leader?.id || editingTeam?.leaderId || '')
+    );
+    const [selectedMemberIds, setSelectedMemberIds] = useState(
+        editingTeam?.members?.map((member) => normalizeId(member.id)) || []
+    );
 
     const selectableUsers = useMemo(() => {
         const userMap = new Map();
@@ -33,16 +37,6 @@ export default function TeamFormModal({
         return Array.from(userMap.values());
     }, [availableUsers, editingTeam]);
 
-    useEffect(() => {
-        if (editingTeam) {
-            setSelectedLeaderId(normalizeId(editingTeam.leader?.id || editingTeam.leaderId || ''));
-            setSelectedMemberIds(editingTeam.members?.map((member) => normalizeId(member.id)) || []);
-        } else {
-            setSelectedLeaderId('');
-            setSelectedMemberIds([]);
-        }
-    }, [editingTeam]);
-
     const handleMemberToggle = (userId) => {
         const normalizedUserId = normalizeId(userId);
         setSelectedMemberIds(prev => 
@@ -56,6 +50,7 @@ export default function TeamFormModal({
         e.preventDefault();
         const submitData = {
             ...formData,
+            teamId: editingTeam?.id || null,
             leaderId: selectedLeaderId ? toApiId(selectedLeaderId) : null,
             memberIds: selectedMemberIds.map(toApiId)
         };
@@ -114,7 +109,7 @@ export default function TeamFormModal({
 
                     {/* Team Leader Selection */}
                     <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+                        <label className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
                             <Shield size={16} className="text-orange-500" />
                             Đội trưởng
                         </label>
@@ -134,7 +129,7 @@ export default function TeamFormModal({
 
                     {/* Team Members Selection */}
                     <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
+                        <label className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
                             <UserPlus size={16} className="text-blue-500" />
                             Thành viên đội ({selectedMemberIds.length} người)
                         </label>
@@ -190,9 +185,8 @@ export default function TeamFormModal({
                                 className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                             >
                                 <option value="AVAILABLE">Sẵn sàng</option>
-                                <option value="IN_MISSION">Đang nhiệm vụ</option>
-                                <option value="RESTING">Nghỉ ngơi</option>
-                                <option value="INACTIVE">Không hoạt động</option>
+                                <option value="BUSY">Đang nhiệm vụ</option>
+                                <option value="OFF_DUTY">Nghỉ trực</option>
                             </select>
                         </div>
                     )}

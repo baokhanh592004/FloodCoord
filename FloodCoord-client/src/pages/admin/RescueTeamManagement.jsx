@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { adminTeamApi } from '../../services/adminTeamApi';
 import { Plus, AlertCircle, Users, Activity } from 'lucide-react';
 import StatCard from '../../components/coordinator/StatCard';
@@ -14,13 +13,11 @@ import {
 } from '@heroicons/react/24/outline';
 
 export default function RescueTeamManagement() {
-    const navigate = useNavigate();
     const [teams, setTeams] = useState([]);
     const [availableUsers, setAvailableUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [showModal, setShowModal] = useState(false);
-    const [showDetailModal, setShowDetailModal] = useState(false);
     const [editingTeam, setEditingTeam] = useState(null);
     const [selectedTeam, setSelectedTeam] = useState(null);
     const [formData, setFormData] = useState({
@@ -67,6 +64,7 @@ export default function RescueTeamManagement() {
 
     const handleSubmit = async (submitData) => {
         try {
+            const updateTeamId = submitData.teamId || editingTeam?.id;
             const teamData = {
                 name: submitData.name,
                 description: submitData.description,
@@ -75,8 +73,8 @@ export default function RescueTeamManagement() {
                 memberIds: submitData.memberIds
             };
 
-            if (editingTeam) {
-                await adminTeamApi.updateTeam(editingTeam.id, teamData);
+            if (updateTeamId) {
+                await adminTeamApi.updateTeam(updateTeamId, teamData);
             } else {
                 await adminTeamApi.createTeam(teamData);
             }
@@ -86,7 +84,7 @@ export default function RescueTeamManagement() {
             fetchTeams();
             fetchAvailableUsers(); // Refresh available users
         } catch (err) {
-            setError(editingTeam ? 'Không thể cập nhật đội' : 'Không thể tạo đội');
+            setError((submitData.teamId || editingTeam?.id) ? 'Không thể cập nhật đội' : 'Không thể tạo đội');
             console.error(err);
         }
     };
@@ -124,7 +122,6 @@ export default function RescueTeamManagement() {
         try {
             const detailData = await adminTeamApi.getTeamById(team.id);
             setSelectedTeam(detailData);
-            setShowDetailModal(true);
         } catch (err) {
             setError('Không thể tải chi tiết đội');
             console.error(err);
@@ -165,7 +162,6 @@ export default function RescueTeamManagement() {
     };
 
     const handleCloseDetailModal = () => {
-        setShowDetailModal(false);
         setSelectedTeam(null);
     };
 
@@ -174,7 +170,7 @@ export default function RescueTeamManagement() {
         return {
             total: teams.length,
             available: teams.filter(t => t.status === 'AVAILABLE').length,
-            inMission: teams.filter(t => t.status === 'IN_MISSION').length,
+            inMission: teams.filter(t => t.status === 'BUSY').length,
             totalMembers: teams.reduce((sum, t) => sum + (t.memberCount || t.members?.length || 0), 0)
         };
     }, [teams]);
@@ -240,6 +236,7 @@ export default function RescueTeamManagement() {
 
             {/* Modals */}
             <TeamFormModal
+                key={`${editingTeam?.id || 'create'}-${showModal ? 'open' : 'closed'}`}
                 showModal={showModal}
                 editingTeam={editingTeam}
                 formData={formData}
