@@ -54,7 +54,7 @@ export default function IncidentReportsPage() {
         try {
             const reportDetail = await incidentReportApi.getReportDetail(item.requestId);
             setSelectedDetail(reportDetail || item.report || null);
-        } catch (error) {
+        } catch {
             setSelectedDetail(item.report || null);
         } finally {
             setDetailLoading(false);
