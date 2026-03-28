@@ -14,6 +14,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.UUID;
 
@@ -90,7 +91,25 @@ public class IncidentReportServiceImpl implements IncidentReportService {
         }
 
         Vehicle vehicle = rescueRequest.getAssignedVehicle();
-        boolean isPostDeparture = Boolean.TRUE.equals(resolveRequest.getIsPostDeparture());
+        boolean requestedPostDeparture = Boolean.TRUE.equals(resolveRequest.getIsPostDeparture());
+        boolean isStatusPostDeparture = rescueRequest.getStatus() != null
+            && EnumSet.of(RequestStatus.MOVING, RequestStatus.ARRIVED, RequestStatus.RESCUING)
+            .contains(rescueRequest.getStatus());
+
+        List<Attendance> currentAttendances = attendanceRepo.findByRescueRequest_RequestId(rescueRequest.getRequestId());
+        boolean hasPresentAttendance = currentAttendances.stream().anyMatch(a ->
+            a.getStatus() == AttendanceStatus.PRESENT && a.getCheckTime() != null
+        );
+
+        boolean canUseAttendanceFallback = rescueRequest.getStatus() == RequestStatus.IN_PROGRESS && hasPresentAttendance;
+
+        if (requestedPostDeparture && !(isStatusPostDeparture || canUseAttendanceFallback)) {
+            throw new IllegalArgumentException(
+                "Chỉ được chọn 'Đội đã xuất phát' khi nhiệm vụ đang MOVING/ARRIVED/RESCUING hoặc đã điểm danh xong (IN_PROGRESS)."
+            );
+        }
+
+        boolean isPostDeparture = isStatusPostDeparture || (requestedPostDeparture && canUseAttendanceFallback);
 
         if (resolveRequest.getAction() == IncidentAction.ABORT) {
 
@@ -367,10 +386,25 @@ public class IncidentReportServiceImpl implements IncidentReportService {
             teamName = incident.getReportedBy().getRescueTeam().getName();
         }
 
+        // Thông tin chi tiết từ rescue request
+        RescueRequest req = incident.getRescueRequest();
+        String location = "Chưa rõ";
+        if (req != null && req.getLocation() != null) {
+            location = req.getLocation().getAddressText() != null ? req.getLocation().getAddressText() : "Chưa rõ";
+        }
+        boolean hasAttendanceRecord = req != null
+            && !attendanceRepo.findByRescueRequest_RequestId(req.getRequestId()).isEmpty();
+
         return IncidentReportResponse.builder()
                 .id(incident.getId())
-                .rescueRequestId(incident.getRescueRequest() != null ? incident.getRescueRequest().getRequestId() : null)
-                .rescueRequestTitle(incident.getRescueRequest() != null ? incident.getRescueRequest().getTitle() : null)
+                .rescueRequestId(req != null ? req.getRequestId() : null)
+                .rescueRequestTitle(req != null ? req.getTitle() : null)
+                .rescueRequestStatus(req != null ? req.getStatus() : null)
+                .rescueRequestLocation(location)
+                .rescueRequestPeopleCount(req != null ? req.getPeopleCount() : null)
+                .rescueRequestEmergencyLevel(req != null ? req.getEmergencyLevel() : null)
+                .rescueRequestDescription(req != null ? req.getDescription() : null)
+                .hasAttendanceRecord(hasAttendanceRecord)
                 .teamName(teamName)
                 .reportedByName(incident.getReportedBy().getFullName())
                 .reportedByPhone(incident.getReportedBy().getPhoneNumber())

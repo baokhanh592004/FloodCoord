@@ -26,6 +26,8 @@ const ACTION_META = {
     ABORT: 'Hủy nhiệm vụ & Giao đội mới',
 };
 
+const POST_DEPARTURE_STATUSES = new Set(['MOVING', 'ARRIVED', 'RESCUING']);
+
 export default function IncidentReportsPage() {
     const [incidents, setIncidents] = useState([]);
     const [keyword, setKeyword] = useState('');
@@ -44,6 +46,9 @@ export default function IncidentReportsPage() {
     // true = đội đã xuất phát khi sự cố xảy ra → OFF_DUTY + MAINTENANCE + vật tư không hoàn
     const [isPostDeparture, setIsPostDeparture] = useState(false);
 
+    // --- Image modal ---
+    const [imageModalOpen, setImageModalOpen] = useState(false);
+
     // --- Team ---
     const [availableTeams, setAvailableTeams] = useState([]);
     const [loadingTeams, setLoadingTeams] = useState(false);
@@ -53,9 +58,6 @@ export default function IncidentReportsPage() {
     const [availableVehicles, setAvailableVehicles] = useState([]);
     const [loadingVehicles, setLoadingVehicles] = useState(false);
     const [newVehicleId, setNewVehicleId] = useState('');
-
-    // --- Vehicle status (for pre-departure "no reassign" branch only) ---
-    const [vehicleStatus, setVehicleStatus] = useState('AVAILABLE');
 
     // --- Supplies for new team ---
     const [supplyList, setSupplyList] = useState([]);       // all available supplies from warehouse
@@ -122,18 +124,27 @@ export default function IncidentReportsPage() {
         setIsPostDeparture(false);
         setNewTeamId('');
         setNewVehicleId('');
-        setVehicleStatus('AVAILABLE');
         setSelectedSupplies([]);
+        setImageModalOpen(false);
         loadAbortResources();
     };
 
     const handleCloseDetail = () => {
         setSelectedItem(null);
+        setImageModalOpen(false);
     };
 
     // Switch to ABORT tab → resources already pre-loaded in handleOpenDetail
-    const handleSetAbort = () => setActionType('ABORT');
-    const handleSetContinue = () => setActionType('CONTINUE');
+    const handleSetAbort = () => {
+        setActionType('ABORT');
+        if (canMarkPostDeparture) {
+            setIsPostDeparture(true);
+        }
+    };
+    const handleSetContinue = () => {
+        setActionType('CONTINUE');
+        setIsPostDeparture(false);
+    };
 
     // ============================================================
     // Supply helpers
@@ -253,6 +264,14 @@ export default function IncidentReportsPage() {
 
     const selectedNewTeam = availableTeams.find((t) => String(t.id) === String(newTeamId));
     const selectedNewVehicle = availableVehicles.find((v) => String(v.id) === String(newVehicleId));
+    const hasAttendanceFallback = selectedItem?.rescueRequestStatus === 'IN_PROGRESS' && Boolean(selectedItem?.hasAttendanceRecord);
+    const canMarkPostDeparture = POST_DEPARTURE_STATUSES.has(selectedItem?.rescueRequestStatus) || hasAttendanceFallback;
+
+    useEffect(() => {
+        if (!canMarkPostDeparture && isPostDeparture) {
+            setIsPostDeparture(false);
+        }
+    }, [canMarkPostDeparture, isPostDeparture]);
 
     // ============================================================
     // Render
@@ -461,20 +480,36 @@ export default function IncidentReportsPage() {
                                 <div className="rounded-lg border border-gray-200 p-3">
                                     <p className="text-xs text-gray-500 font-semibold mb-2">Nhiệm vụ liên quan</p>
                                     <p className="font-medium text-gray-800">{selectedItem.rescueRequestTitle}</p>
+                                    {selectedItem.rescueRequestLocation && (
+                                        <p className="mt-1 text-xs text-gray-600">📍 {selectedItem.rescueRequestLocation}</p>
+                                    )}
+                                    {selectedItem.rescueRequestPeopleCount && (
+                                        <p className="mt-1 text-xs text-gray-600">👥 {selectedItem.rescueRequestPeopleCount} người</p>
+                                    )}
+                                    {selectedItem.rescueRequestEmergencyLevel && (
+                                        <p className="mt-1 text-xs text-gray-600">⚠️ Mức: {selectedItem.rescueRequestEmergencyLevel}</p>
+                                    )}
                                 </div>
                             </div>
 
-                            {/* Images */}
+                            {/* Rescue request description */}
+                            {selectedItem.rescueRequestDescription && (
+                                <div className="rounded-lg border border-gray-200 p-3 bg-blue-50">
+                                    <p className="text-xs text-gray-500 font-semibold mb-1">Mô tả nhiệm vụ</p>
+                                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{selectedItem.rescueRequestDescription}</p>
+                                </div>
+                            )}
+
+                            {/* Images button */}
                             {selectedItem.images && selectedItem.images.length > 0 && (
                                 <div className="rounded-lg border border-gray-200 p-3">
-                                    <p className="text-xs text-gray-500 font-semibold mb-2">Hình ảnh hiện trường</p>
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                                        {selectedItem.images.map((img, idx) => (
-                                            <a key={idx} href={img} target="_blank" rel="noreferrer" className="block border border-gray-200 rounded overflow-hidden">
-                                                <img src={img} alt="Incident" className="h-32 w-full object-cover" />
-                                            </a>
-                                        ))}
-                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setImageModalOpen(true)}
+                                        className="inline-flex items-center gap-2 rounded-md bg-blue-50 border border-blue-200 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100"
+                                    >
+                                        📷 Xem {selectedItem.images.length} ảnh hiện trường
+                                    </button>
                                 </div>
                             )}
 
@@ -546,20 +581,31 @@ export default function IncidentReportsPage() {
                                             <p className="text-xs font-bold text-red-800 uppercase tracking-wide">⚠️ Cấu hình hủy nhiệm vụ</p>
 
                                             {/* 0. Post-departure toggle */}
-                                            <label className="flex items-start gap-3 cursor-pointer p-3 rounded-lg bg-orange-50 border border-orange-200 hover:bg-orange-100 transition-colors">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={isPostDeparture}
-                                                    onChange={(e) => setIsPostDeparture(e.target.checked)}
-                                                    className="mt-0.5 h-4 w-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
-                                                />
-                                                <div>
-                                                    <p className="text-sm font-semibold text-orange-900">🚗 Đội đã xuất phát khi sự cố xảy ra</p>
-                                                    <p className="text-xs text-orange-700 mt-0.5">
-                                                        Nếu tích: Đội cũ → <strong>Nghỉ trực (OFF_DUTY)</strong>, xe → <strong>Bảo trì (MAINTENANCE)</strong>, vật tư <strong>không hoàn lại kho</strong>. Đội cũ phải gửi báo cáo tình trạng.
-                                                    </p>
+                                            {canMarkPostDeparture ? (
+                                                <label className="flex items-start gap-3 cursor-pointer p-3 rounded-lg bg-orange-50 border border-orange-200 hover:bg-orange-100 transition-colors">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isPostDeparture}
+                                                        onChange={(e) => setIsPostDeparture(e.target.checked)}
+                                                        className="mt-0.5 h-4 w-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+                                                    />
+                                                    <div>
+                                                        <p className="text-sm font-semibold text-orange-900">🚗 Đội đã xuất phát khi sự cố xảy ra</p>
+                                                        <p className="text-xs text-orange-700 mt-0.5">
+                                                            Chỉ dùng khi đội đang trên đường/đang làm nhiệm vụ. Nếu tích: Đội cũ → <strong>Nghỉ trực (OFF_DUTY)</strong>, xe → <strong>Bảo trì (MAINTENANCE)</strong>, vật tư <strong>không hoàn lại kho</strong>.
+                                                        </p>
+                                                        {hasAttendanceFallback && (
+                                                            <p className="text-xs text-amber-800 mt-1">
+                                                                Đội đã có điểm danh ở trạng thái IN_PROGRESS. Hệ thống gợi ý bật sẵn để tránh quên khi đội đã đi ngay nhưng chưa cập nhật MOVING.
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                </label>
+                                            ) : (
+                                                <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                                                    Chế độ <strong>"Đội đã xuất phát"</strong> bị ẩn để tránh bấm nhầm vì nhiệm vụ hiện chưa ở trạng thái di chuyển/thực địa. Hệ thống sẽ xử lý theo luồng <strong>pre-departure</strong> (xe/vật tư được thu hồi đúng quy trình).
                                                 </div>
-                                            </label>
+                                            )}
 
                                             {/* 1. Select new team */}
                                             <div>
@@ -753,6 +799,34 @@ export default function IncidentReportsPage() {
                                     </div>
                                 </div>
                             )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ===== IMAGE MODAL ===== */}
+            {imageModalOpen && selectedItem?.images && selectedItem.images.length > 0 && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                    <div className="max-h-[90vh] w-full max-w-2xl overflow-auto rounded-xl bg-white shadow-2xl">
+                        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 bg-white px-5 py-4">
+                            <h3 className="text-lg font-bold text-gray-900">Ảnh hiện trường ({selectedItem.images.length})</h3>
+                            <button
+                                type="button"
+                                onClick={() => setImageModalOpen(false)}
+                                className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100"
+                            >
+                                <XMarkIcon className="h-5 w-5" />
+                            </button>
+                        </div>
+                        <div className="p-5 space-y-4">
+                            {selectedItem.images.map((img, idx) => (
+                                <div key={idx} className="rounded-lg border border-gray-200 overflow-hidden bg-gray-50">
+                                    <a href={img} target="_blank" rel="noreferrer" className="block">
+                                        <img src={img} alt={`Incident ${idx + 1}`} className="w-full h-auto" />
+                                    </a>
+                                    <p className="px-3 py-2 text-xs text-gray-500">Ảnh {idx + 1}/{selectedItem.images.length}</p>
+                                </div>
+                            ))}
                         </div>
                     </div>
                 </div>

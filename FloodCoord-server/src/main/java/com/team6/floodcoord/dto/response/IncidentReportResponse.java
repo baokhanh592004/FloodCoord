@@ -2,6 +2,7 @@ package com.team6.floodcoord.dto.response;
 
 import com.team6.floodcoord.model.enums.IncidentAction;
 import com.team6.floodcoord.model.enums.IncidentStatus;
+import com.team6.floodcoord.model.enums.RequestStatus;
 import lombok.Builder;
 import lombok.Data;
 
@@ -17,6 +18,12 @@ public class IncidentReportResponse {
     // Thông tin nhiệm vụ và đội
     private UUID rescueRequestId;
     private String rescueRequestTitle;
+    private RequestStatus rescueRequestStatus;
+    private String rescueRequestLocation;    // Địa chỉ
+    private Integer rescueRequestPeopleCount; // Số người cần cứu
+    private String rescueRequestEmergencyLevel; // Mức độ khẩn cấp
+    private String rescueRequestDescription; // Mô tả nhiệm vụ
+    private Boolean hasAttendanceRecord; // đã có điểm danh cho nhiệm vụ
     private String teamName;
 
     // Thông tin người báo cáo (Leader)

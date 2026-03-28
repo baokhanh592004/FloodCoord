@@ -119,14 +119,12 @@ export default function MissionDetail() {
       if (!incident) {
         const persistedWaitingState = localStorage.getItem(waitingStateKey) === "1";
         setWaitingCoordinatorDecision(persistedWaitingState);
-        setAttendanceDone(false);
         return;
       }
 
       if (incident.status === "PENDING") {
         localStorage.setItem(waitingStateKey, "1");
         setWaitingCoordinatorDecision(true);
-        setAttendanceDone(false);
         return;
       }
 
@@ -147,13 +145,9 @@ export default function MissionDetail() {
 
       localStorage.setItem(waitingStateKey, "1");
       setWaitingCoordinatorDecision(true);
-      setAttendanceDone(false);
     } catch (err) {
       const persistedWaitingState = localStorage.getItem(waitingStateKey) === "1";
       setWaitingCoordinatorDecision(persistedWaitingState);
-      if (persistedWaitingState) {
-        setAttendanceDone(false);
-      }
     }
   };
 
