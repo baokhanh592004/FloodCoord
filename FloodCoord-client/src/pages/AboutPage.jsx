@@ -13,6 +13,10 @@ import {
     ChevronDownIcon,
     ChevronUpIcon,
 } from '@heroicons/react/24/outline';
+import campaignImg from '../assets/images/register-bg.png';
+import beforeFloodImg from '../assets/images/thing-to-do-before-flood.png';
+import afterFloodImg from '../assets/images/things-to-do-after-flood.png';
+import diseaseProtectImg from '../assets/images/disease-protect.png';
 
 // ── Dữ liệu quy trình ─────────────────────────────────────────────────────────
 const PROCESS_STEPS = [
@@ -197,11 +201,13 @@ function FaqItem({ q, a }) {
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 export default function AboutPage() {
+    const [previewImage, setPreviewImage] = useState(null);
+
     return (
         <div className="bg-gray-50 min-h-screen">
 
             {/* ══ HERO ══════════════════════════════════════════════════════════ */}
-            <section className="bg-gradient-to-br from-blue-700 via-blue-600 to-teal-500 text-white py-20 px-4">
+            <section className="bg-linear-to-br from-blue-700 via-blue-600 to-teal-500 text-white py-20 px-4">
                 <div className="max-w-4xl mx-auto text-center">
                     <div className="inline-flex items-center gap-2 bg-white/20 rounded-full px-4 py-1.5 text-sm font-medium mb-6">
                         <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
@@ -234,6 +240,83 @@ export default function AboutPage() {
                 </div>
             </section>
 
+            {/* ══ TRUYỀN THÔNG CỘNG ĐỒNG ═════════════════════════════════════ */}
+            <section className="max-w-5xl mx-auto px-4 py-16">
+                <div className="text-center mb-10">
+                    <h2 className="text-3xl font-extrabold text-gray-900 mb-3">Truyền thông cộng đồng</h2>
+                    <p className="text-gray-500 max-w-2xl mx-auto">
+                        Các ấn phẩm truyền thông giúp người dân chuẩn bị tốt hơn trước thiên tai và giảm thiểu rủi ro sức khỏe.
+                    </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <article className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition">
+                        <img
+                            src={campaignImg}
+                            alt="Thông điệp hành động sớm giảm thiểu thiệt hại thiên tai"
+                            onClick={() => setPreviewImage({ src: campaignImg, title: 'Hành động sớm' })}
+                            className="w-full h-80 object-contain bg-slate-50 p-2 cursor-zoom-in"
+                        />
+                        <div className="p-4">
+                            <h3 className="font-bold text-gray-900">Hành động sớm</h3>
+                            <p className="text-sm text-gray-500 mt-1">Nhấn mạnh vai trò chuẩn bị chủ động của cộng đồng địa phương.</p>
+                            <button
+                                type="button"
+                                onClick={() => setPreviewImage({ src: campaignImg, title: 'Hành động sớm' })}
+                                className="mt-2 text-sm font-semibold text-blue-700 hover:text-blue-800"
+                            >
+                                Phóng to ảnh
+                            </button>
+                        </div>
+                    </article>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        {[{ src: beforeFloodImg, title: 'Trước bão' }, { src: afterFloodImg, title: 'Sau bão' }, { src: diseaseProtectImg, title: 'Phòng dịch trong mùa lũ' }].map((item) => (
+                            <article key={item.title} className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition">
+                                <img
+                                    src={item.src}
+                                    alt={item.title}
+                                    onClick={() => setPreviewImage(item)}
+                                    className="w-full h-48 object-contain bg-slate-50 p-2 cursor-zoom-in"
+                                />
+                                <div className="p-3">
+                                    <h4 className="text-sm font-semibold text-gray-800">{item.title}</h4>
+                                    <button
+                                        type="button"
+                                        onClick={() => setPreviewImage(item)}
+                                        className="mt-1 text-xs font-semibold text-blue-700 hover:text-blue-800"
+                                    >
+                                        Phóng to ảnh
+                                    </button>
+                                </div>
+                            </article>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+            {previewImage && (
+                <div
+                    className="fixed inset-0 z-80 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+                    onClick={() => setPreviewImage(null)}
+                >
+                    <div className="relative max-w-[95vw] max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+                        <button
+                            type="button"
+                            onClick={() => setPreviewImage(null)}
+                            className="absolute -top-11 right-0 text-white font-bold text-lg"
+                        >
+                            Đóng
+                        </button>
+                        <img
+                            src={previewImage.src}
+                            alt={previewImage.title}
+                            className="max-w-[95vw] max-h-[85vh] object-contain rounded-xl bg-white"
+                        />
+                    </div>
+                </div>
+            )}
+
             {/* ══ THỐNG KÊ NHANH ════════════════════════════════════════════════ */}
             <section className="bg-white border-b border-gray-200">
                 <div className="max-w-5xl mx-auto px-4 py-8 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
@@ -262,7 +345,7 @@ export default function AboutPage() {
 
                 <div className="relative">
                     {/* Đường kết nối dọc */}
-                    <div className="hidden md:block absolute left-[38px] top-10 bottom-10 w-0.5 bg-gradient-to-b from-red-300 via-blue-300 via-purple-300 via-teal-300 to-green-300" />
+                    <div className="hidden md:block absolute left-9.5 top-10 bottom-10 w-0.5 bg-linear-to-b from-red-300 via-blue-300 to-green-300" />
 
                     <div className="space-y-6">
                         {PROCESS_STEPS.map((step, idx) => {
@@ -270,7 +353,7 @@ export default function AboutPage() {
                             return (
                                 <div key={idx} className={`relative flex gap-5 p-5 rounded-2xl border ${step.borderColor} ${step.bgLight} transition-all hover:shadow-md`}>
                                     {/* Icon bước */}
-                                    <div className={`shrink-0 w-16 h-16 rounded-2xl bg-gradient-to-br ${step.color} flex items-center justify-center shadow-lg`}>
+                                    <div className={`shrink-0 w-16 h-16 rounded-2xl bg-linear-to-br ${step.color} flex items-center justify-center shadow-lg`}>
                                         <Icon className="h-7 w-7 text-white" />
                                     </div>
 
@@ -291,7 +374,7 @@ export default function AboutPage() {
                                         {step.action && (
                                             <Link
                                                 to={step.action.href}
-                                                className={`mt-3 inline-flex items-center gap-1.5 text-xs font-semibold bg-gradient-to-r ${step.color} text-white px-4 py-1.5 rounded-lg hover:opacity-90 transition shadow`}
+                                                className={`mt-3 inline-flex items-center gap-1.5 text-xs font-semibold bg-linear-to-r ${step.color} text-white px-4 py-1.5 rounded-lg hover:opacity-90 transition shadow`}
                                             >
                                                 {step.action.label} →
                                             </Link>
@@ -368,7 +451,7 @@ export default function AboutPage() {
 
             {/* ══ LIÊN HỆ & CTA ════════════════════════════════════════════════ */}
             <section className="max-w-5xl mx-auto px-4 py-16">
-                <div className="bg-gradient-to-br from-blue-600 to-teal-500 rounded-3xl p-8 md:p-12 text-white text-center shadow-xl">
+                <div className="bg-linear-to-br from-blue-600 to-teal-500 rounded-3xl p-8 md:p-12 text-white text-center shadow-xl">
                     <StarIcon className="h-10 w-10 mx-auto mb-4 text-yellow-300" />
                     <h2 className="text-2xl md:text-3xl font-extrabold mb-3">Cần hỗ trợ khẩn cấp?</h2>
                     <p className="text-blue-100 mb-8 max-w-lg mx-auto">
