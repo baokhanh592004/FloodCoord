@@ -23,7 +23,7 @@ const ITEMS_PER_PAGE = 7;
 
 const ACTION_META = {
     CONTINUE: 'Yêu cầu đội tiếp tục',
-    ABORT: 'Hủy nhiệm vụ & Giao đội mới',
+    ABORT: 'Hủy nhiệm vụ',
 };
 
 const POST_DEPARTURE_STATUSES = new Set(['MOVING', 'ARRIVED', 'RESCUING']);
@@ -37,14 +37,13 @@ export default function IncidentReportsPage() {
     const [errorMessage, setErrorMessage] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
 
-    // --- Resolution state ---
+    // --- MODAL STATE: Step flow DETAIL → ABORT → ASSIGN ---
+    const [modalStep, setModalStep] = useState('DETAIL'); // 'DETAIL' | 'ABORT' | 'ASSIGN'
     const [resolveNote, setResolveNote] = useState('');
-    const [actionType, setActionType] = useState('CONTINUE');
-    const [resolving, setResolving] = useState(false);
-
-    // --- Post-departure flag ---
-    // true = đội đã xuất phát khi sự cố xảy ra → OFF_DUTY + MAINTENANCE + vật tư không hoàn
     const [isPostDeparture, setIsPostDeparture] = useState(false);
+    const [resolving, setResolving] = useState(false);
+    const [assigningTeam, setAssigningTeam] = useState(false);
+    const [successMessage, setSuccessMessage] = useState('');
 
     // --- Image modal ---
     const [imageModalOpen, setImageModalOpen] = useState(false);
@@ -60,9 +59,9 @@ export default function IncidentReportsPage() {
     const [newVehicleId, setNewVehicleId] = useState('');
 
     // --- Supplies for new team ---
-    const [supplyList, setSupplyList] = useState([]);       // all available supplies from warehouse
+    const [supplyList, setSupplyList] = useState([]);
     const [loadingSupplies, setLoadingSupplies] = useState(false);
-    const [selectedSupplies, setSelectedSupplies] = useState([]); // [{ supplyId, quantity }]
+    const [selectedSupplies, setSelectedSupplies] = useState([]);
 
     // ============================================================
     // Data loading
@@ -88,7 +87,8 @@ export default function IncidentReportsPage() {
         loadIncidents();
     }, [loadIncidents]);
 
-    const loadAbortResources = async () => {
+    // Load tài nguyên cho step giao đội
+    const loadAssignResources = async () => {
         setLoadingTeams(true);
         setLoadingVehicles(true);
         setLoadingSupplies(true);
@@ -105,7 +105,7 @@ export default function IncidentReportsPage() {
                 (Array.isArray(supplies) ? supplies : []).filter((s) => s.quantity > 0)
             );
         } catch (err) {
-            console.error('Lỗi khi tải tài nguyên abort:', err);
+            console.error('Lỗi khi tải tài nguyên:', err);
         } finally {
             setLoadingTeams(false);
             setLoadingVehicles(false);
@@ -119,35 +119,40 @@ export default function IncidentReportsPage() {
 
     const handleOpenDetail = (item) => {
         setSelectedItem(item);
+        setModalStep('DETAIL');
         setResolveNote('');
-        setActionType('CONTINUE');
         setIsPostDeparture(false);
         setNewTeamId('');
         setNewVehicleId('');
         setSelectedSupplies([]);
         setImageModalOpen(false);
-        loadAbortResources();
+        setSuccessMessage('');
     };
 
     const handleCloseDetail = () => {
         setSelectedItem(null);
         setImageModalOpen(false);
+        setSuccessMessage('');
     };
 
-    // Switch to ABORT tab → resources already pre-loaded in handleOpenDetail
-    const handleSetAbort = () => {
-        setActionType('ABORT');
-        if (canMarkPostDeparture) {
-            setIsPostDeparture(true);
-        }
-    };
-    const handleSetContinue = () => {
-        setActionType('CONTINUE');
+    // Mở modal hủy (Step 1)
+    const handleOpenAbortModal = () => {
+        setModalStep('ABORT');
+        setResolveNote('');
         setIsPostDeparture(false);
     };
 
+    // Sau khi hủy thành công → chuyển sang step giao đội (Step 2)
+    const handleAbortSuccess = () => {
+        setResolveNote('');
+        setIsPostDeparture(false);
+        setSuccessMessage('✅ Hủy thành công! Tài nguyên cũ đã được giải phóng. Bây giờ vui lòng giao đội mới.');
+        setModalStep('ASSIGN');
+        loadAssignResources();
+    };
+
     // ============================================================
-    // Supply helpers
+    // Supply management
     // ============================================================
 
     const setSupplyQty = (supplyId, qty) => {
@@ -168,44 +173,90 @@ export default function IncidentReportsPage() {
     };
 
     // ============================================================
-    // Resolve (submit)
+    // Resolve Abort (Step 1: Hủy sự cố - chỉ giải phóng tài nguyên cũ)
     // ============================================================
 
-    const handleResolve = async () => {
+    const handleResolveAbort = async () => {
         if (!selectedItem) return;
 
         if (!resolveNote.trim()) {
-            alert('Vui lòng nhập ghi chú / chỉ đạo trước khi xác nhận.');
-            return;
-        }
-
-        if (actionType === 'ABORT' && !newTeamId) {
-            alert('Vui lòng chọn đội mới để giao nhiệm vụ.');
+            alert('Vui lòng nhập ghi chú lý do hủy.');
             return;
         }
 
         setResolving(true);
         try {
             const payload = {
-                action: actionType,
+                action: 'ABORT',
                 coordinatorResponse: resolveNote,
+                isPostDeparture: isPostDeparture,
             };
 
-            if (actionType === 'ABORT') {
-                payload.isPostDeparture = isPostDeparture;
-                payload.newTeamId = parseInt(newTeamId);
-                payload.newVehicleId = newVehicleId ? parseInt(newVehicleId) : null;
-                const suppliesWithQty = selectedSupplies.filter(
-                    (s) => s.quantity > 0
-                );
-                payload.newSupplies = suppliesWithQty.length > 0 ? suppliesWithQty : null;
-            }
+            await incidentReportApi.resolveIncident(selectedItem.id, payload);
+            await loadIncidents();
+            handleAbortSuccess();
+        } catch (error) {
+            alert(error?.response?.data?.message || 'Có lỗi xảy ra khi hủy sự cố');
+        } finally {
+            setResolving(false);
+        }
+    };
+
+    // ============================================================
+    // Assign Team (Step 2: Giao đội mới sau khi hủy)
+    // ============================================================
+
+    const handleAssignTeam = async () => {
+        if (!selectedItem) return;
+
+        if (!newTeamId) {
+            alert('Vui lòng chọn đội mới để giao nhiệm vụ.');
+            return;
+        }
+
+        setAssigningTeam(true);
+        try {
+            const payload = {
+                newTeamId: parseInt(newTeamId),
+                newVehicleId: newVehicleId ? parseInt(newVehicleId) : null,
+                newSupplies: selectedSupplies.filter((s) => s.quantity > 0),
+            };
+
+            await incidentReportApi.assignTeam(selectedItem.id, payload);
+            await loadIncidents();
+            handleCloseDetail();
+            alert('✅ Giao đội mới thành công!');
+        } catch (error) {
+            alert(error?.response?.data?.message || 'Có lỗi xảy ra khi giao đội mới');
+        } finally {
+            setAssigningTeam(false);
+        }
+    };
+
+    // ============================================================
+    // Resolve Continue (Yêu cầu đội tiếp tục)
+    // ============================================================
+
+    const handleResolveContinue = async () => {
+        if (!selectedItem) return;
+
+        if (!resolveNote.trim()) {
+            alert('Vui lòng nhập ghi chú.');
+            return;
+        }
+
+        setResolving(true);
+        try {
+            const payload = {
+                action: 'CONTINUE',
+                coordinatorResponse: resolveNote,
+            };
 
             await incidentReportApi.resolveIncident(selectedItem.id, payload);
             await loadIncidents();
             handleCloseDetail();
         } catch (error) {
-            alert(error?.response?.data?.message || 'Có lỗi xảy ra khi xử lý sự cố');
+            alert(error?.response?.data?.message || 'Có lỗi xảy ra');
         } finally {
             setResolving(false);
         }
@@ -260,7 +311,9 @@ export default function IncidentReportsPage() {
     const getStatusClass = (status) =>
         STATUS_META[status] || 'bg-gray-100 text-gray-700 border border-gray-200';
 
-    const canSubmit = resolveNote.trim().length > 0;
+    const canSubmitAbortNote = resolveNote.trim().length > 0;
+    const canSubmitContinueNote = resolveNote.trim().length > 0;
+    const canSubmitAssignTeam = newTeamId;
 
     const selectedNewTeam = availableTeams.find((t) => String(t.id) === String(newTeamId));
     const selectedNewVehicle = availableVehicles.find((v) => String(v.id) === String(newVehicleId));
@@ -449,10 +502,16 @@ export default function IncidentReportsPage() {
                         {/* Header */}
                         <div className="sticky top-0 z-10 flex items-start justify-between border-b border-gray-200 bg-white px-5 py-4">
                             <div>
-                                <h2 className="text-lg font-bold text-gray-900">Chi tiết sự cố</h2>
-                                <span className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-xs font-medium border ${getStatusClass(selectedItem.status)}`}>
-                                    {selectedItem.status}
-                                </span>
+                                <h2 className="text-lg font-bold text-gray-900">
+                                    {modalStep === 'DETAIL' && 'Chi tiết sự cố'}
+                                    {modalStep === 'ABORT' && '🚫 Hủy nhiệm vụ'}
+                                    {modalStep === 'ASSIGN' && '✅ Giao đội mới'}
+                                </h2>
+                                {modalStep === 'DETAIL' && (
+                                    <span className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-xs font-medium border ${getStatusClass(selectedItem.status)}`}>
+                                        {selectedItem.status}
+                                    </span>
+                                )}
                             </div>
                             <button
                                 type="button"
@@ -464,313 +523,93 @@ export default function IncidentReportsPage() {
                         </div>
 
                         <div className="space-y-4 px-5 py-4 text-sm">
-                            {/* Incident content */}
-                            <div className="rounded-lg border border-gray-200 p-3 bg-gray-50">
-                                <h3 className="font-semibold text-lg text-gray-900">{selectedItem.title}</h3>
-                                <p className="mt-2 text-gray-700 whitespace-pre-wrap">{selectedItem.description}</p>
-                            </div>
+                            {/* ===== STEP 1: DETAIL ===== */}
+                            {modalStep === 'DETAIL' && (
+                                <>
+                                    {/* Incident content */}
+                                    <div className="rounded-lg border border-gray-200 p-3 bg-gray-50">
+                                        <h3 className="font-semibold text-lg text-gray-900">{selectedItem.title}</h3>
+                                        <p className="mt-2 text-gray-700 whitespace-pre-wrap">{selectedItem.description}</p>
+                                    </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                <div className="rounded-lg border border-gray-200 p-3">
-                                    <p className="text-xs text-gray-500 font-semibold mb-2">Thông tin báo cáo</p>
-                                    <p className="text-gray-700">Đội: <span className="font-semibold">{selectedItem.teamName}</span></p>
-                                    <p className="mt-1 text-gray-700">Người báo: {selectedItem.reportedByName} - {selectedItem.reportedByPhone}</p>
-                                    <p className="mt-1 text-gray-700">Thời gian báo: {formatDateTime(selectedItem.createdAt)}</p>
-                                </div>
-                                <div className="rounded-lg border border-gray-200 p-3">
-                                    <p className="text-xs text-gray-500 font-semibold mb-2">Nhiệm vụ liên quan</p>
-                                    <p className="font-medium text-gray-800">{selectedItem.rescueRequestTitle}</p>
-                                    {selectedItem.rescueRequestLocation && (
-                                        <p className="mt-1 text-xs text-gray-600">📍 {selectedItem.rescueRequestLocation}</p>
-                                    )}
-                                    {selectedItem.rescueRequestPeopleCount && (
-                                        <p className="mt-1 text-xs text-gray-600">👥 {selectedItem.rescueRequestPeopleCount} người</p>
-                                    )}
-                                    {selectedItem.rescueRequestEmergencyLevel && (
-                                        <p className="mt-1 text-xs text-gray-600">⚠️ Mức: {selectedItem.rescueRequestEmergencyLevel}</p>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Rescue request description */}
-                            {selectedItem.rescueRequestDescription && (
-                                <div className="rounded-lg border border-gray-200 p-3 bg-blue-50">
-                                    <p className="text-xs text-gray-500 font-semibold mb-1">Mô tả nhiệm vụ</p>
-                                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{selectedItem.rescueRequestDescription}</p>
-                                </div>
-                            )}
-
-                            {/* Images button */}
-                            {selectedItem.images && selectedItem.images.length > 0 && (
-                                <div className="rounded-lg border border-gray-200 p-3">
-                                    <button
-                                        type="button"
-                                        onClick={() => setImageModalOpen(true)}
-                                        className="inline-flex items-center gap-2 rounded-md bg-blue-50 border border-blue-200 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100"
-                                    >
-                                        📷 Xem {selectedItem.images.length} ảnh hiện trường
-                                    </button>
-                                </div>
-                            )}
-
-                            {/* Resolved result */}
-                            {selectedItem.status === 'RESOLVED' ? (
-                                <div className="rounded-lg border border-green-200 bg-green-50 p-3">
-                                    <p className="text-xs text-green-700 font-semibold mb-1">Kết quả xử lý</p>
-                                    <p className="text-gray-800 font-medium">
-                                        Hành động: {ACTION_META[selectedItem.coordinatorAction] || selectedItem.coordinatorAction}
-                                    </p>
-                                    <p className="mt-1 text-gray-700">Phản hồi: {selectedItem.coordinatorResponse}</p>
-                                    <p className="mt-1 text-xs text-gray-500">Cập nhật lúc: {formatDateTime(selectedItem.resolvedAt)}</p>
-                                </div>
-                            ) : (
-                                /* ===== RESOLUTION PANEL (PENDING only) ===== */
-                                <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 space-y-4">
-                                    <p className="text-sm font-bold text-blue-900">Xử lý sự cố – Dành cho Điều phối viên</p>
-
-                                    {/* Action selector */}
-                                    <div>
-                                        <label className="block text-xs font-semibold text-gray-700 mb-1">Quyết định hành động</label>
-                                        <div className="grid grid-cols-2 gap-2">
-                                            <button
-                                                type="button"
-                                                onClick={handleSetContinue}
-                                                className={`rounded-lg border px-3 py-2.5 text-sm font-semibold transition-all ${
-                                                    actionType === 'CONTINUE'
-                                                        ? 'border-green-400 bg-green-100 text-green-800 ring-2 ring-green-300'
-                                                        : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'
-                                                }`}
-                                            >
-                                                ✅ Yêu cầu đội tiếp tục
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={handleSetAbort}
-                                                className={`rounded-lg border px-3 py-2.5 text-sm font-semibold transition-all ${
-                                                    actionType === 'ABORT'
-                                                        ? 'border-red-400 bg-red-100 text-red-800 ring-2 ring-red-300'
-                                                        : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'
-                                                }`}
-                                            >
-                                                🚫 Hủy & Giao đội khác
-                                            </button>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <div className="rounded-lg border border-gray-200 p-3">
+                                            <p className="text-xs text-gray-500 font-semibold mb-2">Thông tin báo cáo</p>
+                                            <p className="text-gray-700">Đội: <span className="font-semibold">{selectedItem.teamName}</span></p>
+                                            <p className="mt-1 text-gray-700">Người báo: {selectedItem.reportedByName} - {selectedItem.reportedByPhone}</p>
+                                            <p className="mt-1 text-gray-700">Thời gian báo: {formatDateTime(selectedItem.createdAt)}</p>
+                                        </div>
+                                        <div className="rounded-lg border border-gray-200 p-3">
+                                            <p className="text-xs text-gray-500 font-semibold mb-2">Nhiệm vụ liên quan</p>
+                                            <p className="font-medium text-gray-800">{selectedItem.rescueRequestTitle}</p>
+                                            {selectedItem.rescueRequestLocation && (
+                                                <p className="mt-1 text-xs text-gray-600">📍 {selectedItem.rescueRequestLocation}</p>
+                                            )}
+                                            {selectedItem.rescueRequestPeopleCount && (
+                                                <p className="mt-1 text-xs text-gray-600">👥 {selectedItem.rescueRequestPeopleCount} người</p>
+                                            )}
+                                            {selectedItem.rescueRequestEmergencyLevel && (
+                                                <p className="mt-1 text-xs text-gray-600">⚠️ Mức: {selectedItem.rescueRequestEmergencyLevel}</p>
+                                            )}
                                         </div>
                                     </div>
 
-                                    {/* Note */}
-                                    <div>
-                                        <label className="block text-xs font-semibold text-gray-700 mb-1">
-                                            Ghi chú / Chỉ đạo <span className="text-red-500">*</span>
-                                        </label>
-                                        <textarea
-                                            value={resolveNote}
-                                            onChange={(e) => setResolveNote(e.target.value)}
-                                            rows={3}
-                                            placeholder={
-                                                actionType === 'ABORT'
-                                                    ? 'VD: Đội thiếu 3 người, không đủ khả năng thực hiện. Giao cho đội B...'
-                                                    : 'VD: Chấp thuận cho đội tiếp tục với số quân hiện tại...'
-                                            }
-                                            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-                                        />
-                                    </div>
+                                    {/* Rescue request description */}
+                                    {selectedItem.rescueRequestDescription && (
+                                        <div className="rounded-lg border border-gray-200 p-3 bg-blue-50">
+                                            <p className="text-xs text-gray-500 font-semibold mb-1">Mô tả nhiệm vụ</p>
+                                            <p className="text-sm text-gray-700 whitespace-pre-wrap">{selectedItem.rescueRequestDescription}</p>
+                                        </div>
+                                    )}
 
-                                    {/* ===== ABORT CONFIGURATION PANEL ===== */}
-                                    {actionType === 'ABORT' && (
-                                        <div className="rounded-lg border border-red-200 bg-red-50 p-3 space-y-4">
-                                            <p className="text-xs font-bold text-red-800 uppercase tracking-wide">⚠️ Cấu hình hủy nhiệm vụ</p>
+                                    {/* Images button */}
+                                    {selectedItem.images && selectedItem.images.length > 0 && (
+                                        <div className="rounded-lg border border-gray-200 p-3">
+                                            <button
+                                                type="button"
+                                                onClick={() => setImageModalOpen(true)}
+                                                className="inline-flex items-center gap-2 rounded-md bg-blue-50 border border-blue-200 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100"
+                                            >
+                                                📷 Xem {selectedItem.images.length} ảnh hiện trường
+                                            </button>
+                                        </div>
+                                    )}
 
-                                            {/* 0. Post-departure toggle */}
-                                            {canMarkPostDeparture ? (
-                                                <label className="flex items-start gap-3 cursor-pointer p-3 rounded-lg bg-orange-50 border border-orange-200 hover:bg-orange-100 transition-colors">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={isPostDeparture}
-                                                        onChange={(e) => setIsPostDeparture(e.target.checked)}
-                                                        className="mt-0.5 h-4 w-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
-                                                    />
-                                                    <div>
-                                                        <p className="text-sm font-semibold text-orange-900">🚗 Đội đã xuất phát khi sự cố xảy ra</p>
-                                                        <p className="text-xs text-orange-700 mt-0.5">
-                                                            Chỉ dùng khi đội đang trên đường/đang làm nhiệm vụ. Nếu tích: Đội cũ → <strong>Nghỉ trực (OFF_DUTY)</strong>, xe → <strong>Bảo trì (MAINTENANCE)</strong>, vật tư <strong>không hoàn lại kho</strong>.
-                                                        </p>
-                                                        {hasAttendanceFallback && (
-                                                            <p className="text-xs text-amber-800 mt-1">
-                                                                Đội đã có điểm danh ở trạng thái IN_PROGRESS. Hệ thống gợi ý bật sẵn để tránh quên khi đội đã đi ngay nhưng chưa cập nhật MOVING.
-                                                            </p>
-                                                        )}
-                                                    </div>
-                                                </label>
-                                            ) : (
-                                                <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                                                    Chế độ <strong>"Đội đã xuất phát"</strong> bị ẩn để tránh bấm nhầm vì nhiệm vụ hiện chưa ở trạng thái di chuyển/thực địa. Hệ thống sẽ xử lý theo luồng <strong>pre-departure</strong> (xe/vật tư được thu hồi đúng quy trình).
-                                                </div>
-                                            )}
+                                    {/* Resolved result (if already resolved) */}
+                                    {selectedItem.status === 'RESOLVED' ? (
+                                        <div className="rounded-lg border border-green-200 bg-green-50 p-3">
+                                            <p className="text-xs text-green-700 font-semibold mb-1">Kết quả xử lý</p>
+                                            <p className="text-gray-800 font-medium">
+                                                Hành động: {ACTION_META[selectedItem.coordinatorAction] || selectedItem.coordinatorAction}
+                                            </p>
+                                            <p className="mt-1 text-gray-700">Phản hồi: {selectedItem.coordinatorResponse}</p>
+                                            <p className="mt-1 text-xs text-gray-500">Cập nhật lúc: {formatDateTime(selectedItem.resolvedAt)}</p>
+                                        </div>
+                                    ) : (
+                                        /* ===== ACTION BUTTONS for DETAIL STEP ===== */
+                                        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 space-y-3">
+                                            <p className="text-sm font-bold text-blue-900">Lựa chọn hành động xử lý sự cố</p>
 
-                                            {/* 1. Select new team */}
-                                            <div>
-                                                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                                                    Giao nhiệm vụ cho đội mới
-                                                    <span className="text-red-500 ml-1">*</span>
-                                                </label>
-                                                {loadingTeams ? (
-                                                    <p className="text-sm text-gray-500 py-1">Đang tải danh sách đội...</p>
-                                                ) : availableTeams.length === 0 ? (
-                                                    <div className="rounded-md border border-orange-200 bg-orange-50 px-3 py-2 text-xs text-orange-700">
-                                                        ⚠️ Hiện không có đội nào sẵn sàng. Vui lòng điều phối đội trước khi tiếp tục.
-                                                    </div>
-                                                ) : (
-                                                    <select
-                                                        value={newTeamId}
-                                                        onChange={(e) => {
-                                                            setNewTeamId(e.target.value);
-                                                            setNewVehicleId('');
-                                                            setSelectedSupplies([]);
-                                                        }}
-                                                        className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none bg-white"
-                                                    >
-                                                        <option value="">-- Chọn đội mới --</option>
-                                                        {availableTeams.map((team) => (
-                                                            <option key={team.id} value={team.id}>{team.name}</option>
-                                                        ))}
-                                                    </select>
-                                                )}
-                                            </div>
-
-                                            {/* 3. If new team chosen: assign new vehicle */}
-                                            {newTeamId && (
-                                                <>
-                                                    <div>
-                                                        <label className="block text-xs font-semibold text-gray-700 mb-1">
-                                                            Gán phương tiện cho đội mới
-                                                            <span className="ml-1 text-gray-500 font-normal">(tùy chọn)</span>
-                                                        </label>
-                                                        {loadingVehicles ? (
-                                                            <p className="text-sm text-gray-500 py-1">Đang tải phương tiện...</p>
-                                                        ) : availableVehicles.length === 0 ? (
-                                                            <div className="rounded-md border border-gray-200 bg-white px-3 py-2 text-xs text-gray-500">
-                                                                Không có phương tiện nào sẵn sàng.
-                                                            </div>
-                                                        ) : (
-                                                            <select
-                                                                value={newVehicleId}
-                                                                onChange={(e) => setNewVehicleId(e.target.value)}
-                                                                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none bg-white"
-                                                            >
-                                                                <option value="">-- Không gán phương tiện --</option>
-                                                                {availableVehicles.map((v) => (
-                                                                    <option key={v.id} value={v.id}>
-                                                                        {v.name} – {v.type} ({v.licensePlate})
-                                                                    </option>
-                                                                ))}
-                                                            </select>
-                                                        )}
-                                                    </div>
-
-                                                    {/* 4. Assign supplies to new team */}
-                                                    <div>
-                                                        <label className="block text-xs font-semibold text-gray-700 mb-2">
-                                                            Cấp phát vật tư cho đội mới
-                                                            <span className="ml-1 text-gray-500 font-normal">(tùy chọn – để trống = không cấp)</span>
-                                                        </label>
-                                                        {loadingSupplies ? (
-                                                            <p className="text-sm text-gray-500 py-1">Đang tải kho vật tư...</p>
-                                                        ) : supplyList.length === 0 ? (
-                                                            <div className="rounded-md border border-gray-200 bg-white px-3 py-2 text-xs text-gray-500">
-                                                                Kho vật tư hiện đang trống.
-                                                            </div>
-                                                        ) : (
-                                                            <div className="rounded-md border border-gray-200 bg-white overflow-hidden">
-                                                                <table className="w-full text-xs">
-                                                                    <thead className="bg-gray-50 text-gray-600">
-                                                                        <tr>
-                                                                            <th className="px-3 py-2 text-left font-semibold">Tên vật tư</th>
-                                                                            <th className="px-3 py-2 text-center font-semibold">Tồn kho</th>
-                                                                            <th className="px-3 py-2 text-center font-semibold w-36">Số lượng cấp</th>
-                                                                        </tr>
-                                                                    </thead>
-                                                                    <tbody>
-                                                                        {supplyList.map((supply) => {
-                                                                            const qty = getQty(supply.id);
-                                                                            return (
-                                                                                <tr key={supply.id} className="border-t border-gray-100">
-                                                                                    <td className="px-3 py-2">
-                                                                                        <p className="font-medium text-gray-800">{supply.name}</p>
-                                                                                        {supply.unit && <p className="text-gray-500">{supply.unit}</p>}
-                                                                                    </td>
-                                                                                    <td className="px-3 py-2 text-center text-gray-600">{supply.quantity}</td>
-                                                                                    <td className="px-3 py-2">
-                                                                                        <div className="flex items-center justify-center gap-1">
-                                                                                            <button
-                                                                                                type="button"
-                                                                                                onClick={() => setSupplyQty(supply.id, Math.max(0, qty - 1))}
-                                                                                                className="rounded border border-gray-300 p-0.5 hover:bg-gray-100"
-                                                                                            >
-                                                                                                <MinusIcon className="h-3 w-3" />
-                                                                                            </button>
-                                                                                            <input
-                                                                                                type="number"
-                                                                                                min={0}
-                                                                                                max={supply.quantity}
-                                                                                                value={qty}
-                                                                                                onChange={(e) => {
-                                                                                                    const v = Math.min(supply.quantity, Math.max(0, parseInt(e.target.value) || 0));
-                                                                                                    setSupplyQty(supply.id, v);
-                                                                                                }}
-                                                                                                className="w-14 rounded border border-gray-300 px-1 py-0.5 text-center text-xs focus:outline-none focus:border-blue-400"
-                                                                                            />
-                                                                                            <button
-                                                                                                type="button"
-                                                                                                onClick={() => setSupplyQty(supply.id, Math.min(supply.quantity, qty + 1))}
-                                                                                                className="rounded border border-gray-300 p-0.5 hover:bg-gray-100"
-                                                                                            >
-                                                                                                <PlusIcon className="h-3 w-3" />
-                                                                                            </button>
-                                                                                        </div>
-                                                                                    </td>
-                                                                                </tr>
-                                                                            );
-                                                                        })}
-                                                                    </tbody>
-                                                                </table>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </>
-                                            )}
-
-                                            {/* Summary */}
-                                            <div className="rounded-md border border-gray-200 bg-white px-3 py-2 text-xs text-gray-600 space-y-1">
-                                                <p className="font-semibold text-gray-700">Kết quả sau khi xác nhận:</p>
-                                                {isPostDeparture ? (
-                                                    <>
-                                                        <p>• Đội cũ ({selectedItem.teamName}) → <strong className="text-orange-700">Nghỉ trực (OFF_DUTY)</strong> — chờ về + gửi báo cáo tình trạng</p>
-                                                        <p>• Xe cũ → <strong className="text-orange-700">Bảo trì (MAINTENANCE)</strong> — không trả về kho ngay</p>
-                                                        <p>• Vật tư cũ → <strong className="text-red-700">KHÔNG hoàn lại kho</strong> (đã mang đi)</p>
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <p>• Đội cũ ({selectedItem.teamName}) → giải phóng về trạng thái <strong>Sẵn sàng</strong></p>
-                                                        <p>• Xe cũ → thu hồi về kho (AVAILABLE)</p>
-                                                        <p>• Vật tư cũ → <strong>thu hồi toàn bộ về kho</strong></p>
-                                                    </>
-                                                )}
-                                                {newTeamId ? (
-                                                    <>
-                                                        <p>• Đội mới (<strong>{selectedNewTeam?.name}</strong>) → nhận nhiệm vụ ngay (IN_PROGRESS)</p>
-                                                        {newVehicleId && <p>• Phương tiện: <strong>{selectedNewVehicle?.name}</strong> → gán cho đội mới</p>}
-                                                        {selectedSupplies.filter(s => s.quantity > 0).length > 0 && (
-                                                            <p>• Vật tư mới → cấp {selectedSupplies.filter(s => s.quantity > 0).length} loại cho đội mới</p>
-                                                        )}
-                                                    </>
-                                                ) : (
-                                                    <p>• <strong>Vui lòng chọn đội mới để giao nhiệm vụ</strong></p>
-                                                )}
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={handleOpenAbortModal}
+                                                    className="flex-1 rounded-lg border border-red-300 bg-red-50 px-3 py-2.5 text-sm font-semibold text-red-800 hover:bg-red-100 transition-colors"
+                                                >
+                                                    🚫 Hủy nhiệm vụ
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                       onClick={() => setModalStep('CONTINUE')}
+                                                    className="flex-1 rounded-lg border border-green-300 bg-green-50 px-3 py-2.5 text-sm font-semibold text-green-800 hover:bg-green-100 transition-colors"
+                                                >
+                                                    ✅ Yêu cầu tiếp tục
+                                                </button>
                                             </div>
                                         </div>
                                     )}
 
-                                    {/* Action buttons */}
+                                    {/* Close button for DETAIL step */}
                                     <div className="flex justify-end gap-2 pt-1">
                                         <button
                                             type="button"
@@ -779,19 +618,330 @@ export default function IncidentReportsPage() {
                                         >
                                             Đóng
                                         </button>
+                                    </div>
+                                </>
+                            )}
+
+                            {/* ===== STEP 2: ABORT FORM ===== */}
+                            {modalStep === 'ABORT' && (
+                                <>
+                                    <div className="rounded-lg border border-red-200 bg-red-50 p-4 space-y-4">
+                                        <p className="text-xs font-bold text-red-900 uppercase tracking-wide">⚠️ Form Hủy Nhiệm vụ</p>
+
+                                        {/* Note field (required) */}
+                                        <div>
+                                            <label className="block text-xs font-semibold text-gray-700 mb-1">
+                                                Ghi chú lý do hủy <span className="text-red-500">*</span>
+                                            </label>
+                                            <textarea
+                                                value={resolveNote}
+                                                onChange={(e) => setResolveNote(e.target.value)}
+                                                rows={3}
+                                                placeholder="VD: Đội thiếu 3 người, không đủ khả năng thực hiện nhiệm vụ..."
+                                                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                                            />
+                                        </div>
+
+                                        {/* Post-departure checkbox */}
+                                        {canMarkPostDeparture ? (
+                                            <label className="flex items-start gap-3 cursor-pointer p-3 rounded-lg bg-orange-50 border border-orange-200 hover:bg-orange-100 transition-colors">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={isPostDeparture}
+                                                    onChange={(e) => setIsPostDeparture(e.target.checked)}
+                                                    className="mt-0.5 h-4 w-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+                                                />
+                                                <div>
+                                                    <p className="text-sm font-semibold text-orange-900">🚗 Đội đã xuất phát khi sự cố xảy ra</p>
+                                                    <p className="text-xs text-orange-700 mt-0.5">
+                                                        Chỉ dùng khi đội đang trên đường/đang làm nhiệm vụ. Nếu tích: Đội cũ → <strong>Nghỉ trực (OFF_DUTY)</strong>, xe → <strong>Bảo trì (MAINTENANCE)</strong>, vật tư <strong>không hoàn lại kho</strong>.
+                                                    </p>
+                                                    {hasAttendanceFallback && (
+                                                        <p className="text-xs text-amber-800 mt-1">
+                                                            Đội đã có điểm danh ở trạng thái IN_PROGRESS. Hệ thống gợi ý bật sẵn để tránh quên khi đội đã đi ngay nhưng chưa cập nhật MOVING.
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            </label>
+                                        ) : (
+                                            <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                                                Chế độ <strong>"Đội đã xuất phát"</strong> bị ẩn để tránh bấm nhầm vì nhiệm vụ hiện chưa ở trạng thái di chuyển/thực địa. Hệ thống sẽ xử lý theo luồng <strong>pre-departure</strong> (xe/vật tư được thu hồi đúng quy trình).
+                                            </div>
+                                        )}
+
+                                        {/* Summary */}
+                                        <div className="rounded-md border border-gray-200 bg-white px-3 py-2 text-xs text-gray-600 space-y-1">
+                                            <p className="font-semibold text-gray-700">Kết quả sau khi xác nhận:</p>
+                                            {isPostDeparture ? (
+                                                <>
+                                                    <p>• Đội cũ ({selectedItem.teamName}) → <strong className="text-orange-700">Nghỉ trực (OFF_DUTY)</strong></p>
+                                                    <p>• Xe cũ → <strong className="text-orange-700">Bảo trì (MAINTENANCE)</strong></p>
+                                                    <p>• Vật tư cũ → <strong className="text-red-700">KHÔNG hoàn lại kho</strong></p>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <p>• Đội cũ ({selectedItem.teamName}) → giải phóng về trạng thái <strong>Sẵn sàng</strong></p>
+                                                    <p>• Xe cũ → thu hồi về kho (AVAILABLE)</p>
+                                                    <p>• Vật tư cũ → <strong>thu hồi toàn bộ về kho</strong></p>
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Action buttons */}
+                                    <div className="flex justify-end gap-2 pt-1">
                                         <button
                                             type="button"
-                                            onClick={handleResolve}
-                                            disabled={resolving || !canSubmit}
-                                            className={`inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 transition-colors ${
-                                                actionType === 'ABORT'
-                                                    ? 'bg-red-600 hover:bg-red-700'
-                                                    : 'bg-green-600 hover:bg-green-700'
-                                            }`}
+                                            onClick={() => setModalStep('DETAIL')}
+                                            className="rounded-md px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 hover:bg-gray-50"
+                                        >
+                                            Quay lại
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={handleResolveAbort}
+                                            disabled={resolving || !canSubmitAbortNote}
+                                            className="inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 transition-colors"
                                         >
                                             {resolving ? 'Đang xử lý...' : (
                                                 <>
-                                                    {actionType === 'ABORT' ? '🚫 Xác nhận Hủy nhiệm vụ' : '✅ Xác nhận Tiếp tục'}
+                                                    🚫 Xác nhận Hủy
+                                                    <ArrowRightIcon className="h-4 w-4" />
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
+                                </>
+                            )}
+
+                            {/* ===== STEP 3: ASSIGN FORM ===== */}
+                            {modalStep === 'ASSIGN' && (
+                                <>
+                                    {/* Success message from ABORT step */}
+                                    {successMessage && (
+                                        <div className="rounded-lg border border-green-300 bg-green-50 p-3 text-sm text-green-800 font-medium">
+                                            {successMessage}
+                                        </div>
+                                    )}
+
+                                    <div className="rounded-lg border border-green-200 bg-green-50 p-4 space-y-4">
+                                        <p className="text-xs font-bold text-green-900 uppercase tracking-wide">✅ Giao Đội Mới</p>
+
+                                        {/* 1. Select new team (required) */}
+                                        <div>
+                                            <label className="block text-xs font-semibold text-gray-700 mb-1">
+                                                Chọn đội mới
+                                                <span className="text-red-500 ml-1">*</span>
+                                            </label>
+                                            {loadingTeams ? (
+                                                <p className="text-sm text-gray-500 py-1">Đang tải danh sách đội...</p>
+                                            ) : availableTeams.length === 0 ? (
+                                                <div className="rounded-md border border-orange-200 bg-orange-50 px-3 py-2 text-xs text-orange-700">
+                                                    ⚠️ Hiện không có đội nào sẵn sàng. Vui lòng điều phối đội trước khi tiếp tục.
+                                                </div>
+                                            ) : (
+                                                <select
+                                                    value={newTeamId}
+                                                    onChange={(e) => {
+                                                        setNewTeamId(e.target.value);
+                                                        setNewVehicleId('');
+                                                        setSelectedSupplies([]);
+                                                    }}
+                                                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none bg-white"
+                                                >
+                                                    <option value="">-- Chọn đội mới --</option>
+                                                    {availableTeams.map((team) => (
+                                                        <option key={team.id} value={team.id}>{team.name}</option>
+                                                    ))}
+                                                </select>
+                                            )}
+                                        </div>
+
+                                        {/* 2. If new team chosen: assign new vehicle */}
+                                        {newTeamId && (
+                                            <>
+                                                <div>
+                                                    <label className="block text-xs font-semibold text-gray-700 mb-1">
+                                                        Gán phương tiện cho đội mới
+                                                        <span className="ml-1 text-gray-500 font-normal">(tùy chọn)</span>
+                                                    </label>
+                                                    {loadingVehicles ? (
+                                                        <p className="text-sm text-gray-500 py-1">Đang tải phương tiện...</p>
+                                                    ) : availableVehicles.length === 0 ? (
+                                                        <div className="rounded-md border border-gray-200 bg-white px-3 py-2 text-xs text-gray-500">
+                                                            Không có phương tiện nào sẵn sàng.
+                                                        </div>
+                                                    ) : (
+                                                        <select
+                                                            value={newVehicleId}
+                                                            onChange={(e) => setNewVehicleId(e.target.value)}
+                                                            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none bg-white"
+                                                        >
+                                                            <option value="">-- Không gán phương tiện --</option>
+                                                            {availableVehicles.map((v) => (
+                                                                <option key={v.id} value={v.id}>
+                                                                    {v.name} – {v.type} ({v.licensePlate})
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                    )}
+                                                </div>
+
+                                                {/* 3. Assign supplies to new team */}
+                                                <div>
+                                                    <label className="block text-xs font-semibold text-gray-700 mb-2">
+                                                        Cấp phát vật tư cho đội mới
+                                                        <span className="ml-1 text-gray-500 font-normal">(tùy chọn – để trống = không cấp)</span>
+                                                    </label>
+                                                    {loadingSupplies ? (
+                                                        <p className="text-sm text-gray-500 py-1">Đang tải kho vật tư...</p>
+                                                    ) : supplyList.length === 0 ? (
+                                                        <div className="rounded-md border border-gray-200 bg-white px-3 py-2 text-xs text-gray-500">
+                                                            Kho vật tư hiện đang trống.
+                                                        </div>
+                                                    ) : (
+                                                        <div className="rounded-md border border-gray-200 bg-white overflow-hidden">
+                                                            <table className="w-full text-xs">
+                                                                <thead className="bg-gray-50 text-gray-600">
+                                                                    <tr>
+                                                                        <th className="px-3 py-2 text-left font-semibold">Tên vật tư</th>
+                                                                        <th className="px-3 py-2 text-center font-semibold">Tồn kho</th>
+                                                                        <th className="px-3 py-2 text-center font-semibold w-36">Số lượng cấp</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    {supplyList.map((supply) => {
+                                                                        const qty = getQty(supply.id);
+                                                                        return (
+                                                                            <tr key={supply.id} className="border-t border-gray-100">
+                                                                                <td className="px-3 py-2">
+                                                                                    <p className="font-medium text-gray-800">{supply.name}</p>
+                                                                                    {supply.unit && <p className="text-gray-500">{supply.unit}</p>}
+                                                                                </td>
+                                                                                <td className="px-3 py-2 text-center text-gray-600">{supply.quantity}</td>
+                                                                                <td className="px-3 py-2">
+                                                                                    <div className="flex items-center justify-center gap-1">
+                                                                                        <button
+                                                                                            type="button"
+                                                                                            onClick={() => setSupplyQty(supply.id, Math.max(0, qty - 1))}
+                                                                                            className="rounded border border-gray-300 p-0.5 hover:bg-gray-100"
+                                                                                        >
+                                                                                            <MinusIcon className="h-3 w-3" />
+                                                                                        </button>
+                                                                                        <input
+                                                                                            type="number"
+                                                                                            min={0}
+                                                                                            max={supply.quantity}
+                                                                                            value={qty}
+                                                                                            onChange={(e) => {
+                                                                                                const v = Math.min(supply.quantity, Math.max(0, parseInt(e.target.value) || 0));
+                                                                                                setSupplyQty(supply.id, v);
+                                                                                            }}
+                                                                                            className="w-14 rounded border border-gray-300 px-1 py-0.5 text-center text-xs focus:outline-none focus:border-blue-400"
+                                                                                        />
+                                                                                        <button
+                                                                                            type="button"
+                                                                                            onClick={() => setSupplyQty(supply.id, Math.min(supply.quantity, qty + 1))}
+                                                                                            className="rounded border border-gray-300 p-0.5 hover:bg-gray-100"
+                                                                                        >
+                                                                                            <PlusIcon className="h-3 w-3" />
+                                                                                        </button>
+                                                                                    </div>
+                                                                                </td>
+                                                                            </tr>
+                                                                        );
+                                                                    })}
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </>
+                                        )}
+
+                                        {/* Summary */}
+                                        <div className="rounded-md border border-gray-200 bg-white px-3 py-2 text-xs text-gray-600 space-y-1">
+                                            <p className="font-semibold text-gray-700">Kết quả sau khi xác nhận:</p>
+                                            {newTeamId ? (
+                                                <>
+                                                    <p>• Đội mới (<strong>{selectedNewTeam?.name}</strong>) → nhận nhiệm vụ ngay (IN_PROGRESS)</p>
+                                                    {newVehicleId && <p>• Phương tiện: <strong>{selectedNewVehicle?.name}</strong> → gán cho đội mới</p>}
+                                                    {selectedSupplies.filter(s => s.quantity > 0).length > 0 && (
+                                                        <p>• Vật tư mới → cấp {selectedSupplies.filter(s => s.quantity > 0).length} loại cho đội mới</p>
+                                                    )}
+                                                </>
+                                            ) : (
+                                                <p>• <strong>Vui lòng chọn đội mới để giao nhiệm vụ</strong></p>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Action buttons */}
+                                    <div className="flex justify-end gap-2 pt-1">
+                                        <button
+                                            type="button"
+                                            onClick={handleCloseDetail}
+                                            className="rounded-md px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 hover:bg-gray-50"
+                                        >
+                                            Huỷ
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={handleAssignTeam}
+                                            disabled={assigningTeam || !canSubmitAssignTeam}
+                                            className="inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 transition-colors"
+                                        >
+                                            {assigningTeam ? 'Đang giao...' : (
+                                                <>
+                                                    ✅ Xác nhận Giao đội
+                                                    <ArrowRightIcon className="h-4 w-4" />
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
+                                </>
+                            )}
+
+                            {/* ===== CONTINUE ACTION (Stay in DETAIL step) ===== */}
+                            {modalStep === 'CONTINUE' && selectedItem.status === 'PENDING' && (
+                                <div className="rounded-lg border border-green-200 bg-green-50 p-4 space-y-3">
+                                    <p className="text-sm font-bold text-green-900">Yêu cầu đội tiếp tục</p>
+
+                                    {/* Note field (required) */}
+                                    <div>
+                                        <label className="block text-xs font-semibold text-gray-700 mb-1">
+                                            Ghi chú / Chỉ đạo <span className="text-red-500">*</span>
+                                        </label>
+                                        <textarea
+                                            value={resolveNote}
+                                            onChange={(e) => setResolveNote(e.target.value)}
+                                            rows={3}
+                                            placeholder="VD: Chấp thuận cho đội tiếp tục với số quân hiện tại..."
+                                            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                                        />
+                                    </div>
+
+                                    {/* Action buttons */}
+                                    <div className="flex justify-end gap-2 pt-1">
+                                        <button
+                                            type="button"
+                                               onClick={() => {
+                                                   setModalStep('DETAIL');
+                                                   setResolveNote('');
+                                               }}
+                                            className="rounded-md px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 hover:bg-gray-50"
+                                        >
+                                            Huỷ
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={handleResolveContinue}
+                                            disabled={resolving || !canSubmitContinueNote}
+                                            className="inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 transition-colors"
+                                        >
+                                            {resolving ? 'Đang xử lý...' : (
+                                                <>
+                                                    ✅ Xác nhận Tiếp tục
                                                     <ArrowRightIcon className="h-4 w-4" />
                                                 </>
                                             )}

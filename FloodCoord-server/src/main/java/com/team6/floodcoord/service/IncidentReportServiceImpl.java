@@ -1,5 +1,6 @@
 package com.team6.floodcoord.service;
 
+import com.team6.floodcoord.dto.request.AssignTeamRequest;
 import com.team6.floodcoord.dto.request.CreateIncidentRequest;
 import com.team6.floodcoord.dto.request.ResolveIncidentRequest;
 import com.team6.floodcoord.dto.response.IncidentReportResponse;
@@ -112,26 +113,22 @@ public class IncidentReportServiceImpl implements IncidentReportService {
         boolean isPostDeparture = isStatusPostDeparture || (requestedPostDeparture && canUseAttendanceFallback);
 
         if (resolveRequest.getAction() == IncidentAction.ABORT) {
-
-            if (resolveRequest.getNewTeamId() == null) {
-                throw new IllegalArgumentException("Bắt buộc phải giao nhiệm vụ cho đội mới khi hủy.");
-            }
+            // ============================================================
+            // ABORT: CHỈ GIẢI PHÓNG TÀI NGUYÊN CŨ, KHÔNG GIAO ĐỘI MỚI
+            // Giao đội mới sẽ thực hiện qua API riêng: POST /api/incidents/{id}/assign-team
+            // ============================================================
 
             if (isPostDeparture) {
-                // ============================================================
-                // TRƯỜNG HỢP POST-DEPARTURE: Đội đã xuất phát trước khi sự cố
-                // - Đội cũ → OFF_DUTY (nghỉ trực, chờ về + báo cáo tình trạng)
-                // - Xe cũ → MAINTENANCE (đang ở ngoài, cần kiểm tra)
-                // - Vật tư → KHÔNG hoàn lại kho (đã mang đi rồi)
-                // ============================================================
+                // --- TRƯỜNG HỢP POST-DEPARTURE: Đội đã xuất phát trước khi sự cố ---
+                // Đội cũ → OFF_DUTY, Xe cũ → MAINTENANCE, Vật tư KHÔNG hoàn lại
 
-                // --- BƯỚC 1: Đội cũ → OFF_DUTY ---
+                // BƯỚC 1: Đội cũ → OFF_DUTY
                 if (oldTeam != null) {
                     oldTeam.setStatus(TeamStatus.OFF_DUTY);
                     teamRepo.save(oldTeam);
                 }
 
-                // --- BƯỚC 2: Xe cũ → MAINTENANCE, tách khỏi đội ---
+                // BƯỚC 2: Xe cũ → MAINTENANCE, tách khỏi đội
                 if (vehicle != null) {
                     vehicle.setCurrentTeam(null);
                     vehicle.setStatus(VehicleStatus.MAINTENANCE);
@@ -139,94 +136,31 @@ public class IncidentReportServiceImpl implements IncidentReportService {
                     rescueRequest.setAssignedVehicle(null);
                 }
 
-                // --- BƯỚC 3: Vật tư KHÔNG hoàn lại kho (đã mang đi) ---
-                // Chỉ xóa liên kết request-supply để request sạch, nhưng KHÔNG cộng lại kho
+                // BƯỚC 3: Vật tư KHÔNG hoàn lại kho (đã mang đi)
                 List<RequestSupply> oldSupplies = requestSupplyRepo.findByRequest(rescueRequest);
                 requestSupplyRepo.deleteAll(oldSupplies);
 
-                // Ghi chú
-                String oldNote = rescueRequest.getCoordinatorNote() != null ? rescueRequest.getCoordinatorNote() : "";
-                String baseNote = String.format(
-                        "[%s - %s]: POST-DEPARTURE - Sự cố sau khi xuất phát. Đội %s OFF_DUTY, xe bảo trì. Lý do: %s",
+                // Lưu ghi chú
+                String note = String.format(
+                        "[%s - %s]: POST-DEPARTURE - Hủy sự cố sau xuất phát. Đội %s → OFF_DUTY, Xe → MAINTENANCE. Lý do: %s",
                         LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm dd/MM")),
                         coordinator.getFullName(),
                         oldTeam != null ? oldTeam.getName() : "cũ",
-                        resolveRequest.getCoordinatorResponse() != null ? resolveRequest.getCoordinatorResponse() : "Không có ghi chú"
+                        resolveRequest.getCoordinatorResponse() != null ? resolveRequest.getCoordinatorResponse() : ""
                 );
-
-                // ============================================================
-                // POST-DEPARTURE + REASSIGN: Giao cho đội mới
-                // ============================================================
-                RescueTeam newTeam = teamRepo.findById(resolveRequest.getNewTeamId())
-                        .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đội mới để reassign."));
-
-                if (newTeam.getStatus() != TeamStatus.AVAILABLE) {
-                    throw new IllegalStateException("Đội " + newTeam.getName() + " không sẵn sàng (trạng thái: " + newTeam.getStatus() + ")");
-                }
-
-                rescueRequest.setAssignedTeam(newTeam);
-                newTeam.setStatus(TeamStatus.BUSY);
-                teamRepo.save(newTeam);
-
-                // Xóa attendance cũ để đội mới điểm danh lại
-                List<Attendance> oldAttendances = attendanceRepo.findByRescueRequest_RequestId(rescueRequest.getRequestId());
-                attendanceRepo.deleteAll(oldAttendances);
-
-                // Cấp xe mới (nếu coordinator chọn xe)
-                if (resolveRequest.getNewVehicleId() != null) {
-                    Vehicle newVehicle = vehicleRepo.findById(resolveRequest.getNewVehicleId())
-                            .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy phương tiện ID " + resolveRequest.getNewVehicleId()));
-                    if (newVehicle.getStatus() != VehicleStatus.AVAILABLE) {
-                        throw new IllegalStateException("Phương tiện " + newVehicle.getName() + " không sẵn sàng (trạng thái: " + newVehicle.getStatus() + ")");
-                    }
-                    newVehicle.setStatus(VehicleStatus.IN_USE);
-                    newVehicle.setCurrentTeam(newTeam);
-                    vehicleRepo.save(newVehicle);
-                    rescueRequest.setAssignedVehicle(newVehicle);
-                }
-
-                // Cấp phát vật tư mới
-                if (resolveRequest.getNewSupplies() != null && !resolveRequest.getNewSupplies().isEmpty()) {
-                    for (com.team6.floodcoord.dto.request.AssignSupplyDTO sd : resolveRequest.getNewSupplies()) {
-                        if (sd.getQuantity() == null || sd.getQuantity() <= 0) continue;
-                        Supply supply = supplyRepo.findById(sd.getSupplyId())
-                                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy vật tư ID " + sd.getSupplyId()));
-                        if (supply.getQuantity() < sd.getQuantity()) {
-                            throw new IllegalStateException("Không đủ tồn kho cho vật tư: " + supply.getName()
-                                    + " (Còn: " + supply.getQuantity() + ", Cần: " + sd.getQuantity() + ")");
-                        }
-                        supply.setQuantity(supply.getQuantity() - sd.getQuantity());
-                        supplyRepo.save(supply);
-
-                        RequestSupply requestSupply = RequestSupply.builder()
-                                .request(rescueRequest)
-                                .supply(supply)
-                                .quantity(sd.getQuantity())
-                                .build();
-                        requestSupplyRepo.save(requestSupply);
-                    }
-                }
-
-                rescueRequest.setStatus(RequestStatus.IN_PROGRESS);
-                String reassignNote = baseNote + String.format(" Giao lại cho đội %s.", newTeam.getName());
-                // Để tránh note quá dài, chỉ lưu note hiện tại thay vì concatenate tất cả history
-                rescueRequest.setCoordinatorNote(reassignNote);
+                rescueRequest.setCoordinatorNote(note);
 
             } else {
-                // ============================================================
-                // TRƯỜNG HỢP PRE-DEPARTURE (luồng cũ): Đội CHƯA xuất phát
-                // - Đội cũ → AVAILABLE
-                // - Xe cũ → AVAILABLE (hoặc MAINTENANCE nếu coordinator chọn)
-                // - Vật tư → hoàn lại kho
-                // ============================================================
+                // --- TRƯỜNG HỢP PRE-DEPARTURE: Đội CHƯA xuất phát ---
+                // Đội cũ → AVAILABLE, Xe cũ → AVAILABLE, Vật tư hoàn lại kho
 
-                // --- BƯỚC 1: Giải phóng đội cũ về AVAILABLE ---
+                // BƯỚC 1: Đội cũ → AVAILABLE
                 if (oldTeam != null) {
                     oldTeam.setStatus(TeamStatus.AVAILABLE);
                     teamRepo.save(oldTeam);
                 }
 
-                // --- BƯỚC 2: Thu hồi xe cũ về kho ---
+                // BƯỚC 2: Xe cũ → AVAILABLE, tách khỏi đội
                 if (vehicle != null) {
                     vehicle.setCurrentTeam(null);
                     vehicle.setStatus(VehicleStatus.AVAILABLE);
@@ -234,7 +168,7 @@ public class IncidentReportServiceImpl implements IncidentReportService {
                     rescueRequest.setAssignedVehicle(null);
                 }
 
-                // --- BƯỚC 3: Thu hồi vật tư cũ về kho ---
+                // BƯỚC 3: Vật tư hoàn lại kho
                 List<RequestSupply> oldSupplies = requestSupplyRepo.findByRequest(rescueRequest);
                 for (RequestSupply rs : oldSupplies) {
                     Supply supply = rs.getSupply();
@@ -243,69 +177,19 @@ public class IncidentReportServiceImpl implements IncidentReportService {
                 }
                 requestSupplyRepo.deleteAll(oldSupplies);
 
-                // ============================================================
-                // PRE-DEPARTURE + REASSIGN
-                // ============================================================
-                RescueTeam newTeam = teamRepo.findById(resolveRequest.getNewTeamId())
-                        .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đội mới để reassign."));
-
-                if (newTeam.getStatus() != TeamStatus.AVAILABLE) {
-                    throw new IllegalStateException("Đội " + newTeam.getName() + " không sẵn sàng (trạng thái: " + newTeam.getStatus() + ")");
-                }
-
-                rescueRequest.setAssignedTeam(newTeam);
-                newTeam.setStatus(TeamStatus.BUSY);
-                teamRepo.save(newTeam);
-
-                List<Attendance> oldAttendances = attendanceRepo.findByRescueRequest_RequestId(rescueRequest.getRequestId());
-                attendanceRepo.deleteAll(oldAttendances);
-
-                if (resolveRequest.getNewVehicleId() != null) {
-                    Vehicle newVehicle = vehicleRepo.findById(resolveRequest.getNewVehicleId())
-                            .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy phương tiện ID " + resolveRequest.getNewVehicleId()));
-                    if (newVehicle.getStatus() != VehicleStatus.AVAILABLE) {
-                        throw new IllegalStateException("Phương tiện " + newVehicle.getName() + " không sẵn sàng (trạng thái: " + newVehicle.getStatus() + ")");
-                    }
-                    newVehicle.setStatus(VehicleStatus.IN_USE);
-                    newVehicle.setCurrentTeam(newTeam);
-                    vehicleRepo.save(newVehicle);
-                    rescueRequest.setAssignedVehicle(newVehicle);
-                }
-
-                if (resolveRequest.getNewSupplies() != null && !resolveRequest.getNewSupplies().isEmpty()) {
-                    for (com.team6.floodcoord.dto.request.AssignSupplyDTO sd : resolveRequest.getNewSupplies()) {
-                        if (sd.getQuantity() == null || sd.getQuantity() <= 0) continue;
-                        Supply supply = supplyRepo.findById(sd.getSupplyId())
-                                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy vật tư ID " + sd.getSupplyId()));
-                        if (supply.getQuantity() < sd.getQuantity()) {
-                            throw new IllegalStateException("Không đủ tồn kho cho vật tư: " + supply.getName()
-                                    + " (Còn: " + supply.getQuantity() + ", Cần: " + sd.getQuantity() + ")");
-                        }
-                        supply.setQuantity(supply.getQuantity() - sd.getQuantity());
-                        supplyRepo.save(supply);
-
-                        RequestSupply requestSupply = RequestSupply.builder()
-                                .request(rescueRequest)
-                                .supply(supply)
-                                .quantity(sd.getQuantity())
-                                .build();
-                        requestSupplyRepo.save(requestSupply);
-                    }
-                }
-
-                rescueRequest.setStatus(RequestStatus.IN_PROGRESS);
-
-                String reassignNote = String.format(
-                        "[%s - %s]: PRE-DEPARTURE - Sự cố xử lý trước khi xuất phát. Nhiệm vụ giao cho đội %s. Lý do: %s",
+                // Lưu ghi chú
+                String note = String.format(
+                        "[%s - %s]: PRE-DEPARTURE - Hủy sự cố trước xuất phát. Đội %s → AVAILABLE, Xe/Vật tư → Thu hồi. Lý do: %s",
                         LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm dd/MM")),
                         coordinator.getFullName(),
-                        newTeam.getName(),
-                        resolveRequest.getCoordinatorResponse() != null ? resolveRequest.getCoordinatorResponse() : "Không có ghi chú"
+                        oldTeam != null ? oldTeam.getName() : "cũ",
+                        resolveRequest.getCoordinatorResponse() != null ? resolveRequest.getCoordinatorResponse() : ""
                 );
-                // Để tránh note quá dài, chỉ lưu note hiện tại thay vì concatenate tất cả history
-                rescueRequest.setCoordinatorNote(reassignNote);
+                rescueRequest.setCoordinatorNote(note);
             }
 
+            // Đặt nhiệm vụ về VERIFIED (chờ điều phối giao đội mới)
+            rescueRequest.setStatus(RequestStatus.VERIFIED);
             requestRepo.save(rescueRequest);
 
         } else if (resolveRequest.getAction() == IncidentAction.CONTINUE) {
@@ -324,8 +208,113 @@ public class IncidentReportServiceImpl implements IncidentReportService {
         incidentReport.setResolvedAt(LocalDateTime.now());
         incidentRepo.save(incidentReport);
 
-        log.info("Coordinator {} đã giải quyết sự cố ID {} với hành động {} (postDeparture={})",
-                coordinator.getEmail(), incidentId, resolveRequest.getAction(), isPostDeparture);
+        log.info("Coordinator {} đã hủy sự cố ID {} (postDeparture={}). Chờ giao đội mới...",
+                coordinator.getEmail(), incidentId, isPostDeparture);
+    }
+
+    @Override
+    @Transactional
+    public void assignTeamToIncident(Long incidentId, AssignTeamRequest request, User coordinator) {
+        IncidentReport incidentReport = incidentRepo.findById(incidentId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy báo cáo sự cố."));
+
+        RescueRequest rescueRequest = incidentReport.getRescueRequest();
+
+        // Chỉ cho phép giao đội mới sau khi incident đã được RESOLVED với ABORT
+        if (incidentReport.getStatus() != IncidentStatus.RESOLVED
+                || incidentReport.getCoordinatorAction() != IncidentAction.ABORT) {
+            throw new IllegalStateException("Sự cố chưa được hủy (ABORT) nên chưa thể giao đội mới.");
+        }
+
+        // Xác nhận nhiệm vụ ở trạng thái VERIFIED (chờ điều phối lại)
+        if (rescueRequest.getStatus() != RequestStatus.VERIFIED) {
+            throw new IllegalStateException(
+                "Nhiệm vụ phải ở trạng thái chờ giao đội mới. Hiện tại: " + rescueRequest.getStatus()
+            );
+        }
+
+        // Chọn đội mới
+        if (request.getNewTeamId() == null) {
+            throw new IllegalArgumentException("Bắt buộc phải chọn đội mới để giao nhiệm vụ.");
+        }
+
+        RescueTeam newTeam = teamRepo.findById(request.getNewTeamId())
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đội mới để giao."));
+
+        if (newTeam.getStatus() != TeamStatus.AVAILABLE) {
+            throw new IllegalStateException(
+                "Đội " + newTeam.getName() + " không sẵn sàng (trạng thái: " + newTeam.getStatus() + ")"
+            );
+        }
+
+        // Giao nhiệm vụ cho đội mới
+        rescueRequest.setAssignedTeam(newTeam);
+        newTeam.setStatus(TeamStatus.BUSY);
+        teamRepo.save(newTeam);
+
+        // Xóa attendance cũ để đội mới điểm danh lại
+        List<Attendance> oldAttendances = attendanceRepo.findByRescueRequest_RequestId(rescueRequest.getRequestId());
+        attendanceRepo.deleteAll(oldAttendances);
+
+        // Gán phương tiện (nếu có)
+        if (request.getNewVehicleId() != null) {
+            Vehicle newVehicle = vehicleRepo.findById(request.getNewVehicleId())
+                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy phương tiện."));
+
+            if (newVehicle.getStatus() != VehicleStatus.AVAILABLE) {
+                throw new IllegalStateException(
+                    "Phương tiện " + newVehicle.getName() + " không sẵn sàng (trạng thái: " + newVehicle.getStatus() + ")"
+                );
+            }
+
+            newVehicle.setStatus(VehicleStatus.IN_USE);
+            newVehicle.setCurrentTeam(newTeam);
+            vehicleRepo.save(newVehicle);
+            rescueRequest.setAssignedVehicle(newVehicle);
+        }
+
+        // Cấp phát vật tư (nếu có)
+        if (request.getNewSupplies() != null && !request.getNewSupplies().isEmpty()) {
+            for (com.team6.floodcoord.dto.request.AssignSupplyDTO sd : request.getNewSupplies()) {
+                if (sd.getQuantity() == null || sd.getQuantity() <= 0) continue;
+
+                Supply supply = supplyRepo.findById(sd.getSupplyId())
+                        .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy vật tư."));
+
+                if (supply.getQuantity() < sd.getQuantity()) {
+                    throw new IllegalStateException(
+                        "Không đủ tồn kho cho vật tư: " + supply.getName()
+                        + " (Còn: " + supply.getQuantity() + ", Cần: " + sd.getQuantity() + ")"
+                    );
+                }
+
+                supply.setQuantity(supply.getQuantity() - sd.getQuantity());
+                supplyRepo.save(supply);
+
+                RequestSupply requestSupply = RequestSupply.builder()
+                        .request(rescueRequest)
+                        .supply(supply)
+                        .quantity(sd.getQuantity())
+                        .build();
+                requestSupplyRepo.save(requestSupply);
+            }
+        }
+
+        // Đặt nhiệm vụ ở trạng thái IN_PROGRESS (sẵn sàng cho đội mới bắt đầu)
+        rescueRequest.setStatus(RequestStatus.IN_PROGRESS);
+
+        // Cập nhật ghi chú
+        String note = String.format(
+                "[%s - %s]: Giao lại cho đội %s (sau khi hủy sự cố)",
+                LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm dd/MM")),
+                coordinator.getFullName(),
+                newTeam.getName()
+        );
+        rescueRequest.setCoordinatorNote(note);
+        requestRepo.save(rescueRequest);
+
+        log.info("Coordinator {} đã giao nhiệm vụ ID {} cho đội {} (sau hủy sự cố)",
+                coordinator.getEmail(), rescueRequest.getRequestId(), newTeam.getName());
     }
 
     @Override

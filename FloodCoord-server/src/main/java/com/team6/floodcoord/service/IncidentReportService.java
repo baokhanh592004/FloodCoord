@@ -1,5 +1,6 @@
 package com.team6.floodcoord.service;
 
+import com.team6.floodcoord.dto.request.AssignTeamRequest;
 import com.team6.floodcoord.dto.request.CreateIncidentRequest;
 import com.team6.floodcoord.dto.request.ResolveIncidentRequest;
 import com.team6.floodcoord.dto.response.IncidentReportResponse;
@@ -12,6 +13,7 @@ import java.util.List;
 public interface IncidentReportService {
     void createIncidentReport(CreateIncidentRequest request, User leader);
     void resolveIncident(Long incidentId, ResolveIncidentRequest resolveRequest, User coordinator);
+    void assignTeamToIncident(Long incidentId, AssignTeamRequest request, User coordinator);
     List<IncidentReportResponse> getPendingIncidents();
     List<IncidentReportResponse> getAllIncidents();
     IncidentReportResponse getLatestIncidentByRequest(UUID requestId, User requester);
