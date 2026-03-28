@@ -28,10 +28,8 @@ import toast from 'react-hot-toast'
 import logo from '../assets/images/logo.png'
 
 const SERVICE_ITEMS = [
-  { name: 'Bản đồ lũ lụt', description: 'Xem bản đồ theo dõi tình hình lũ', href: '/map', icon: MapIcon },
   { name: 'Gửi yêu cầu cứu hộ', description: 'Gửi tín hiệu SOS khẩn cấp', href: '/request-rescue', icon: ShieldExclamationIcon },
-  { name: 'Đội cứu hộ', description: 'Thông tin các đội cứu hộ', href: '/rescue-teams', icon: UserGroupIcon },
-  { name: 'Hướng dẫn', description: 'Hướng dẫn sử dụng hệ thống', href: '/guide', icon: InformationCircleIcon },
+  { name: 'Giới thiệu', description: 'Hướng dẫn sử dụng hệ thống', href: '/about', icon: InformationCircleIcon },
   { name: 'Tra cứu yêu cầu cứu hộ', description: 'Theo dõi trạng thái yêu cầu cứu hộ', href: '/track-rescue', icon: ShieldExclamationIcon },
 ]
 
