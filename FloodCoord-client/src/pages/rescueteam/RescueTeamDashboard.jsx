@@ -1,149 +1,270 @@
-RescueTeamDashboard
-
-
-import { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useCallback, useMemo, forwardRef } from "react";
 import { rescueTeamApi } from "../../services/rescueTeamApi";
 import { useAuth } from "../../context/AuthContext";
 import { Link } from "react-router-dom";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 import { 
-  ArrowPathIcon, 
-  ClipboardDocumentIcon, 
-  BoltIcon, 
-  CheckCircleIcon, 
-  DocumentTextIcon,
-  ExclamationCircleIcon
+  UsersIcon, 
+  HandRaisedIcon, 
+  CheckBadgeIcon, 
+  ArrowPathIcon,
+  ChevronRightIcon,
+  ClipboardDocumentListIcon,
+  CalendarDaysIcon,
+  ArrowTrendingUpIcon,
+  ArrowTrendingDownIcon
 } from '@heroicons/react/24/outline';
-// Cài đặt biểu đồ: npm install recharts
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
+  AreaChart, Area, Legend
+} from 'recharts';
+import { format, subDays, startOfMonth, subMonths, endOfMonth } from 'date-fns';
 
 export default function RescueTeamDashboard() {
   const { profileName } = useAuth();
-  const [missions, setMissions] = useState([]);
+  const [statsData, setStatsData] = useState(null);
+  const [chartData, setChartData] = useState([]); // Dữ liệu 7 ngày cho biểu đồ đường
   const [loading, setLoading] = useState(true);
 
-  const fetchData = async () => {
+  // --- QUẢN LÝ KHOẢNG NGÀY (Logic đồng bộ Admin) ---
+  const [currentRange, setCurrentRange] = useState([startOfMonth(new Date()), new Date()]);
+  const [curStart, curEnd] = currentRange;
+
+  const [compareRange, setCompareRange] = useState([
+    startOfMonth(subMonths(new Date(), 1)),
+    endOfMonth(subMonths(new Date(), 1))
+  ]);
+  const [compStart, compEnd] = compareRange;
+
+  // --- LOGIC BIẾN ĐỔI DỮ LIỆU BIỂU ĐỒ SO SÁNH (GIỐNG ADMIN) ---
+  const comparisonData = useMemo(() => {
+    if (!statsData) return [];
+    return [
+      { 
+        name: 'Nhiệm vụ', 
+        'Kỳ trước': statsData.completedMissions?.lastMonthValue || 0, 
+        'Kỳ này': statsData.completedMissions?.currentMonthValue || 0 
+      },
+      { 
+        name: 'Người cứu', 
+        'Kỳ trước': statsData.rescuedPeople?.lastMonthValue || 0, 
+        'Kỳ này': statsData.rescuedPeople?.currentMonthValue || 0 
+      },
+      { 
+        name: 'Đánh giá', 
+        'Kỳ trước': statsData.averageRating?.lastMonthValue || 0, 
+        'Kỳ này': statsData.averageRating?.currentMonthValue || 0 
+      }
+    ];
+  }, [statsData]);
+
+  // UI tùy chỉnh cho ô nhập ngày
+  const CustomDateInput = forwardRef(({ value, onClick, label }, ref) => (
+    <div 
+      className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 rounded-xl text-[13px] font-semibold text-gray-700 hover:border-blue-400 transition-all shadow-sm cursor-pointer min-w-[210px]"
+      onClick={onClick}
+      ref={ref}
+    >
+      <CalendarDaysIcon className="h-4 w-4 text-blue-500 shrink-0" />
+      <span className="text-gray-400 font-normal shrink-0">{label}:</span>
+      <span className="truncate">{value || "Chọn khoảng..."}</span>
+    </div>
+  ));
+
+  // Logic xử lý biểu đồ xu hướng 7 ngày (Duy trì để hiện AreaChart)
+  const processChartData = (missions) => {
+    const last7Days = Array.from({ length: 7 }, (_, i) => format(subDays(new Date(), i), 'dd/MM')).reverse();
+    const counts = missions.reduce((acc, m) => {
+      const rawDate = m.createdAt || m.requestDate || new Date();
+      const date = format(new Date(rawDate), 'dd/MM');
+      acc[date] = (acc[date] || 0) + 1;
+      return acc;
+    }, {});
+    return last7Days.map(date => ({ time: date, requests: counts[date] || 0 }));
+  };
+
+  const loadData = useCallback(async () => {
+    if (!curStart || !curEnd || !compStart || !compEnd) return;
+
     try {
       setLoading(true);
-      const [active, completed] = await Promise.all([
+      const params = {
+        startDate: format(curStart, 'yyyy-MM-dd'),
+        endDate: format(curEnd, 'yyyy-MM-dd'),
+        compareStartDate: format(compStart, 'yyyy-MM-dd'),
+        compareEndDate: format(compEnd, 'yyyy-MM-dd')
+      };
+
+      const [stats, activeMissions, completedMissions] = await Promise.all([
+        rescueTeamApi.getDashboardStats(params.startDate, params.endDate, params.compareStartDate, params.compareEndDate),
         rescueTeamApi.getAssignedMissions().catch(() => []),
         rescueTeamApi.getCompletedMissions().catch(() => [])
       ]);
-      setMissions([...active, ...completed]);
+
+      setStatsData(stats);
+      setChartData(processChartData([...activeMissions, ...completedMissions]));
     } catch (error) {
-      console.error("Lỗi tải dashboard:", error);
+      console.error("Lỗi tải dữ liệu Dashboard:", error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [curStart, curEnd, compStart, compEnd]);
 
-  useEffect(() => { fetchData(); }, []);
-
-  // Tính toán số liệu dựa trên logic code của bạn
-  const stats = useMemo(() => {
-    const total = missions.length;
-    const active = missions.filter(m => m.status !== 'COMPLETED' && m.status !== 'REPORTED').length;
-    const completed = missions.filter(m => m.status === 'COMPLETED' || m.status === 'REPORTED').length;
-    const reported = missions.filter(m => m.status === 'REPORTED' || m.isReported).length;
-    const notReported = completed - reported;
-
-    return [
-      { label: "Tổng nhiệm vụ", count: total, color: "bg-blue-50 text-blue-600", icon: <ClipboardDocumentIcon className="w-6 h-6" /> },
-      { label: "Đang thực hiện", count: active, color: "bg-amber-50 text-amber-600", icon: <BoltIcon className="w-6 h-6" /> },
-      { label: "Đã hoàn thành", count: completed, color: "bg-emerald-50 text-emerald-600", icon: <CheckCircleIcon className="w-6 h-6" /> },
-      { label: "Đã báo cáo", count: reported, color: "bg-indigo-50 text-indigo-600", icon: <DocumentTextIcon className="w-6 h-6" /> },
-      { label: "Chưa báo cáo", count: notReported, color: "bg-rose-50 text-rose-600", icon: <ExclamationCircleIcon className="w-6 h-6" /> },
-    ];
-  }, [missions]);
-
-  // Dữ liệu mẫu cho biểu đồ giống hình ảnh mẫu
-  const chartData = [
-    { time: '01 giờ', requests: 3 }, { time: '05 giờ', requests: 5 },
-    { time: '10 giờ', requests: 2 }, { time: '15 giờ', requests: 9 },
-    { time: '20 giờ', requests: 4 }, { time: '23 giờ', requests: 1 },
-  ];
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   return (
-    <div className="p-6 lg:p-8 bg-[#F8FAFC] min-h-screen font-sans text-slate-900">
+    <div className="p-6 bg-[#F8FAFC] min-h-screen font-sans text-slate-900">
       
       {/* HEADER */}
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 border-b border-gray-200 pb-5 mb-8">
         <div>
-          <h1 className="text-2xl font-black tracking-tight">Tổng quan hệ thống</h1>
-          <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Chào Đội trưởng, {profileName || "Cứu hộ"}</p>
-        </div>
-        <button onClick={fetchData} className="bg-[#0D9488] hover:bg-teal-700 text-white px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 shadow-lg shadow-teal-100 transition-all">
-          <ArrowPathIcon className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> LÀM MỚI
-        </button>
-      </div>
-
-      {/* ROW 1: 5 STAT CARDS (Theo đúng bố cục mẫu) */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
-        {stats.map((s, i) => (
-          <div key={i} className="bg-white border border-slate-100 p-5 rounded-[1.5rem] shadow-sm hover:shadow-md transition-shadow">
-            <div className={`w-10 h-10 ${s.color} rounded-xl flex items-center justify-center mb-4 shadow-inner`}>
-              {s.icon}
-            </div>
-            <p className="text-3xl font-black text-slate-800">{s.count}</p>
-            <p className="text-slate-400 text-[10px] font-black uppercase tracking-wider mt-1">{s.label}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* ROW 2: BIỂU ĐỒ (Giống mẫu của Coordinator) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
-        <div className="lg:col-span-7 bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
-          <h3 className="font-black text-slate-800 text-sm mb-6 uppercase tracking-widest">Yêu cầu nhận được theo thời gian</h3>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
-                <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold'}} />
-                <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold'}} />
-                <Tooltip contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'}} />
-                <Line type="monotone" dataKey="requests" stroke="#0D9488" strokeWidth={4} dot={{ r: 4, fill: '#0D9488', strokeWidth: 2, stroke: '#fff' }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        <div className="lg:col-span-5 bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
-          <h3 className="font-black text-slate-800 text-sm mb-6 uppercase tracking-widest">So sánh nhiệm vụ thực tế</h3>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
-                <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold'}} />
-                <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold'}} />
-                <Tooltip cursor={{fill: '#F8FAFC'}} />
-                <Bar dataKey="requests" fill="#0D9488" radius={[6, 6, 0, 0]} barSize={30} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
-
-      {/* ROW 3: TRUY CẬP NHANH & THÔNG TIN (Tận dụng mẫu hình dơi/thời tiết) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="lg:col-span-3 bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center justify-between group">
-           <div>
-              <h3 className="font-black text-slate-800 uppercase tracking-widest text-sm mb-2">Bạn đang có nhiệm vụ cần báo cáo?</h3>
-              <p className="text-slate-500 text-xs font-medium">Đảm bảo cập nhật số liệu chính xác để hỗ trợ công tác điều phối.</p>
-           </div>
-           <Link to="/rescue-team/missions" className="bg-slate-900 text-white px-6 py-3 rounded-2xl font-black text-[10px] tracking-[0.2em] group-hover:bg-blue-600 transition-all uppercase">
-              Đi tới danh sách
-           </Link>
+          <h1 className="text-2xl font-black text-slate-800 tracking-tight">Hệ thống Quản trị</h1>
+          <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-1">
+            Chào Đội trưởng, {profileName || "Cứu hộ"}
+          </p>
         </div>
         
-        <div className="bg-slate-900 p-6 rounded-[2rem] text-white shadow-xl relative overflow-hidden">
-           <div className="relative z-10">
-              <p className="text-[10px] font-black uppercase opacity-50 tracking-[0.2em] mb-1">Mực nước cảnh báo</p>
-              <p className="text-3xl font-black text-blue-400">2.1 m</p>
-              <p className="text-[10px] font-bold text-rose-400 mt-2 uppercase tracking-widest">⚠️ TRÊN MỨC CẢNH BÁO I</p>
-           </div>
-           <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl"></div>
+        <div className="flex flex-wrap items-center gap-2 bg-gray-100/60 p-2 rounded-2xl border border-gray-200">
+          <DatePicker
+            selectsRange={true}
+            startDate={curStart}
+            endDate={curEnd}
+            onChange={(update) => setCurrentRange(update)}
+            customInput={<CustomDateInput label="Kỳ này" />}
+            dateFormat="dd/MM/yy"
+          />
+          <div className="h-5 w-[1px] bg-gray-300 mx-1 hidden sm:block" />
+          <DatePicker
+            selectsRange={true}
+            startDate={compStart}
+            endDate={compEnd}
+            onChange={(update) => setCompareRange(update)}
+            customInput={<CustomDateInput label="So với" />}
+            dateFormat="dd/MM/yy"
+          />
+          <button 
+            onClick={loadData} 
+            disabled={loading}
+            className="ml-1 p-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 active:scale-95 disabled:opacity-50 transition-all shadow-md shadow-blue-100"
+          >
+            <ArrowPathIcon className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
         </div>
       </div>
 
+      {/* ROW 1: STAT CARDS */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <StatCard 
+          title="Nhiệm vụ hoàn thành" 
+          value={statsData?.completedMissions?.currentMonthValue} 
+          growth={statsData?.completedMissions?.growthRate} 
+          icon={<HandRaisedIcon className="w-6 h-6 text-blue-600" />} 
+          bgColor="bg-blue-50" 
+        />
+        <StatCard 
+          title="Số người cứu được" 
+          value={statsData?.rescuedPeople?.currentMonthValue} 
+          growth={statsData?.rescuedPeople?.growthRate} 
+          icon={<UsersIcon className="w-6 h-6 text-teal-600" />} 
+          bgColor="bg-teal-50" 
+        />
+        <StatCard 
+          title="Đánh giá trung bình" 
+          value={statsData?.averageRating?.currentMonthValue} 
+          growth={statsData?.averageRating?.growthRate} 
+          icon={<CheckBadgeIcon className="w-6 h-6 text-orange-600" />} 
+          bgColor="bg-orange-50" 
+          isRating
+        />
+      </div>
+
+      {/* ROW 2: BIỂU ĐỒ */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        {/* BIỂU ĐỒ SO SÁNH (GIỐNG ADMIN) */}
+        <ChartContainer title="So sánh hiệu suất" sub="Kỳ hiện tại vs Kỳ trước">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={comparisonData}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
+              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 11, fontWeight: 'bold'}} />
+              <YAxis axisLine={false} tickLine={false} tick={{fontSize: 11, fontWeight: 'bold'}} />
+              <Tooltip cursor={{fill: '#F8FAFC'}} contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px rgba(0,0,0,0.05)'}} />
+              <Legend iconType="circle" wrapperStyle={{paddingTop: '20px', fontSize: '12px', fontWeight: 'bold'}} />
+              <Bar name="Kỳ trước" dataKey="Kỳ trước" fill="#CBD5E1" radius={[6, 6, 0, 0]} barSize={35} />
+              <Bar name="Kỳ này" dataKey="Kỳ này" fill="#3B82F6" radius={[6, 6, 0, 0]} barSize={35} />
+            </BarChart>
+          </ResponsiveContainer>
+        </ChartContainer>
+
+        {/* BIỂU ĐỒ XU HƯỚNG */}
+        <ChartContainer title="Xu hướng cứu hộ" sub="Tần suất 7 ngày gần nhất">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={chartData}>
+              <defs>
+                <linearGradient id="colorReq" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold'}} />
+              <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold'}} />
+              <Tooltip />
+              <Area type="monotone" dataKey="requests" name="Yêu cầu" stroke="#3B82F6" strokeWidth={3} fillOpacity={1} fill="url(#colorReq)" />
+            </AreaChart>
+          </ResponsiveContainer>
+        </ChartContainer>
+      </div>
+
+      {/* FOOTER */}
+      <div className="bg-white border border-gray-200 rounded-[2.5rem] p-6 shadow-sm">
+        <Link to="/rescue-team/missions" className="flex items-center justify-between group">
+          <div className="flex items-center gap-4">
+            <div className="bg-blue-50 p-3 rounded-xl text-blue-600 transition-transform group-hover:scale-110">
+              <ClipboardDocumentListIcon className="w-6 h-6"/>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-slate-800 tracking-tight">Danh sách nhiệm vụ</p>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Cập nhật ngay</p>
+            </div>
+          </div>
+          <ChevronRightIcon className="w-5 h-5 text-slate-300 group-hover:translate-x-1 transition-all" />
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+// --- SUB-COMPONENTS ---
+function StatCard({ title, value, growth, icon, bgColor, isRating }) {
+  const isPos = growth >= 0;
+  return (
+    <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm transition-all hover:shadow-lg">
+      <div className="flex justify-between items-start mb-4">
+        <div className={`p-3 ${bgColor} rounded-2xl`}>{icon}</div>
+        <div className={`flex items-center text-xs font-black ${isPos ? 'text-green-600' : 'text-red-600'}`}>
+          {isPos ? <ArrowTrendingUpIcon className="h-3 w-3 mr-1" /> : <ArrowTrendingDownIcon className="h-3 w-3 mr-1" />}
+          {Math.abs(growth || 0).toFixed(1)}%
+        </div>
+      </div>
+      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{title}</p>
+      <h3 className="text-3xl font-black text-gray-900">
+        {isRating ? (Number(value) || 0).toFixed(1) : (value ?? 0)}
+        {isRating && <span className="text-sm ml-1">⭐</span>}
+      </h3>
+    </div>
+  );
+}
+
+function ChartContainer({ title, sub, children }) {
+  return (
+    <div className="bg-white border border-gray-100 rounded-[2.5rem] p-8 shadow-sm h-[400px] flex flex-col">
+      <div className="mb-6">
+        <h2 className="text-lg font-bold text-gray-900">{title}</h2>
+        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{sub}</p>
+      </div>
+      <div className="flex-1 w-full">{children}</div>
     </div>
   );
 }

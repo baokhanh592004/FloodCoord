@@ -41,14 +41,26 @@ public interface RescueRequestRepository
     long countByStatusAndCompletedAtBetween(RequestStatus status, LocalDateTime start, LocalDateTime end);
 
     // 1. Đếm số nhiệm vụ hoàn thành của Đội
-    long countByAssignedTeam_IdAndStatusAndCompletedAtBetween(Long teamId, RequestStatus status, java.time.LocalDateTime start, java.time.LocalDateTime end);
+    long countByAssignedTeam_IdAndStatusInAndCompletedAtBetween(Long teamId, List<RequestStatus> statuses, LocalDateTime start, LocalDateTime end);
 
     // 2. Tính tổng số người cứu được của Đội (Lấy từ RescueReport)
     // LƯU Ý: Chữ "rescuedPeople" dưới đây bạn phải sửa lại cho ĐÚNG VỚI TÊN BIẾN trong file RescueReport.java của bạn nhé.
-    @Query("SELECT COALESCE(SUM(r.report.rescuedPeople), 0) FROM RescueRequest r WHERE r.assignedTeam.id = :teamId AND r.status = :status AND r.completedAt BETWEEN :start AND :end")
-    Long sumRescuedPeopleByTeamAndDateRange(@Param("teamId") Long teamId, @Param("status") RequestStatus status, @Param("start") java.time.LocalDateTime start, @Param("end") java.time.LocalDateTime end);
+    @Query("SELECT COALESCE(SUM(rep.rescuedPeople), 0) FROM RescueReport rep JOIN rep.request req " +
+            "WHERE req.assignedTeam.id = :teamId AND req.status IN :statuses " +
+            "AND req.completedAt BETWEEN :startDate AND :endDate")
+    long sumRescuedPeopleByTeamAndDateRange(
+            @Param("teamId") Long teamId,
+            @Param("statuses") List<RequestStatus> statuses,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate);
 
     // 3. Tính điểm đánh giá sao trung bình của Đội
-    @Query("SELECT COALESCE(AVG(r.citizenRating), 0.0) FROM RescueRequest r WHERE r.assignedTeam.id = :teamId AND r.status = :status AND r.completedAt BETWEEN :start AND :end AND r.citizenRating IS NOT NULL")
-    Double getAverageRatingByTeamAndDateRange(@Param("teamId") Long teamId, @Param("status") RequestStatus status, @Param("start") java.time.LocalDateTime start, @Param("end") java.time.LocalDateTime end);
+    @Query("SELECT COALESCE(AVG(req.citizenRating), 0.0) FROM RescueRequest req " +
+            "WHERE req.assignedTeam.id = :teamId AND req.status IN :statuses " +
+            "AND req.completedAt BETWEEN :startDate AND :endDate AND req.citizenRating IS NOT NULL")
+    double getAverageRatingByTeamAndDateRange(
+            @Param("teamId") Long teamId,
+            @Param("statuses") List<RequestStatus> statuses,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate);
 }

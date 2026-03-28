@@ -1,220 +1,227 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { adminUserApi } from '../../services/adminUserApi';
-import { adminTeamApi } from '../../services/adminTeamApi';
-import StatCard from '../../components/coordinator/StatCard';
+import { adminDashboardApi } from '../../services/adminDashboardApi';
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
 import {
-  UsersIcon,
-  UserGroupIcon,
-  CheckCircleIcon,
-  XCircleIcon,
-  ArrowPathIcon,
-  ArrowRightIcon,
-  ShieldCheckIcon,
-  TruckIcon,
+  UsersIcon, ArrowPathIcon, ArrowRightIcon, TruckIcon,
+  UserGroupIcon, ArrowTrendingUpIcon, ArrowTrendingDownIcon,
+  CalendarIcon
 } from '@heroicons/react/24/outline';
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend,
+  PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid
 } from 'recharts';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
-  const [users, setUsers] = useState([]);
-  const [teams, setTeams] = useState([]);
+  const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  // --- QUẢN LÝ KHOẢNG NGÀY ---
+  // Kỳ hiện tại: Mặc định từ đầu tháng đến hiện tại
+  const [currentRange, setCurrentRange] = useState([startOfMonth(new Date()), new Date()]);
+  const [curStart, curEnd] = currentRange;
+
+  // Kỳ so sánh: Mặc định là tháng trước
+  const [compareRange, setCompareRange] = useState([
+    startOfMonth(subMonths(new Date(), 1)),
+    endOfMonth(subMonths(new Date(), 1))
+  ]);
+  const [compStart, compEnd] = compareRange;
+
   const loadData = useCallback(async () => {
+    // Chỉ gọi API khi đã chọn đủ ngày bắt đầu và ngày kết thúc cho cả 2 kỳ
+    if (!curStart || !curEnd || !compStart || !compEnd) return;
+
     setLoading(true);
     try {
-      const [u, t] = await Promise.allSettled([
-        adminUserApi.getAllUsers(),
-        adminTeamApi.getAllTeams(),
-      ]);
-      setUsers(u.status === 'fulfilled' ? (u.value || []) : []);
-      setTeams(t.status === 'fulfilled' ? (t.value || []) : []);
+      const params = {
+        startDate: format(curStart, 'yyyy-MM-dd'),
+        endDate: format(curEnd, 'yyyy-MM-dd'),
+        compareStartDate: format(compStart, 'yyyy-MM-dd'),
+        compareEndDate: format(compEnd, 'yyyy-MM-dd'),
+      };
+      const data = await adminDashboardApi.getStats(params);
+      setStats(data);
+    } catch (error) {
+      console.error("Lỗi lấy dữ liệu dashboard:", error);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [curStart, curEnd, compStart, compEnd]);
 
   useEffect(() => {
     loadData();
-    const interval = setInterval(loadData, 30000);
-    return () => clearInterval(interval);
   }, [loadData]);
 
-  const userStats = useMemo(() => ({
-    total: users.length,
-    active: users.filter(u => u.status).length,
-    inactive: users.filter(u => !u.status).length,
-  }), [users]);
+  // UI tùy chỉnh cho ô nhập ngày (Gọn gàng ở Header)
+  const CustomDateInput = React.forwardRef(({ value, onClick, label }, ref) => (
+    <div 
+      className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 rounded-xl text-[13px] font-semibold text-gray-700 hover:border-blue-400 transition-all shadow-sm cursor-pointer min-w-[210px]"
+      onClick={onClick}
+      ref={ref}
+    >
+      <CalendarIcon className="h-4 w-4 text-blue-500 shrink-0" />
+      <span className="text-gray-400 font-normal shrink-0">{label}:</span>
+      <span className="truncate">{value || "Chọn khoảng..."}</span>
+    </div>
+  ));
 
-  const teamStats = useMemo(() => ({
-    total: teams.length,
-    available: teams.filter(t => t.status === 'AVAILABLE').length,
-    inMission: teams.filter(t => t.status === 'BUSY').length,
-    totalMembers: teams.reduce((sum, t) => sum + (t.memberCount || t.members?.length || 0), 0),
-  }), [teams]);
+  // --- LOGIC BIỂU ĐỒ ---
+  const vehiclePieData = useMemo(() => {
+    const v = stats?.vehicles;
+    if (!v) return [];
+    return [
+      { name: 'Sẵn sàng', value: Number(v.availableCount) || 0, color: '#10b981' },
+      { name: 'Đang dùng', value: Number(v.inUseCount) || 0, color: '#3b82f6' },
+      { name: 'Bảo trì', value: Number(v.maintenanceCount) || 0, color: '#ef4444' },
+    ].filter(d => d.value > 0);
+  }, [stats]);
 
-  // Role distribution chart data
-  const roleChartData = useMemo(() => {
-    const roleCount = {};
-    users.forEach(u => { roleCount[u.roleName] = (roleCount[u.roleName] || 0) + 1; });
-    return Object.entries(roleCount).map(([name, value]) => ({ name, value }));
-  }, [users]);
-
-  // Team status chart data
-  const teamPieData = useMemo(() => [
-    { name: 'Sẵn sàng', value: teamStats.available, color: '#10b981' },
-    { name: 'Đang nhiệm vụ', value: teamStats.inMission, color: '#3b82f6' },
-  ].filter(d => d.value > 0), [teamStats]);
-
-  const ROLE_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444'];
+  const comparisonData = useMemo(() => {
+    if (!stats) return [];
+    return [
+      { name: 'User', 'Kỳ trước': stats.newUsers?.lastMonthValue || 0, 'Kỳ này': stats.newUsers?.currentMonthValue || 0 },
+      { name: 'Rescue', 'Kỳ trước': stats.rescueRequests?.lastMonthValue || 0, 'Kỳ này': stats.rescueRequests?.currentMonthValue || 0 }
+    ];
+  }, [stats]);
 
   return (
-    <div className="p-6 space-y-6 overflow-y-auto h-full">
-      {/* Header */}
-      <div className="flex items-start justify-between">
+    <div className="p-6 space-y-6 overflow-y-auto h-full bg-gray-50">
+      
+      {/* --- HEADER & BỘ LỌC GỌN GÀNG --- */}
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 border-b border-gray-200 pb-5">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Tổng quan</h1>
-          <p className="text-sm text-gray-500">Thống kê tình hình người dùng và đội cứu hộ trong hệ thống.</p>
+          <h1 className="text-2xl font-bold text-gray-900">Hệ thống Quản trị</h1>
+          <p className="text-[10px] text-gray-400 uppercase tracking-[0.2em] font-black">Phân tích cứu hộ thời gian thực</p>
         </div>
-        <button
-          onClick={loadData}
-          disabled={loading}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-60"
-        >
-          <ArrowPathIcon className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          {loading ? 'Đang tải...' : 'Làm mới'}
-        </button>
-      </div>
 
-      {/* User Stats */}
-      <div>
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-          <UsersIcon className="h-4 w-4" /> Người dùng
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <StatCard icon={<UsersIcon className="h-6 w-6" />} count={userStats.total} label="Tổng người dùng" color="blue" />
-          <StatCard icon={<CheckCircleIcon className="h-6 w-6" />} count={userStats.active} label="Đang hoạt động" color="green" />
-          <StatCard icon={<XCircleIcon className="h-6 w-6" />} count={userStats.inactive} label="Vô hiệu hóa" color="red" />
-        </div>
-      </div>
+        <div className="flex flex-wrap items-center gap-2 bg-gray-100/60 p-2 rounded-2xl border border-gray-200">
+          <DatePicker
+            selectsRange={true}
+            startDate={curStart}
+            endDate={curEnd}
+            onChange={(update) => setCurrentRange(update)}
+            customInput={<CustomDateInput label="Kỳ này" />}
+            dateFormat="dd/MM/yy"
+          />
+          
+          <div className="h-5 w-[1px] bg-gray-300 mx-1 hidden sm:block" />
 
-      {/* Team Stats */}
-      <div>
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-          <UserGroupIcon className="h-4 w-4" /> Đội cứu hộ
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard icon={<UserGroupIcon className="h-6 w-6" />} count={teamStats.total} label="Tổng số đội" color="blue" />
-          <StatCard icon={<CheckCircleIcon className="h-6 w-6" />} count={teamStats.available} label="Sẵn sàng" color="green" />
-          <StatCard icon={<ShieldCheckIcon className="h-6 w-6" />} count={teamStats.inMission} label="Đang nhiệm vụ" color="yellow" />
-          <StatCard icon={<UsersIcon className="h-6 w-6" />} count={teamStats.totalMembers} label="Tổng thành viên" color="rose" />
+          <DatePicker
+            selectsRange={true}
+            startDate={compStart}
+            endDate={compEnd}
+            onChange={(update) => setCompareRange(update)}
+            customInput={<CustomDateInput label="So với" />}
+            dateFormat="dd/MM/yy"
+          />
+
+          <button 
+            onClick={loadData} 
+            disabled={loading}
+            className="ml-1 p-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 active:scale-95 disabled:opacity-50 transition-all shadow-md shadow-blue-100"
+          >
+            <ArrowPathIcon className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
         </div>
       </div>
 
-      {/* Charts */}
+      {/* --- THẺ THỐNG KÊ --- */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <StatItem title="Người dùng" value={stats?.newUsers?.currentMonthValue} growth={stats?.newUsers?.growthRate} icon={<UsersIcon className="h-6 w-6 text-blue-600" />} bgColor="bg-blue-50" />
+        <StatItem title="Yêu cầu cứu hộ" value={stats?.rescueRequests?.currentMonthValue} growth={stats?.rescueRequests?.growthRate} icon={<UserGroupIcon className="h-6 w-6 text-orange-600" />} bgColor="bg-orange-50" />
+        <StatItem title="Xe sẵn sàng" value={stats?.vehicles?.availableCount} total={stats?.vehicles?.totalCount} icon={<TruckIcon className="h-6 w-6 text-teal-600" />} bgColor="bg-teal-50" isVehicle />
+      </div>
+
+      {/* --- BIỂU ĐỒ --- */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Role distribution */}
-        <div className="bg-white border border-gray-200 rounded-lg p-5">
-          <div className="mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Phân bổ vai trò</h2>
-            <p className="text-xs text-gray-500">Số người dùng theo từng vai trò</p>
-          </div>
-          <div className="h-64">
-            {roleChartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={roleChartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
-                  <Tooltip />
-                  <Bar dataKey="value" name="Số người" radius={[4, 4, 0, 0]}>
-                    {roleChartData.map((_, i) => (
-                      <Cell key={i} fill={ROLE_COLORS[i % ROLE_COLORS.length]} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex items-center justify-center h-full text-sm text-gray-400">Chưa có dữ liệu</div>
-            )}
-          </div>
-        </div>
+        <ChartBox title="So sánh hiệu suất" sub="Kỳ hiện tại vs Kỳ so sánh">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={comparisonData}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+              <XAxis dataKey="name" fontSize={11} tickLine={false} axisLine={false} />
+              <YAxis fontSize={11} tickLine={false} axisLine={false} />
+              <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px rgba(0,0,0,0.05)'}} />
+              <Legend iconType="circle" />
+              <Bar name="Kỳ trước" dataKey="Kỳ trước" fill="#cbd5e1" radius={[6, 6, 0, 0]} barSize={35} />
+              <Bar name="Kỳ này" dataKey="Kỳ này" fill="#3b82f6" radius={[6, 6, 0, 0]} barSize={35} />
+            </BarChart>
+          </ResponsiveContainer>
+        </ChartBox>
 
-        {/* Team status pie */}
-        <div className="bg-white border border-gray-200 rounded-lg p-5">
-          <div className="mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Trạng thái đội cứu hộ</h2>
-            <p className="text-xs text-gray-500">Phân bổ theo trạng thái hiện tại</p>
-          </div>
-          <div className="h-64">
-            {teamPieData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={teamPieData} cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={4} dataKey="value"
-                    label={({ name, value }) => `${name}: ${value}`} labelLine={false}>
-                    {teamPieData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-                  </Pie>
-                  <Tooltip />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex items-center justify-center h-full text-sm text-gray-400">Chưa có dữ liệu</div>
-            )}
-          </div>
-        </div>
+        <ChartBox title="Trạng thái xe" sub="Phân bổ phương tiện thực tế">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie data={vehiclePieData} innerRadius={70} outerRadius={95} paddingAngle={8} dataKey="value">
+                {vehiclePieData.map((e, i) => <Cell key={i} fill={e.color} stroke="none" />)}
+              </Pie>
+              <Tooltip />
+              <Legend verticalAlign="bottom" height={36} />
+            </PieChart>
+          </ResponsiveContainer>
+        </ChartBox>
       </div>
 
-      {/* Quick nav */}
-      <div className="bg-white border border-gray-200 rounded-lg p-5">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Lối tắt quản lý</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <ActionCard
-            icon={<UserGroupIcon className="h-6 w-6 text-blue-600" />}
-            title="Quản lý Đội Cứu Hộ"
-            description="Quản lý đội ngũ và thành viên cứu hộ"
-            badge={`${teamStats.total} đội`}
-            onClick={() => navigate('/admin/rescue-teams')}
-          />
-          <ActionCard
-            icon={<UsersIcon className="h-6 w-6 text-indigo-600" />}
-            title="Quản lý Người Dùng"
-            description="Quản lý tài khoản và phân quyền hệ thống"
-            badge={`${userStats.total} người`}
-            onClick={() => navigate('/admin/users')}
-          />
-          <ActionCard
-            icon={<TruckIcon className="h-6 w-6 text-teal-600" />}
-            title="Quản lý Phương tiện"
-            description="Xem và điều phối phương tiện cứu hộ"
-            onClick={() => navigate('/admin/vehicles')}
-          />
+      {/* --- LỐI TẮT --- */}
+      <div className="bg-white border border-gray-200 rounded-[2.5rem] p-8 shadow-sm">
+        <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-6">Quản lý nhanh</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <ActionCard icon={<UsersIcon className="text-indigo-600 h-6 w-6" />} title="Người dùng" to="/admin/users" />
+          <ActionCard icon={<TruckIcon className="text-teal-600 h-6 w-6" />} title="Phương tiện" to="/admin/vehicles" />
+          <ActionCard icon={<UserGroupIcon className="text-orange-600 h-6 w-6" />} title="Đội cứu hộ" to="/admin/rescue-teams" />
         </div>
       </div>
     </div>
   );
 }
 
-function ActionCard({ icon, title, description, badge, onClick }) {
+// --- SUB-COMPONENTS ---
+function StatItem({ title, value, icon, growth, bgColor, total, isVehicle }) {
+  const isPos = growth >= 0;
   return (
-    <div
-      onClick={onClick}
-      className="flex items-start gap-4 p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 hover:border-blue-300 transition-all duration-200 group"
-    >
-      <div className="p-2 bg-gray-100 rounded-lg group-hover:bg-blue-50 transition-colors shrink-0">{icon}</div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-1">
-          <h3 className="font-semibold text-gray-900 text-sm group-hover:text-blue-700 transition-colors">{title}</h3>
-          {badge && (
-            <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-blue-100 text-blue-700">{badge}</span>
-          )}
-        </div>
-        <p className="text-xs text-gray-500">{description}</p>
+    <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm transition-all hover:shadow-xl">
+      <div className="flex justify-between items-start mb-4">
+        <div className={`p-3 ${bgColor} rounded-2xl`}>{icon}</div>
+        {growth !== undefined && (
+          <div className={`flex items-center text-xs font-black ${isPos ? 'text-green-600' : 'text-red-600'}`}>
+            {isPos ? <ArrowTrendingUpIcon className="h-3 w-3 mr-1" /> : <ArrowTrendingDownIcon className="h-3 w-3 mr-1" />}
+            {Math.abs(growth).toFixed(1)}%
+          </div>
+        )}
       </div>
-      <ArrowRightIcon className="h-4 w-4 text-gray-400 group-hover:text-blue-500 shrink-0 mt-1 transition-colors" />
+      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{title}</p>
+      <div className="flex items-baseline gap-2">
+        <h3 className="text-3xl font-black text-gray-900">{value ?? 0}</h3>
+        {isVehicle && <span className="text-xs font-bold text-gray-400">/ {total ?? 0} tổng</span>}
+      </div>
+    </div>
+  );
+}
+
+function ChartBox({ title, sub, children }) {
+  return (
+    <div className="bg-white border border-gray-100 rounded-[2.5rem] p-8 shadow-sm flex flex-col min-h-[420px]">
+      <div className="mb-8">
+        <h2 className="text-lg font-bold text-gray-900">{title}</h2>
+        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{sub}</p>
+      </div>
+      <div className="flex-1 w-full">{children}</div>
+    </div>
+  );
+}
+
+function ActionCard({ icon, title, to }) {
+  const navigate = useNavigate();
+  return (
+    <div onClick={() => navigate(to)} className="flex items-center gap-4 p-5 border border-gray-50 rounded-2xl cursor-pointer bg-gray-50/50 hover:bg-white hover:shadow-2xl hover:border-blue-200 transition-all group">
+      <div className="p-3 bg-white rounded-xl shadow-sm group-hover:scale-110 transition-transform">{icon}</div>
+      <div className="flex-1">
+        <h4 className="font-bold text-gray-900 text-sm">{title}</h4>
+        <p className="text-[10px] text-gray-500 font-bold uppercase tracking-tight">Quản lý hệ thống</p>
+      </div>
+      <ArrowRightIcon className="h-4 w-4 text-gray-300 group-hover:text-blue-500 group-hover:translate-x-1 transition-all" />
     </div>
   );
 }

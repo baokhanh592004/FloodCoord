@@ -130,9 +130,16 @@ public class AlertService {
                                      FloodDischargeDTO flood,
                                      RiskLevel level) {
         try {
+//            WeatherSnapshot snap = snapshotRepository
+//                    .findTop24ByLatitudeAndLongitudeOrderByRecordedAtDesc(lat, lon)
+//                    .stream().findFirst().orElse(new WeatherSnapshot());
             WeatherSnapshot snap = snapshotRepository
-                    .findTop24ByLatitudeAndLongitudeOrderByRecordedAtDesc(lat, lon)
-                    .stream().findFirst().orElse(new WeatherSnapshot());
+                    .findTopByLatitudeAndLongitudeOrderByRecordedAtDesc(lat, lon);
+
+            if (snap == null) {
+                snap = new WeatherSnapshot();
+            }
+
 
             snap.setLatitude(lat);
             snap.setLongitude(lon);

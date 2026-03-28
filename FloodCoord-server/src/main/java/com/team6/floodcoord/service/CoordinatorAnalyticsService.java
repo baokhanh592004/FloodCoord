@@ -9,6 +9,7 @@ import com.team6.floodcoord.repository.jpa.RescueRequestRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 
@@ -19,26 +20,27 @@ public class CoordinatorAnalyticsService {
     private final IncidentReportRepository incidentReportRepository;
     private final RequestSupplyRepository requestSupplyRepository;
 
-    public CoordinatorDashboardResponse getDashboardStats() {
-        YearMonth currentMonth = YearMonth.now();
-        YearMonth lastMonth = currentMonth.minusMonths(1);
+    public CoordinatorDashboardResponse getDashboardStats(LocalDate startDate, LocalDate endDate, LocalDate compareStartDate, LocalDate compareEndDate) {
 
-        LocalDateTime startOfCurrentMonth = currentMonth.atDay(1).atStartOfDay();
-        LocalDateTime endOfCurrentMonth = currentMonth.atEndOfMonth().atTime(23, 59, 59);
+        // Convert sang LocalDateTime
+        LocalDateTime startTarget = startDate.atStartOfDay();
+        LocalDateTime endTarget = endDate.atTime(23, 59, 59);
+        LocalDateTime startCompare = compareStartDate.atStartOfDay();
+        LocalDateTime endCompare = compareEndDate.atTime(23, 59, 59);
 
-        LocalDateTime startOfLastMonth = lastMonth.atDay(1).atStartOfDay();
-        LocalDateTime endOfLastMonth = lastMonth.atEndOfMonth().atTime(23, 59, 59);
-
+        // 1. Số ca giải quyết xong (COMPLETED)
         long currentResolved = rescueRequestRepository.countByStatusAndCompletedAtBetween(
-                RequestStatus.COMPLETED, startOfCurrentMonth, endOfCurrentMonth);
+                RequestStatus.COMPLETED, startTarget, endTarget);
         long lastResolved = rescueRequestRepository.countByStatusAndCompletedAtBetween(
-                RequestStatus.COMPLETED, startOfLastMonth, endOfLastMonth);
+                RequestStatus.COMPLETED, startCompare, endCompare);
 
-        long currentIncidents = incidentReportRepository.countByCreatedAtBetween(startOfCurrentMonth, endOfCurrentMonth);
-        long lastIncidents = incidentReportRepository.countByCreatedAtBetween(startOfLastMonth, endOfLastMonth);
+        // 2. Số lượng báo cáo sự cố
+        long currentIncidents = incidentReportRepository.countByCreatedAtBetween(startTarget, endTarget);
+        long lastIncidents = incidentReportRepository.countByCreatedAtBetween(startCompare, endCompare);
 
-        long currentSupplies = requestSupplyRepository.sumSupplyQuantityByDateRange(startOfCurrentMonth, endOfCurrentMonth);
-        long lastSupplies = requestSupplyRepository.sumSupplyQuantityByDateRange(startOfLastMonth, endOfLastMonth);
+        // 3. Tổng vật tư xuất kho
+        long currentSupplies = requestSupplyRepository.sumSupplyQuantityByDateRange(startTarget, endTarget);
+        long lastSupplies = requestSupplyRepository.sumSupplyQuantityByDateRange(startCompare, endCompare);
 
         return CoordinatorDashboardResponse.builder()
                 .resolvedRequests(buildMonthlyStat(currentResolved, lastResolved))

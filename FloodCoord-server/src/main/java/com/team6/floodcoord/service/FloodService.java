@@ -62,6 +62,8 @@ public class FloodService {
                 {lat - 0.05, lon},
                 {lat, lon + 0.05},
                 {lat, lon - 0.05}
+//                {lat + 0.05, lon},
+//                {lat, lon + 0.05}
         };
 
         for (double[] nudge : nudges) {

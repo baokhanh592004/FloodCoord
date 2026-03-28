@@ -34,4 +34,7 @@ public interface WeatherSnapshotRepository extends JpaRepository<WeatherSnapshot
             "AND w.recordedAt >= :since " +
     "ORDER BY w.recordedAt DESC")
     List<WeatherSnapshot> findHighRiskSince(@Param("since") LocalDateTime since);
+
+    WeatherSnapshot findTopByLatitudeAndLongitudeOrderByRecordedAtDesc(
+            Double latitude, Double longitude);
 }
