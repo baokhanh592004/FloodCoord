@@ -204,7 +204,7 @@ export default function CompletedMissions() {
   return (
     <div className="h-full flex flex-col p-4 gap-3">
       {/* Header */}
-      <div className="flex-shrink-0 flex items-center justify-between">
+      <div className="shrink-0 flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Lịch sử cứu hộ</h1>
           <p className="text-xs text-gray-500">Danh sách các nhiệm vụ đã hoàn thành và đánh giá từ người dân.</p>
@@ -227,7 +227,7 @@ export default function CompletedMissions() {
       </div>
 
       {/* Stat badges */}
-      <div className="flex-shrink-0 flex items-center gap-3 flex-wrap">
+      <div className="shrink-0 flex items-center gap-3 flex-wrap">
         <div className="inline-flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs">
           <CheckCircleIcon className="h-4 w-4 text-emerald-500" />
           <span className="font-semibold text-gray-800">{missions.length}</span>
@@ -241,7 +241,7 @@ export default function CompletedMissions() {
       </div>
 
       {/* Search + filter */}
-      <div className="flex-shrink-0 flex flex-col sm:flex-row gap-2 items-start sm:items-center">
+      <div className="shrink-0 flex flex-col sm:flex-row gap-2 items-start sm:items-center">
         <div className="relative flex-1 max-w-sm">
           <MagnifyingGlassIcon className="absolute left-2.5 top-2 h-3.5 w-3.5 text-gray-400" />
           <input
@@ -280,14 +280,14 @@ export default function CompletedMissions() {
             <thead className="sticky top-0 z-10">
               <tr className="bg-gray-50 border-b border-gray-200">
                 <th className="text-left px-3 py-2 font-semibold text-gray-600 w-10">#</th>
-                <th className="text-left px-3 py-2 font-semibold text-gray-600">Mã yêu cầu</th>
-                <th className="text-left px-3 py-2 font-semibold text-gray-600">Tiêu đề</th>
-                <th className="text-left px-3 py-2 font-semibold text-gray-600">Địa chỉ</th>
+                <th className="text-left px-3 py-2 font-semibold text-gray-600 w-32">Mã yêu cầu</th>
+                <th className="text-left px-3 py-2 font-semibold text-gray-600 w-56">Tiêu đề</th>
+                <th className="text-left px-3 py-2 font-semibold text-gray-600 w-72">Địa chỉ</th>
                 <th className="text-center px-3 py-2 font-semibold text-gray-600 w-20">Số người</th>
                 <th className="text-center px-3 py-2 font-semibold text-gray-600 w-20">Độ sâu</th>
                 <th className="text-left px-3 py-2 font-semibold text-gray-600 w-36">Ngày hoàn thành</th>
                 <th className="text-left px-3 py-2 font-semibold text-gray-600 w-36">Đánh giá</th>
-                <th className="text-left px-3 py-2 font-semibold text-gray-600">Nhận xét</th>
+                <th className="text-left px-3 py-2 font-semibold text-gray-600 w-72">Nhận xét</th>
                 <th className="text-center px-3 py-2 font-semibold text-gray-600 w-16">Chi tiết</th>
               </tr>
             </thead>
@@ -318,16 +318,16 @@ export default function CompletedMissions() {
                     <td className="px-3 py-2.5 text-gray-400 font-mono">
                       {(currentPage - 1) * ITEMS_PER_PAGE + index + 1}
                     </td>
-                    <td className="px-3 py-2.5">
+                    <td className="px-3 py-2.5 min-w-32">
                       <span className="font-mono text-blue-600 font-medium">{m.trackingCode}</span>
                     </td>
-                    <td className="px-3 py-2.5">
-                      <p className="font-medium text-gray-900 max-w-[160px] truncate" title={m.title}>
+                    <td className="px-3 py-2.5 min-w-56">
+                      <p className="font-medium text-gray-900 max-w-40 truncate" title={m.title}>
                         {m.title || "Yêu cầu cứu hộ"}
                       </p>
                     </td>
-                    <td className="px-3 py-2.5">
-                      <p className="text-gray-600 max-w-[200px] truncate" title={m.address}>
+                    <td className="px-3 py-2.5 min-w-72">
+                      <p className="text-gray-600 max-w-50 truncate" title={m.address}>
                         {m.address || "—"}
                       </p>
                     </td>
@@ -349,9 +349,9 @@ export default function CompletedMissions() {
                     <td className="px-3 py-2.5">
                       <StarRating rating={m.citizenRating} />
                     </td>
-                    <td className="px-3 py-2.5">
+                    <td className="px-3 py-2.5 min-w-72">
                       {m.citizenFeedback ? (
-                        <p className="text-gray-600 italic max-w-[200px] truncate" title={m.citizenFeedback}>
+                        <p className="text-gray-600 italic max-w-50 truncate" title={m.citizenFeedback}>
                           "{m.citizenFeedback}"
                         </p>
                       ) : (
@@ -376,7 +376,7 @@ export default function CompletedMissions() {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex-shrink-0 flex items-center justify-between px-4 py-2.5 border-t border-gray-100 bg-gray-50 text-xs text-gray-500">
+          <div className="shrink-0 flex items-center justify-between px-4 py-2.5 border-t border-gray-100 bg-gray-50 text-xs text-gray-500">
             <span>
               Hiển thị {(currentPage - 1) * ITEMS_PER_PAGE + 1}–
               {Math.min(currentPage * ITEMS_PER_PAGE, filtered.length)} / {filtered.length} kết quả

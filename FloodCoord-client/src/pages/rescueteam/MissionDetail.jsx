@@ -16,7 +16,6 @@ export default function MissionDetail() {
 
   // --- PHẦN THÊM MỚI: State cho điểm danh ---
   const [showAttendanceModal, setShowAttendanceModal] = useState(false);
-  const [teamMembers, setTeamMembers] = useState([]);
   const [attendanceList, setAttendanceList] = useState([]);
 
   useEffect(() => {
@@ -64,10 +63,9 @@ export default function MissionDetail() {
   const openAttendance = async () => {
     try {
       const members = await rescueTeamApi.getTeamMembers(); // Bạn cần thêm hàm này vào rescueTeamApi.js
-      setTeamMembers(members);
       setAttendanceList(members.map(m => ({ memberId: m.id, status: "PRESENT", fullName: m.fullName })));
       setShowAttendanceModal(true);
-    } catch (err) {
+    } catch {
       toast.error("Không lấy được danh sách đội!");
     }
   };
@@ -82,7 +80,7 @@ export default function MissionDetail() {
       setAttendanceDone(true);
       setShowAttendanceModal(false);
       toast.success("Điểm danh thành công!");
-    } catch (err) {
+    } catch {
       toast.error("Điểm danh thất bại!");
     }
   };
@@ -153,7 +151,7 @@ export default function MissionDetail() {
   return (
     <div className="p-6 h-[calc(100vh-80px)]">
 {showAttendanceModal && (
-  <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] z-[60] flex items-center justify-center p-4 animate-in fade-in duration-200">
+  <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] z-60 flex items-center justify-center p-4 animate-in fade-in duration-200">
     <div className="bg-white rounded-3xl w-full max-w-4xl overflow-hidden shadow-2xl border border-slate-200 flex flex-col max-h-[90vh]">
       
       {/* Header: Thiết kế dàn hàng ngang rộng */}
@@ -393,7 +391,7 @@ export default function MissionDetail() {
                         <button onClick={() => updateStatus("MOVING")} className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg font-semibold shadow-sm">Đang di chuyển</button>
                       )}
                       {mission.status === "MOVING" && (
-                        <button onClick={() => updateStatus("ARRIVED")} className="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold shadow-sm">Đã đến nơi</button>
+                        <button onClick={() => updateStatus("ARRIVED")} className="bg-accent hover:bg-accent-hover text-white px-4 py-2 rounded-lg font-semibold shadow-sm">Đã đến nơi</button>
                       )}
                       {mission.status === "ARRIVED" && (
                         <button onClick={() => updateStatus("RESCUING")} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold shadow-sm">Đang cứu hộ</button>
