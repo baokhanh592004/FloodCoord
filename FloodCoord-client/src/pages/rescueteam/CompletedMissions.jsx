@@ -225,7 +225,7 @@ export default function CompletedMissions() {
       const q = search.toLowerCase();
       const matchSearch =
         m.trackingCode?.toLowerCase().includes(q) ||
-        m.address?.toLowerCase().includes(q) ||
+        m.location?.addressText?.toLowerCase().includes(q) ||
         m.title?.toLowerCase().includes(q);
       const matchRating =
         ratingFilter === "ALL" ||
@@ -375,18 +375,18 @@ export default function CompletedMissions() {
                       </p>
                     </td>
                     <td className="px-3 py-2.5">
-                      <p className="text-gray-600 max-w-[200px] truncate" title={m.address}>
-                        {m.address || "—"}
+                      <p className="text-gray-600 max-w-[200px] truncate" title={m.location?.addressText}>
+                        {m.location?.addressText || "—"}
                       </p>
                     </td>
                     <td className="px-3 py-2.5 text-center">
                       <span className="inline-flex items-center gap-1 text-gray-700">
                         <UserGroupIcon className="h-3.5 w-3.5 text-gray-400" />
-                        {m.peopleCount ?? "—"}
+                        {m.report?.rescuedPeople ?? m.peopleCount ?? "—"}
                       </span>
                     </td>
                     <td className="px-3 py-2.5 text-center text-gray-600">
-                      {m.floodDepth != null ? `${m.floodDepth} m` : "—"}
+                      {m.location?.floodDepth != null ? `${m.location.floodDepth} m` : "—"}
                     </td>
                     <td className="px-3 py-2.5 text-gray-600">
                       <div className="flex items-center gap-1">

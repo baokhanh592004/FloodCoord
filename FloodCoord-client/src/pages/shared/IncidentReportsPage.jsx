@@ -19,6 +19,8 @@ const STATUS_META = {
     RESOLVED: 'bg-green-100 text-green-800 border-green-200',
 };
 
+const ITEMS_PER_PAGE = 7;
+
 const ACTION_META = {
     CONTINUE: 'Yêu cầu đội tiếp tục',
     ABORT: 'Hủy nhiệm vụ & Giao đội mới',
@@ -31,6 +33,7 @@ export default function IncidentReportsPage() {
     const [selectedItem, setSelectedItem] = useState(null);
     const [loading, setLoading] = useState(true);
     const [errorMessage, setErrorMessage] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
 
     // --- Resolution state ---
     const [resolveNote, setResolveNote] = useState('');
@@ -218,6 +221,16 @@ export default function IncidentReportsPage() {
             .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
     }, [incidents, keyword, statusFilter]);
 
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [keyword, statusFilter]);
+
+    const totalPages = Math.ceil(filteredIncidents.length / ITEMS_PER_PAGE);
+    const paginatedIncidents = filteredIncidents.slice(
+        (currentPage - 1) * ITEMS_PER_PAGE,
+        currentPage * ITEMS_PER_PAGE
+    );
+
     const stats = useMemo(() => ({
         total: incidents.length,
         pending: incidents.filter((i) => i.status === 'PENDING').length,
@@ -326,10 +339,10 @@ export default function IncidentReportsPage() {
                         <tbody>
                             {loading ? (
                                 <tr><td colSpan={6} className="px-3 py-6 text-center text-gray-500">Đang tải dữ liệu...</td></tr>
-                            ) : filteredIncidents.length === 0 ? (
+                            ) : paginatedIncidents.length === 0 ? (
                                 <tr><td colSpan={6} className="px-3 py-8 text-center text-gray-500">Không có sự cố nào phù hợp.</td></tr>
                             ) : (
-                                filteredIncidents.map((item) => (
+                                paginatedIncidents.map((item) => (
                                     <tr key={item.id} className="border-t border-gray-100 align-top hover:bg-gray-50">
                                         <td className="px-3 py-3 w-1/4">
                                             <p className="font-semibold text-gray-900">{item.title}</p>
@@ -367,6 +380,47 @@ export default function IncidentReportsPage() {
                         </tbody>
                     </table>
                 </div>
+
+                {/* Footer phân trang */}
+                {filteredIncidents.length > 0 && (
+                    <div className="shrink-0 px-3 py-2 bg-gray-50 border-t border-gray-200 text-xs text-gray-500 flex items-center justify-between rounded-b-lg">
+                        <span>
+                            Hiển thị {(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, filteredIncidents.length)} / {filteredIncidents.length} sự cố
+                        </span>
+                        {totalPages > 1 && (
+                            <div className="flex items-center gap-1">
+                                <button
+                                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                    disabled={currentPage === 1}
+                                    className="px-2 py-1 rounded border border-gray-300 bg-white hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                                >
+                                    ‹
+                                </button>
+                                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                                    <button
+                                        key={page}
+                                        onClick={() => setCurrentPage(page)}
+                                        className={`px-2 py-1 rounded border ${
+                                            currentPage === page
+                                                ? 'bg-blue-600 text-white border-blue-600'
+                                                : 'border-gray-300 bg-white hover:bg-gray-100'
+                                        }`}
+                                    >
+                                        {page}
+                                    </button>
+                                ))}
+                                <button
+                                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                    disabled={currentPage === totalPages}
+                                    className="px-2 py-1 rounded border border-gray-300 bg-white hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                                >
+                                    ›
+                                </button>
+                            </div>
+                        )}
+                        <span>{filteredIncidents.length} kết quả</span>
+                    </div>
+                )}
             </div>
 
             {/* ===== MODAL ===== */}
