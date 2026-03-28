@@ -73,22 +73,15 @@ export default function MissionDetail() {
         const hasAttendanceRecord = Array.isArray(attStatus) && attStatus.length > 0;
         const totalMembers = (members || []).length;
 
-        if (totalMembers > 0 && presentCount >= totalMembers) {
+        if (missionData.status === "COMPLETED") {
           setAttendanceDone(true);
           setWaitingCoordinatorDecision(false);
           setLatestIncident(null);
           localStorage.removeItem(waitingStateKey);
-        } else if (hasAttendanceRecord) {
-          setAttendanceDone(false);
-          await checkCoordinatorDecision();
-        } else if (persistedWaitingState) {
-          setAttendanceDone(false);
-          await checkCoordinatorDecision();
         } else {
-          setAttendanceDone(false);
-          setWaitingCoordinatorDecision(false);
-          setLatestIncident(null);
-          localStorage.removeItem(waitingStateKey);
+          const isAttendanceFull = totalMembers > 0 && presentCount >= totalMembers;
+          setAttendanceDone(isAttendanceFull);
+          await checkCoordinatorDecision();
         }
       } else {
         // Nhiệm vụ không thuộc đội này nữa (có thể đã bị ABORT + reassign)
