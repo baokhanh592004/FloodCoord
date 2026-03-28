@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, User, Mail, Phone, Lock, Shield, AlertCircle } from 'lucide-react';
 import { adminUserApi } from '../../services/adminUserApi';
+import { MODAL_STYLE_MAP } from '../shared/styleMaps';
 
 export default function UserFormModal({ editingUser, onClose, onSuccess }) {
     const [formData, setFormData] = useState({
@@ -123,10 +124,10 @@ export default function UserFormModal({ editingUser, onClose, onSuccess }) {
     };
 
     return (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className={MODAL_STYLE_MAP.overlayDefault}>
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden transform transition-all max-h-[90vh] overflow-y-auto">
                 {/* Header */}
-                <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-6 text-white flex justify-between items-center sticky top-0 z-10">
+                <div className="bg-linear-to-r from-purple-600 to-blue-600 p-6 text-white flex justify-between items-center sticky top-0 z-10">
                     <div>
                         <h2 className="text-xl font-bold">
                             {editingUser ? 'Cập nhật tài khoản' : 'Tạo tài khoản mới'}
@@ -144,18 +145,18 @@ export default function UserFormModal({ editingUser, onClose, onSuccess }) {
                     {/* Error Message */}
                     {error && (
                         <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
-                            <AlertCircle size={20} className="text-red-600 mt-0.5 flex-shrink-0" />
+                            <AlertCircle size={20} className="text-red-600 mt-0.5 shrink-0" />
                             <p className="text-sm text-red-700">{error}</p>
                         </div>
                     )}
 
                     {/* Warning for editing */}
                     {editingUser && (
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
-                            <AlertCircle size={20} className="text-blue-600 mt-0.5 flex-shrink-0" />
+                        <div className="bg-coordinator-50 border border-coordinator-100 rounded-lg p-4 flex items-start gap-3">
+                            <AlertCircle size={20} className="text-coordinator mt-0.5 shrink-0" />
                             <div>
-                                <p className="text-sm font-semibold text-blue-800">Lưu ý khi cập nhật</p>
-                                <p className="text-xs text-blue-700 mt-1">
+                                <p className="text-sm font-semibold text-coordinator-dark">Lưu ý khi cập nhật</p>
+                                <p className="text-xs text-coordinator-900 mt-1">
                                     Email không thể thay đổi. Để đổi mật khẩu, vui lòng sử dụng chức năng "Quên mật khẩu".
                                 </p>
                             </div>
@@ -364,14 +365,14 @@ export default function UserFormModal({ editingUser, onClose, onSuccess }) {
                         <button
                             type="button"
                             onClick={onClose}
-                            className="flex-1 px-4 py-3 bg-slate-100 text-slate-700 font-semibold rounded-xl hover:bg-slate-200 transition"
+                            className={MODAL_STYLE_MAP.secondarySolidFlex}
                             disabled={loading}
                         >
                             Hủy bỏ
                         </button>
                         <button
                             type="submit"
-                            className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="flex-1 px-4 py-3 bg-linear-to-r from-purple-600 to-blue-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
                             disabled={loading}
                         >
                             {loading ? 'Đang xử lý...' : (editingUser ? 'Cập nhật' : 'Tạo tài khoản')}

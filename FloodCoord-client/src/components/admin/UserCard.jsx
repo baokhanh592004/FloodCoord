@@ -1,28 +1,18 @@
 import React from 'react';
 import { User, Mail, Phone, Shield, Edit, Trash2, Eye, CheckCircle, XCircle } from 'lucide-react';
+import { ROLE_BADGE_BY_NAME, ROLE_BADGE_DEFAULT } from '../shared/styleMaps';
 
 export default function UserCard({ user, onEdit, onDelete, onView }) {
-    const getRoleBadge = (roleName) => {
-        const roleConfig = {
-            'Quản Trị Viên': { color: 'bg-purple-100 text-purple-700', gradient: 'from-purple-500 to-purple-600' },
-            'Quản Lý': { color: 'bg-blue-100 text-blue-700', gradient: 'from-blue-500 to-blue-600' },
-            'Điều Phối Viên': { color: 'bg-orange-100 text-orange-700', gradient: 'from-orange-500 to-orange-600' },
-            'Đội Cứu Hộ': { color: 'bg-green-100 text-green-700', gradient: 'from-green-500 to-green-600' },
-            'Thành Viên': { color: 'bg-slate-100 text-slate-700', gradient: 'from-slate-500 to-slate-600' }
-        };
-        return roleConfig[roleName] || { color: 'bg-gray-100 text-gray-700', gradient: 'from-gray-500 to-gray-600' };
-    };
-
-    const roleStyle = getRoleBadge(user.roleName);
+    const roleStyle = ROLE_BADGE_BY_NAME[user.roleName] || ROLE_BADGE_DEFAULT;
 
     return (
         <div className="group bg-white/70 backdrop-blur-xl border border-white/50 rounded-2xl p-6 shadow-sm hover:shadow-xl hover:scale-[1.02] transition-all duration-300 relative overflow-hidden">
             {/* Decorative gradient blob */}
-            <div className={`absolute -right-6 -top-6 w-24 h-24 bg-gradient-to-br ${roleStyle.gradient} rounded-full opacity-10 group-hover:scale-150 transition-transform duration-500`} />
+            <div className={`absolute -right-6 -top-6 w-24 h-24 bg-linear-to-br ${roleStyle.gradient} rounded-full opacity-10 group-hover:scale-150 transition-transform duration-500`} />
 
             {/* Avatar & Actions */}
             <div className="flex justify-between items-start mb-4 relative z-10">
-                <div className={`w-14 h-14 bg-gradient-to-br ${roleStyle.gradient} rounded-full flex items-center justify-center text-white text-xl font-bold shadow-lg`}>
+                <div className={`w-14 h-14 bg-linear-to-br ${roleStyle.gradient} rounded-full flex items-center justify-center text-white text-xl font-bold shadow-lg`}>
                     {user.fullName?.charAt(0).toUpperCase()}
                 </div>
                 <div className="flex gap-2">
@@ -82,7 +72,7 @@ export default function UserCard({ user, onEdit, onDelete, onView }) {
                         <p className="text-xs text-blue-600 font-medium truncate">{user.teamName}</p>
                         {user.isTeamLeader && (
                             <span className="px-2 py-0.5 bg-orange-500 text-white text-[10px] font-bold rounded">
-                                LEADER
+                                Đội trưởng
                             </span>
                         )}
                     </div>
@@ -97,7 +87,7 @@ export default function UserCard({ user, onEdit, onDelete, onView }) {
                         : 'bg-red-100 text-red-700'
                 }`}>
                     {user.status ? <CheckCircle size={12} /> : <XCircle size={12} />}
-                    {user.status ? 'Active' : 'Inactive'}
+                    {user.status ? 'Hoạt động' : 'Không hoạt động'}
                 </span>
                 
             </div>

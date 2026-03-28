@@ -1,5 +1,6 @@
 import React from 'react';
 import { X, Shield, Users, UserMinus, Mail, Phone } from 'lucide-react';
+import { MODAL_STYLE_MAP } from '../shared/styleMaps';
 
 export default function TeamDetailModal({ team, onClose, onRemoveMember, readonly = false }) {
     if (!team) return null;
@@ -11,10 +12,10 @@ export default function TeamDetailModal({ team, onClose, onRemoveMember, readonl
     };
 
     return (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className={MODAL_STYLE_MAP.overlayDefault}>
             <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden transform transition-all scale-100 max-h-[90vh] overflow-y-auto">
                 {/* Header */}
-                <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-6 text-white flex justify-between items-center sticky top-0 z-10">
+                <div className="bg-linear-to-r from-blue-600 to-blue-700 p-6 text-white flex justify-between items-center sticky top-0 z-10">
                     <div>
                         <h2 className="text-2xl font-bold">{team.name}</h2>
                         <p className="text-blue-100 text-sm mt-1">Chi tiết đội cứu hộ</p>
@@ -56,13 +57,13 @@ export default function TeamDetailModal({ team, onClose, onRemoveMember, readonl
 
                     {/* Team Leader */}
                     {team.leader && (
-                        <div className="bg-gradient-to-br from-orange-50 to-yellow-50 rounded-2xl p-6 border border-orange-200">
+                        <div className="bg-linear-to-br from-orange-50 to-yellow-50 rounded-2xl p-6 border border-orange-200">
                             <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
                                 <Shield size={20} className="text-orange-600" />
                                 Đội trưởng
                             </h3>
                             <div className="flex items-center gap-4 bg-white rounded-xl p-4">
-                                <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                                <div className="w-12 h-12 bg-linear-to-br from-orange-500 to-orange-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
                                     {team.leader.fullName?.charAt(0) || team.leader.email?.charAt(0) || 'L'}
                                 </div>
                                 <div className="flex-1">
@@ -106,7 +107,7 @@ export default function TeamDetailModal({ team, onClose, onRemoveMember, readonl
                                         key={member.id}
                                         className="flex items-center gap-4 bg-slate-50 hover:bg-slate-100 rounded-xl p-4 transition border border-slate-200"
                                     >
-                                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold">
+                                        <div className="w-10 h-10 bg-linear-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold">
                                             {member.fullName?.charAt(0) || member.email?.charAt(0) || 'M'}
                                         </div>
                                         <div className="flex-1">
@@ -150,7 +151,7 @@ export default function TeamDetailModal({ team, onClose, onRemoveMember, readonl
                     <div className="pt-4">
                         <button
                             onClick={onClose}
-                            className="w-full px-4 py-3 bg-slate-100 text-slate-700 font-semibold rounded-xl hover:bg-slate-200 transition"
+                            className={MODAL_STYLE_MAP.secondarySolidWide}
                         >
                             Đóng
                         </button>

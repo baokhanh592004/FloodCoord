@@ -14,13 +14,17 @@ export default function TeamFormModal({
     const [selectedMemberIds, setSelectedMemberIds] = useState([]);
 
     useEffect(() => {
-        if (editingTeam) {
-            setSelectedLeaderId(editingTeam.leader?.id || '');
-            setSelectedMemberIds(editingTeam.members?.map(m => m.id) || []);
-        } else {
-            setSelectedLeaderId('');
-            setSelectedMemberIds([]);
-        }
+        const timer = setTimeout(() => {
+            if (editingTeam) {
+                setSelectedLeaderId(editingTeam.leader?.id || '');
+                setSelectedMemberIds(editingTeam.members?.map(m => m.id) || []);
+            } else {
+                setSelectedLeaderId('');
+                setSelectedMemberIds([]);
+            }
+        }, 0);
+
+        return () => clearTimeout(timer);
     }, [editingTeam]);
 
     const handleMemberToggle = (userId) => {
@@ -44,9 +48,9 @@ export default function TeamFormModal({
     if (!showModal) return null;
 
     return (
-        <div className="fixed inset-0 bg-[#1e40af]/20 backdrop-blur-sm flex items-center justify-center z-50 transition-opacity p-4">
+        <div className="fixed inset-0 bg-coordinator-dark/20 backdrop-blur-sm flex items-center justify-center z-50 transition-opacity p-4">
             <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden transform transition-all scale-100 max-h-[90vh] overflow-y-auto">
-                <div className="bg-[#1e40af] p-6 text-white flex justify-between items-center sticky top-0 z-10">
+                <div className="bg-coordinator-dark p-6 text-white flex justify-between items-center sticky top-0 z-10">
                     <h2 className="text-xl font-bold">
                         {editingTeam ? 'Cập nhật đội cứu hộ' : 'Tạo đội cứu hộ mới'}
                     </h2>
@@ -93,7 +97,7 @@ export default function TeamFormModal({
 
                     {/* Team Leader Selection */}
                     <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+                        <label className=" text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
                             <Shield size={16} className="text-orange-500" />
                             Đội trưởng
                         </label>
@@ -113,7 +117,7 @@ export default function TeamFormModal({
 
                     {/* Team Members Selection */}
                     <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
+                        <label className=" text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
                             <UserPlus size={16} className="text-blue-500" />
                             Thành viên đội ({selectedMemberIds.length} người)
                         </label>
@@ -187,7 +191,7 @@ export default function TeamFormModal({
                         </button>
                         <button
                             type="submit"
-                            className="flex-1 px-4 py-3 bg-[#1e40af] text-white font-semibold rounded-xl shadow-lg shadow-blue-900/30 hover:bg-blue-800 transition transform hover:-translate-y-0.5"
+                            className="flex-1 px-4 py-3 bg-coordinator-dark text-white font-semibold rounded-xl shadow-lg shadow-blue-900/30 hover:bg-blue-800 transition transform hover:-translate-y-0.5"
                         >
                             {editingTeam ? 'Lưu thay đổi' : 'Tạo đội mới'}
                         </button>
