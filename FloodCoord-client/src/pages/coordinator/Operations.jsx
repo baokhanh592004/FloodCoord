@@ -110,11 +110,6 @@ export default function Operations() {
             .slice(0, 10);
     }, [requests]);
 
-    const formatTime = (dateString) => {
-        if (!dateString) return '—';
-        return new Date(dateString).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-    };
-
     const formatTimeAgo = (dateString) => {
         if (!dateString) return '—';
         const diffMin = Math.floor((new Date() - new Date(dateString)) / 60000);
@@ -144,7 +139,7 @@ export default function Operations() {
     return (
         <div className="h-full flex flex-col p-4 gap-3 overflow-auto">
             {/* Header — compact */}
-            <div className="flex-shrink-0 flex items-center justify-between">
+            <div className="shrink-0 flex items-center justify-between">
                 <div>
                     <h1 className="text-xl font-bold text-gray-900">Giám sát hoạt động</h1>
                     <p className="text-xs text-gray-500">
@@ -175,7 +170,7 @@ export default function Operations() {
             </div>
             
             {/* Summary cards */}
-            <div className="flex-shrink-0 grid grid-cols-4 gap-3">
+            <div className="shrink-0 grid grid-cols-4 gap-3">
                 {[
                     { label: 'Đang hoạt động', value: activeRequests.length, color: 'text-yellow-700 bg-yellow-50 border-yellow-200' },
                     { label: 'Chờ duyệt', value: requests.filter(r => r.status === 'PENDING').length, color: 'text-blue-700 bg-blue-50 border-blue-200' },
@@ -193,7 +188,7 @@ export default function Operations() {
             <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-3">
                 {/* ===== BẢN ĐỒ ===== */}
                 <div className="lg:col-span-2 bg-white border border-gray-200 rounded-lg flex flex-col overflow-hidden relative z-0">
-                    <div className="flex-shrink-0 flex items-center gap-2 text-gray-700 px-4 py-2.5 border-b border-gray-100">
+                    <div className="shrink-0 flex items-center gap-2 text-gray-700 px-4 py-2.5 border-b border-gray-100">
                         <MapIcon className="h-4 w-4" />
                         <span className="text-xs font-semibold">Bản đồ hoạt động</span>
                     </div>
@@ -244,7 +239,7 @@ export default function Operations() {
                 <div className="flex flex-col gap-3 min-h-0">
                     {/* Timeline */}
                     <div className="flex-1 min-h-0 bg-white border border-gray-200 rounded-lg flex flex-col overflow-hidden">
-                        <div className="flex-shrink-0 flex items-center gap-2 text-gray-700 px-4 py-2.5 border-b border-gray-100">
+                        <div className="shrink-0 flex items-center gap-2 text-gray-700 px-4 py-2.5 border-b border-gray-100">
                             <ClockIcon className="h-4 w-4" />
                             <span className="text-xs font-semibold">Hoạt động gần đây</span>
                         </div>
@@ -258,7 +253,7 @@ export default function Operations() {
                                     setShowDetailModal(true);
                                 }}
                             >
-                                <div className="flex-shrink-0 mt-1">
+                                <div className="shrink-0 mt-1">
                                     <div className={`w-2 h-2 rounded-full ${
                                         req.status === 'COMPLETED' ? 'bg-green-500' :
                                         ['IN_PROGRESS', 'MOVING', 'ARRIVED', 'RESCUING'].includes(req.status) ? 'bg-yellow-500' :
@@ -271,7 +266,7 @@ export default function Operations() {
                                             {req.title || 'Yêu cầu cứu hộ'}
                                         </p>
                                         {req.trackingCode && (
-                                            <span className="flex-shrink-0 text-[10px] font-mono text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
+                                            <span className="shrink-0 text-[10px] font-mono text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
                                                 {req.trackingCode}
                                             </span>
                                         )}
@@ -295,7 +290,7 @@ export default function Operations() {
                 </div>
 
                     {/* Thời tiết & Lũ lụt */}
-                    <div className="flex-shrink-0 bg-white border border-gray-200 rounded-lg p-3">
+                    <div className="shrink-0 bg-white border border-gray-200 rounded-lg p-3">
                         <h3 className="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
                             {`🌊 Thời tiết & Mực nước (${WEATHER_LOCATION.name})`}
                         </h3>

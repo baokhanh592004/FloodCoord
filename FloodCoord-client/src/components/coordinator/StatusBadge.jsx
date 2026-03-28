@@ -1,63 +1,23 @@
 import React from 'react';
+import { COORDINATOR_STATUS_BADGE_BY_CODE, COORDINATOR_STATUS_BADGE_DEFAULT } from '../shared/styleMaps';
 
-export default function StatusBadge({ status }) {
-    const getBadgeStyles = () => {
-        switch (status?.toUpperCase()) {
-            case 'PENDING':
-                return 'bg-gray-100 text-gray-700 border-gray-300';
-            case 'VERIFIED':
-                return 'bg-cyan-100 text-cyan-700 border-cyan-300';
-            case 'IN_PROGRESS':
-                return 'bg-blue-100 text-blue-700 border-blue-300';
-            case 'MOVING':
-                return 'bg-purple-100 text-purple-700 border-purple-300';
-            case 'ARRIVED':
-                return 'bg-indigo-100 text-indigo-700 border-indigo-300';
-            case 'RESCUING':
-                return 'bg-yellow-100 text-yellow-700 border-yellow-300';
-            case 'COMPLETED':
-                return 'bg-green-100 text-green-700 border-green-300';
-            case 'CANCELLED':
-                return 'bg-red-100 text-red-700 border-red-300';
-            case 'REJECTED':
-                return 'bg-rose-100 text-rose-800 border-rose-400';
-            case 'ASSIGNED':
-                return 'bg-green-100 text-green-700 border-green-300';
-            default:
-                return 'bg-gray-100 text-gray-700 border-gray-300';
-        }
-    };
+export default function StatusBadge({ status, showDot = false }) {
+  const key = status?.toUpperCase();
+  const s = COORDINATOR_STATUS_BADGE_BY_CODE[key]
+    || { ...COORDINATOR_STATUS_BADGE_DEFAULT, label: status || '—' };
 
-    const getDisplayText = () => {
-        switch (status?.toUpperCase()) {
-            case 'PENDING':
-                return 'ĐANG CHỜ';
-            case 'VERIFIED':
-                return 'ĐÃ XÁC THỰC';
-            case 'IN_PROGRESS':
-                return 'ĐANG THỰC HIỆN';
-            case 'MOVING':
-                return 'ĐANG DI CHUYỂN';
-            case 'ARRIVED':
-                return 'ĐÃ ĐẾN NƠI';
-            case 'RESCUING':
-                return 'ĐANG CỨU HỘ';
-            case 'COMPLETED':
-                return 'HOÀN THÀNH';
-            case 'CANCELLED':
-                return 'ĐÃ HỦY';
-            case 'REJECTED':
-                return 'KHÔNG DUYỆT';
-            case 'ASSIGNED':
-                return 'ĐÃ PHÂN CÔNG';
-            default:
-                return status;
-        }
-    };
-
-    return (
-        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getBadgeStyles()}`}>
-            {getDisplayText()}
-        </span>
-    );
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border"
+      style={{ background: s.bg, color: s.color, borderColor: s.border }}
+    >
+      {showDot && (
+        <span
+          className="w-1.5 h-1.5 rounded-full shrink-0"
+          style={{ background: s.dot }}
+        />
+      )}
+      {s.label}
+    </span>
+  );
 }

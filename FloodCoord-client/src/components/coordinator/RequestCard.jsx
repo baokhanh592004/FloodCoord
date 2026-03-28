@@ -16,33 +16,33 @@ export default function RequestCard({ request, onValidate, onAssign, onViewDetai
     };
 
     return (
-        <div className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+        <div className="bg-white border border-neutral-100 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
              onClick={onViewDetails}>
             <div className="flex items-start justify-between mb-3">
                 <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                        <span className="text-sm font-mono text-gray-500">{request.trackingCode || request.requestId}</span>
+                        <span className="text-sm font-mono text-neutral-400">{request.trackingCode || request.requestId}</span>
                         <PriorityBadge priority={request.emergencyLevel} />
                         <StatusBadge status={request.status} />
                     </div>
-                    <h3 className="text-base font-semibold text-gray-900 mb-1">
+                    <h3 className="text-base font-semibold text-neutral-900 mb-1">
                         {request.title || request.description?.substring(0, 50)}
                     </h3>
                 </div>
             </div>
 
             <div className="space-y-2 mb-4">
-                <div className="flex items-center text-sm text-gray-600">
+                <div className="flex items-center text-sm text-neutral-600">
                     <MapPinIcon className="h-4 w-4 mr-2" />
                     <span className="line-clamp-1">
                         {request.location?.addressText || request.contactName || 'Vị trí không được chỉ định'}
                     </span>
                 </div>
-                <div className="flex items-center text-sm text-gray-600">
+                <div className="flex items-center text-sm text-neutral-600">
                     <UserGroupIcon className="h-4 w-4 mr-2" />
                     <span>{request.peopleCount || 0} people</span>
                 </div>
-                <div className="flex items-center text-sm text-gray-600">
+                <div className="flex items-center text-sm text-neutral-600">
                     <ClockIcon className="h-4 w-4 mr-2" />
                     <span>{formatTimeAgo(request.createdAt)}</span>
                 </div>
@@ -55,7 +55,7 @@ export default function RequestCard({ request, onValidate, onAssign, onViewDetai
                             e.stopPropagation();
                             onValidate(request);
                         }}
-                        className="flex-1 px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
+                        className="flex-1 px-3 py-2 bg-coordinator text-white text-sm font-medium rounded-md hover:bg-coordinator-dark transition-colors"
                     >
                         Xác thực
                     </button>
@@ -66,7 +66,7 @@ export default function RequestCard({ request, onValidate, onAssign, onViewDetai
                             e.stopPropagation();
                             onAssign(request);
                         }}
-                        className="flex-1 px-3 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 transition-colors"
+                        className="flex-1 px-3 py-2 bg-success text-white text-sm font-medium rounded-md hover:bg-success-dark transition-colors"
                     >
                         Phân công đội cứu hộ
                     </button>
@@ -77,7 +77,7 @@ export default function RequestCard({ request, onValidate, onAssign, onViewDetai
                             e.stopPropagation();
                             onViewDetails(request);
                         }}
-                        className="flex-1 px-3 py-2 bg-yellow-600 text-white text-sm font-medium rounded-md hover:bg-yellow-700 transition-colors"
+                        className="flex-1 px-3 py-2 bg-warning text-white text-sm font-medium rounded-md hover:bg-warning-dark transition-colors"
                     >
                         Theo dõi
                     </button>

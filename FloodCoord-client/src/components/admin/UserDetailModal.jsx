@@ -27,7 +27,7 @@ export default function UserDetailModal({ user, onClose }) {
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden transform transition-all">
                 {/* Header with gradient */}
-                <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-6 text-white flex justify-between items-center">
+                <div className="bg-linear-to-r from-purple-600 to-blue-600 p-6 text-white flex justify-between items-center">
                     <div>
                         <h2 className="text-2xl font-bold">Chi tiết tài khoản</h2>
                         <p className="text-purple-100 text-sm mt-1">Thông tin đầy đủ người dùng</p>
@@ -44,7 +44,7 @@ export default function UserDetailModal({ user, onClose }) {
                 <div className="p-6 space-y-6">
                     {/* Avatar & Basic Info */}
                     <div className="flex items-start gap-6 pb-6 border-b">
-                        <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-lg">
+                        <div className="w-20 h-20 bg-linear-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-lg">
                             {user.fullName?.charAt(0).toUpperCase()}
                         </div>
                         <div className="flex-1">

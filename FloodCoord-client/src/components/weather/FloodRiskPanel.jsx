@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { getFloodRisk, evictLocationCache, getRiskLabel, getRiskColor } from '../../services/weatherService';
 
 /**
@@ -17,24 +17,24 @@ export default function FloodRiskPanel({ lat, lon, locationName = '', compact = 
   const [error, setError]     = useState(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchRisk = async () => {
+  const fetchRisk = useCallback(async () => {
     try {
       setError(null);
       const data = await getFloodRisk(lat, lon);
       setRisk(data);
-    } catch (e) {
+    } catch {
       setError('Failed to load risk data');
     } finally {
       setLoading(false);
     }
-  };
+  }, [lat, lon]);
 
   useEffect(() => {
     fetchRisk();
     // Auto-refresh every 15 minutes
     const interval = setInterval(fetchRisk, 15 * 60 * 1000);
     return () => clearInterval(interval);
-  }, [lat, lon]);
+  }, [fetchRisk]);
 
   const handleForceRefresh = async () => {
     setRefreshing(true);
@@ -48,16 +48,16 @@ export default function FloodRiskPanel({ lat, lon, locationName = '', compact = 
 
   if (loading) {
     return (
-      <div className="animate-pulse rounded-lg border border-gray-200 bg-gray-50 p-4">
-        <div className="h-4 bg-gray-200 rounded w-1/3 mb-2" />
-        <div className="h-8 bg-gray-200 rounded w-1/2" />
+      <div className="animate-pulse rounded-lg border border-neutral-100 bg-neutral-50 p-4">
+        <div className="mb-2 h-4 w-1/3 rounded bg-neutral-100" />
+        <div className="h-8 w-1/2 rounded bg-neutral-100" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-600 text-sm">
+      <div className="rounded-lg border border-accent-100 bg-accent-50 p-4 text-sm text-accent">
         {error}
       </div>
     );
@@ -69,8 +69,8 @@ export default function FloodRiskPanel({ lat, lon, locationName = '', compact = 
   if (compact) {
     return (
       <div className={`flex items-center justify-between rounded-lg border px-4 py-3 ${riskColor}`}>
-        <span className="font-medium text-sm">{locationName || `${lat}, ${lon}`}</span>
-        <span className="text-xs font-bold uppercase tracking-wide px-2 py-1 rounded">
+        <span className="text-sm font-medium">{locationName || `${lat}, ${lon}`}</span>
+        <span className="rounded px-2 py-1 text-xs font-semibold uppercase tracking-wide">
           {labelClass}
         </span>
       </div>
@@ -80,25 +80,25 @@ export default function FloodRiskPanel({ lat, lon, locationName = '', compact = 
   return (
     <div className={`rounded-xl border-2 p-5 ${riskColor}`}>
       {/* Header */}
-      <div className="flex items-start justify-between mb-4">
+      <div className="mb-4 flex items-start justify-between">
         <div>
-          <h3 className="font-semibold text-base">
+          <h3 className="text-base font-semibold">
             {locationName || `${lat}°N, ${lon}°E`}
           </h3>
-          <p className="text-xs opacity-70 mt-0.5">
+          <p className="mt-0.5 text-xs opacity-70">
             Phân tích {risk?.evaluatedAt
               ? new Date(risk.evaluatedAt).toLocaleTimeString('vi-VN')
               : '—'}
           </p>
         </div>
         {/* Risk badge */}
-        <span className="text-sm font-bold uppercase tracking-wider px-3 py-1.5 rounded-full border-2">
+        <span className="rounded-full border-2 px-3 py-1.5 text-sm font-bold uppercase tracking-wider">
           {labelClass}
         </span>
       </div>
 
       {/* Metrics row */}
-      <div className="grid grid-cols-3 gap-3 mb-4">
+      <div className="mb-4 grid grid-cols-3 gap-3">
         <Metric
           label="Lưu lượng sông"
           value={risk?.riverDischarge != null
@@ -120,7 +120,7 @@ export default function FloodRiskPanel({ lat, lon, locationName = '', compact = 
       </div>
 
       {/* Recommendation */}
-      <div className="text-sm leading-relaxed border-t border-current border-opacity-20 pt-3 mb-4">
+      <div className="mb-4 border-t border-current border-opacity-20 pt-3 text-sm leading-relaxed">
         {risk?.recommendation}
       </div>
 

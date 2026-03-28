@@ -346,11 +346,11 @@ const RequestRescuePage = () => {
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
                             
                             {/* Cột trái: Bản đồ */}
-                            <div className="relative h-[400px] lg:h-auto lg:min-h-[900px]">
+                            <div className="relative h-100 lg:h-auto lg:min-h-225">
                                 {/* Pin Location Tooltip */}
-                                <div className="absolute top-4 left-4 z-[1000] bg-white rounded-xl shadow-lg p-4 max-w-xs">
+                                <div className="absolute top-4 left-4 z-1000 bg-white rounded-xl shadow-lg p-4 max-w-xs">
                                     <div className="flex items-start gap-3">
-                                        <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                        <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center shrink-0">
                                             <svg className="w-6 h-6 text-red-600" fill="currentColor" viewBox="0 0 20 20">
                                                 <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
                                             </svg>
@@ -389,7 +389,7 @@ const RequestRescuePage = () => {
                                 <button 
                                     type="button"
                                     onClick={handleGetGPS} 
-                                    className="absolute bottom-6 left-6 z-[1000] bg-white hover:bg-gray-50 text-gray-800 font-semibold py-3 px-5 rounded-full shadow-lg border-2 border-gray-200 flex items-center gap-2 transition-all hover:shadow-xl"
+                                    className="absolute bottom-6 left-6 z-1000 bg-white hover:bg-gray-50 text-gray-800 font-semibold py-3 px-5 rounded-full shadow-lg border-2 border-gray-200 flex items-center gap-2 transition-all hover:shadow-xl"
                                 >
                                     <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
                                         <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
@@ -401,11 +401,11 @@ const RequestRescuePage = () => {
                             </div>
 
                             {/* Cột phải: Form */}
-                            <div className="p-6 lg:p-8 overflow-y-auto lg:max-h-[900px]">
+                            <div className="p-6 lg:p-8 overflow-y-auto lg:max-h-225">
                                 <form onSubmit={handleSubmit} className="space-y-6">
                                     {/* Header */}
                                     <div className="flex items-start gap-3 mb-6">
-                                        <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                                        <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center shrink-0">
                                             <svg className="w-7 h-7 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                             </svg>
@@ -521,7 +521,7 @@ const RequestRescuePage = () => {
                                                 />
                                                 {formErrors.contactName && (
                                                     <p className="mt-1.5 text-xs text-red-600 flex items-center gap-1">
-                                                        <svg className="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                                        <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                                             <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                                                         </svg>
                                                         {formErrors.contactName}
@@ -548,7 +548,7 @@ const RequestRescuePage = () => {
                                                 />
                                                 {formErrors.contactPhone && (
                                                     <p className="mt-1.5 text-xs text-red-600 flex items-center gap-1">
-                                                        <svg className="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                                        <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                                             <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                                                         </svg>
                                                         {formErrors.contactPhone}
@@ -636,7 +636,7 @@ const RequestRescuePage = () => {
                                         </div>
                                         {formErrors.location && (
                                             <div className="mb-3 flex items-start gap-2 bg-red-50 border border-red-300 rounded-xl px-4 py-3">
-                                                <svg className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                                <svg className="w-4 h-4 text-red-500 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                                     <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                                                 </svg>
                                                 <p className="text-sm text-red-700 font-medium">{formErrors.location}</p>
@@ -695,7 +695,7 @@ const RequestRescuePage = () => {
                                                                     className="w-full text-left px-4 py-3 hover:bg-blue-50 transition border-b border-gray-100 last:border-0"
                                                                 >
                                                                     <div className="flex items-start gap-2">
-                                                                        <span className="text-blue-500 mt-0.5 flex-shrink-0">📍</span>
+                                                                        <span className="text-blue-500 mt-0.5 shrink-0">📍</span>
                                                                         <span className="text-sm text-gray-800 leading-snug">{r.display_name}</span>
                                                                     </div>
                                                                 </button>
@@ -728,7 +728,7 @@ const RequestRescuePage = () => {
                                                 {/* Address display */}
                                                 <div className={`p-4 ${locationConfirmed ? 'bg-green-50' : 'bg-orange-50'}`}>
                                                     <div className="flex items-start gap-3">
-                                                        <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${locationConfirmed ? 'bg-green-200' : 'bg-orange-200'}`}>
+                                                        <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${locationConfirmed ? 'bg-green-200' : 'bg-orange-200'}`}>
                                                             <svg className={`w-5 h-5 ${locationConfirmed ? 'text-green-700' : 'text-orange-700'}`} fill="currentColor" viewBox="0 0 20 20">
                                                                 <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
                                                             </svg>
@@ -769,7 +769,7 @@ const RequestRescuePage = () => {
                                                                     }
                                                                 }));
                                                             }}
-                                                            className="text-gray-400 hover:text-red-500 transition flex-shrink-0 text-lg leading-none"
+                                                            className="text-gray-400 hover:text-red-500 transition shrink-0 text-lg leading-none"
                                                             title="Chọn lại vị trí"
                                                         >
                                                             ✕

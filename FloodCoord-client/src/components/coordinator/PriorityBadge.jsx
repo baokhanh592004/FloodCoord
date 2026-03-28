@@ -1,43 +1,17 @@
 import React from 'react';
+import { COORDINATOR_PRIORITY_BADGE_BY_CODE, COORDINATOR_PRIORITY_BADGE_DEFAULT } from '../shared/styleMaps';
 
 export default function PriorityBadge({ priority }) {
-    const getBadgeStyles = () => {
-        switch (priority?.toUpperCase()) {
-            case 'CRITICAL':
-                return 'bg-red-100 text-red-700 border-red-300';
-            case 'HIGH':
-                return 'bg-orange-100 text-orange-700 border-orange-300';
-            case 'MEDIUM':
-                return 'bg-green-100 text-green-700 border-green-300';
-            case 'NORMAL':
-                return 'bg-green-100 text-green-700 border-green-300';
-            case 'LOW':
-                return 'bg-gray-100 text-gray-700 border-gray-300';
-            default:
-                return 'bg-gray-100 text-gray-700 border-gray-300';
-        }
-    };
-
-    const getDisplayText = () => {
-        switch (priority?.toUpperCase()) {
-            case 'CRITICAL':
-                return 'NGHIÊM TRỌNG';
-            case 'HIGH':
-                return 'CAO';
-            case 'MEDIUM':
-                return 'TRUNG BÌNH';
-            case 'NORMAL':
-                return 'TRUNG BÌNH';
-            case 'LOW':
-                return 'THẤP';
-            default:
-                return priority;
-        }
-    };
-
-    return (
-        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getBadgeStyles()}`}>
-            {getDisplayText()}
-        </span>
-    );
+  const key = priority?.toUpperCase();
+  const s = COORDINATOR_PRIORITY_BADGE_BY_CODE[key]
+    || { ...COORDINATOR_PRIORITY_BADGE_DEFAULT, label: priority || '—' };
+ 
+  return (
+    <span
+      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border"
+      style={{ background: s.bg, color: s.color, borderColor: s.border }}
+    >
+      {s.label}
+    </span>
+  );
 }

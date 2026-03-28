@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { jwtDecode } from 'jwt-decode';
 import { profileApi } from '../services/profileApi';
@@ -49,23 +50,28 @@ export const AuthProvider = ({ children }) => {
 
     // Initialize auth state from localStorage
     useEffect(() => {
-        const accessToken = localStorage.getItem('accessToken');
-        
-        if (accessToken) {
-            const decoded = decodeToken(accessToken);
-            if (decoded) {
-                const userRole = extractRole(decoded);
-                
-                setUser({
-                    id: decoded.sub,
-                    email: decoded.email,
-                    ...decoded,
-                });
-                setRole(userRole);
-                fetchProfileName();
+        const timer = setTimeout(() => {
+            const accessToken = localStorage.getItem('accessToken');
+
+            if (accessToken) {
+                const decoded = decodeToken(accessToken);
+                if (decoded) {
+                    const userRole = extractRole(decoded);
+
+                    setUser({
+                        id: decoded.sub,
+                        email: decoded.email,
+                        ...decoded,
+                    });
+                    setRole(userRole);
+                    fetchProfileName();
+                }
             }
-        }
-        setLoading(false);
+
+            setLoading(false);
+        }, 0);
+
+        return () => clearTimeout(timer);
     }, []);
 
     // Listen for auth changes from other tabs/windows

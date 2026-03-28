@@ -486,7 +486,7 @@ export default function CoordinatorDashboard() {
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                         {shortForecastItems.length > 0 ? shortForecastItems.map((item) => (
                             <div key={item.time} className="flex items-start gap-2">
-                                <span className="text-gray-400 font-medium min-w-[60px]">
+                                <span className="text-gray-400 font-medium min-w-15">
                                     {new Date(item.time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
                                 </span>
                                 <span className="text-gray-700">

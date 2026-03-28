@@ -1,38 +1,36 @@
 import React from 'react';
 import { X, Package, Apple, Pill, Wrench, Box, Calendar, Clock, Truck, Tag, Hash, FileText, CheckCircle, AlertTriangle } from 'lucide-react';
+import { getSupplyTypeMeta, SUPPLY_EXPIRY_META, MODAL_STYLE_MAP } from '../shared/styleMaps';
+
+function Row({ icon, iconClass = 'text-slate-400', label, children }) {
+    const iconElement = React.createElement(icon, { size: 16 });
+
+    return (
+        <div className="flex items-start gap-3 py-3 border-b border-slate-100 last:border-0">
+            <div className={`mt-0.5 shrink-0 ${iconClass}`}>
+                {iconElement}
+            </div>
+            <div className="flex-1 min-w-0">
+                <p className="text-xs text-slate-400 mb-0.5">{label}</p>
+                <div className="text-sm font-semibold text-slate-700">{children}</div>
+            </div>
+        </div>
+    );
+}
 
 export default function SupplyDetailModal({ supply, onClose, onEdit }) {
     if (!supply) return null;
 
     const getTypeIconComponent = (type) => {
         const cls = 'w-10 h-10';
+        const typeMeta = getSupplyTypeMeta(type);
         switch (type) {
-            case 'FOOD_WATER': return <Apple className={`${cls} text-green-600`} strokeWidth={1.5} />;
-            case 'MEDICAL':    return <Pill  className={`${cls} text-red-600`}   strokeWidth={1.5} />;
-            case 'EQUIPMENT':  return <Wrench className={`${cls} text-blue-600`} strokeWidth={1.5} />;
-            case 'OTHER':      return <Box   className={`${cls} text-gray-600`}  strokeWidth={1.5} />;
+            case 'FOOD_WATER': return <Apple className={`${cls} ${typeMeta.iconColor}`} strokeWidth={1.5} />;
+            case 'MEDICAL':    return <Pill  className={`${cls} ${typeMeta.iconColor}`} strokeWidth={1.5} />;
+            case 'EQUIPMENT':  return <Wrench className={`${cls} ${typeMeta.iconColor}`} strokeWidth={1.5} />;
+            case 'OTHER':      return <Box   className={`${cls} ${typeMeta.iconColor}`} strokeWidth={1.5} />;
             default:           return <Package className={`${cls} text-slate-600`} strokeWidth={1.5} />;
         }
-    };
-
-    const getTypeColor = (type) => {
-        const colors = {
-            FOOD_WATER: 'bg-green-100 text-green-800',
-            MEDICAL:    'bg-red-100 text-red-800',
-            EQUIPMENT:  'bg-blue-100 text-blue-800',
-            OTHER:      'bg-gray-100 text-gray-800',
-        };
-        return colors[type] || 'bg-gray-100 text-gray-800';
-    };
-
-    const getTypeLabel = (type) => {
-        const labels = {
-            FOOD_WATER: 'Đồ ăn, nước uống',
-            MEDICAL:    'Thuốc men, y tế',
-            EQUIPMENT:  'Thiết bị cứu hộ',
-            OTHER:      'Khác',
-        };
-        return labels[type] || type;
     };
 
     const formatDate = (dateString) => {
@@ -54,41 +52,29 @@ export default function SupplyDetailModal({ supply, onClose, onEdit }) {
         return new Date(expiryDate) < new Date();
     };
 
+    const getExpiryState = (expiryDate) => {
+        if (isExpired(expiryDate)) return 'expired';
+        if (isExpiringSoon(expiryDate)) return 'expiring';
+        return 'fresh';
+    };
+
     const getStatusBadge = () => {
-        if (isExpired(supply.expiryDate)) return (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-bold bg-red-100 text-red-700">
-                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" /> Đã hết hạn
-            </span>
-        );
-        if (isExpiringSoon(supply.expiryDate)) return (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-bold bg-yellow-100 text-yellow-700">
-                <span className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" /> Sắp hết hạn
-            </span>
-        );
+        const meta = SUPPLY_EXPIRY_META[getExpiryState(supply.expiryDate)];
         return (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-bold bg-emerald-100 text-emerald-700">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Còn hạn
+            <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-bold ${meta.badgeClass}`}>
+                <span className={`w-2 h-2 rounded-full ${meta.dotClass} animate-pulse`} /> {meta.label}
             </span>
         );
     };
 
-    const Row = ({ icon: Icon, iconClass = 'text-slate-400', label, children }) => (
-        <div className="flex items-start gap-3 py-3 border-b border-slate-100 last:border-0">
-            <div className={`mt-0.5 flex-shrink-0 ${iconClass}`}>
-                <Icon size={16} />
-            </div>
-            <div className="flex-1 min-w-0">
-                <p className="text-xs text-slate-400 mb-0.5">{label}</p>
-                <div className="text-sm font-semibold text-slate-700">{children}</div>
-            </div>
-        </div>
-    );
+    const typeMeta = getSupplyTypeMeta(supply.type);
+    const expiryMeta = SUPPLY_EXPIRY_META[getExpiryState(supply.expiryDate)];
 
     return (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className={MODAL_STYLE_MAP.overlayDefault}>
             <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden max-h-[90vh] flex flex-col">
                 {/* Header */}
-                <div className="bg-gradient-to-r from-emerald-600 to-teal-600 p-6 text-white flex justify-between items-start flex-shrink-0">
+                <div className="bg-linear-to-r from-emerald-600 to-teal-600 p-6 text-white flex justify-between items-start shrink-0">
                     <div className="flex items-center gap-4">
                         <div className="p-2.5 bg-white/20 rounded-xl">
                             {getTypeIconComponent(supply.type)}
@@ -96,14 +82,14 @@ export default function SupplyDetailModal({ supply, onClose, onEdit }) {
                         <div>
                             <h2 className="text-xl font-bold leading-tight">{supply.name}</h2>
                             <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                                <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${getTypeColor(supply.type)}`}>
-                                    {getTypeLabel(supply.type)}
+                                <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${typeMeta.badge}`}>
+                                    {typeMeta.label}
                                 </span>
                                 <span className="text-white/70 text-xs font-mono">Lô #{supply.id}</span>
                             </div>
                         </div>
                     </div>
-                    <button onClick={onClose} className="text-white/70 hover:text-white transition flex-shrink-0 ml-2">
+                    <button onClick={onClose} className="text-white/70 hover:text-white transition shrink-0 ml-2">
                         <X size={22} />
                     </button>
                 </div>
@@ -134,14 +120,11 @@ export default function SupplyDetailModal({ supply, onClose, onEdit }) {
 
                         <Row
                             icon={isExpired(supply.expiryDate) ? AlertTriangle : isExpiringSoon(supply.expiryDate) ? AlertTriangle : CheckCircle}
-                            iconClass={isExpired(supply.expiryDate) ? 'text-red-500' : isExpiringSoon(supply.expiryDate) ? 'text-yellow-500' : 'text-green-500'}
+                            iconClass={expiryMeta.iconClass}
                             label="Hạn sử dụng"
                         >
                             {formatDate(supply.expiryDate) ? (
-                                <span className={
-                                    isExpired(supply.expiryDate) ? 'text-red-600' :
-                                    isExpiringSoon(supply.expiryDate) ? 'text-yellow-600' : ''
-                                }>
+                                <span className={expiryMeta.valueClass}>
                                     {formatDate(supply.expiryDate)}
                                 </span>
                             ) : (
@@ -158,16 +141,16 @@ export default function SupplyDetailModal({ supply, onClose, onEdit }) {
                 </div>
 
                 {/* Footer */}
-                <div className="flex gap-3 p-6 pt-0 flex-shrink-0">
+                <div className="flex gap-3 p-6 pt-0 shrink-0">
                     <button
                         onClick={onClose}
-                        className="flex-1 px-4 py-3 bg-slate-100 text-slate-700 font-semibold rounded-xl hover:bg-slate-200 transition"
+                        className={MODAL_STYLE_MAP.secondarySolidFlex}
                     >
                         Đóng
                     </button>
                     <button
                         onClick={() => onEdit(supply)}
-                        className="flex-1 px-4 py-3 bg-[#059669] text-white font-semibold rounded-xl hover:bg-emerald-700 transition shadow-lg shadow-emerald-900/20"
+                        className={MODAL_STYLE_MAP.primaryRescueFlex}
                     >
                         Chỉnh sửa lô này
                     </button>

@@ -22,9 +22,9 @@ export default function SupplyFormModal({
     if (!showModal) return null;
 
     return (
-        <div className="fixed inset-0 bg-[#059669]/20 backdrop-blur-sm flex items-center justify-center z-50 transition-opacity p-4">
+        <div className="fixed inset-0 bg-rescue-medium/20 backdrop-blur-sm flex items-center justify-center z-50 transition-opacity p-4">
             <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden transform transition-all scale-100 max-h-[90vh] overflow-y-auto">
-                <div className="bg-[#059669] p-6 text-white flex justify-between items-center sticky top-0">
+            <div className="bg-rescue-medium p-6 text-white flex justify-between items-center sticky top-0">
                     <h2 className="text-xl font-bold">
                         {editingSupply ? 'Cập nhật lô hàng' : 'Nhập lô hàng mới'}
                     </h2>
@@ -39,8 +39,8 @@ export default function SupplyFormModal({
                 
                 <form onSubmit={onSubmit} className="p-8 space-y-5">
                     {/* Info Notice */}
-                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-                        <p className="text-sm text-blue-800">
+                    <div className="bg-info-50 border border-info-100 rounded-xl p-4">
+                        <p className="text-sm text-info-dark">
                             <strong>Lưu ý:</strong> Cho phép cùng tên vật tư nhưng khác lô (ID). 
                             Nếu không nhập <strong>Ngày nhập kho</strong>, hệ thống tự lấy ngày hiện tại.
                         </p>
@@ -56,7 +56,7 @@ export default function SupplyFormModal({
                                 name="name"
                                 value={formData.name}
                                 onChange={onInputChange}
-                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all"
+                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rescue-medium/50 focus:border-rescue-medium transition-all"
                                 placeholder="VD: Mì tôm Hảo Hảo"
                                 required
                             />
@@ -70,7 +70,7 @@ export default function SupplyFormModal({
                                 name="type"
                                 value={formData.type}
                                 onChange={onInputChange}
-                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rescue-medium/50"
                                 required
                             >
                                 {supplyTypes.map(type => (
@@ -90,7 +90,7 @@ export default function SupplyFormModal({
                                 name="unit"
                                 value={formData.unit}
                                 onChange={onInputChange}
-                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rescue-medium/50"
                                 required
                             >
                                 <option value="">-- Chọn đơn vị --</option>
@@ -113,7 +113,7 @@ export default function SupplyFormModal({
                                 name="quantity"
                                 value={formData.quantity}
                                 onChange={onInputChange}
-                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rescue-medium/50"
                                 placeholder="VD: 100"
                                 min="0"
                                 required
@@ -129,7 +129,7 @@ export default function SupplyFormModal({
                             name="description"
                             value={formData.description}
                             onChange={onInputChange}
-                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rescue-medium/50"
                             placeholder="VD: Lô 1 - Ưu tiên xuất trước, Lô 2 - Hàng mới về..."
                             rows="3"
                         />
@@ -137,7 +137,7 @@ export default function SupplyFormModal({
 
                     <div className="grid grid-cols-2 gap-5">
                         <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+                            <label className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
                                 Ngày nhập kho
                                 <span className="text-xs text-slate-500 font-normal">(Tự động nếu bỏ trống)</span>
                             </label>
@@ -147,12 +147,12 @@ export default function SupplyFormModal({
                                 value={formData.importedDate}
                                 onChange={onInputChange}
                                 min={new Date().toISOString().slice(0, 16)}
-                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rescue-medium/50"
                             />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+                            <label className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
                                 Hạn sử dụng
                                 <span className="text-xs text-red-500 font-normal">(Quan trọng!)</span>
                             </label>
@@ -161,7 +161,7 @@ export default function SupplyFormModal({
                                 name="expiryDate"
                                 value={formData.expiryDate}
                                 onChange={onInputChange}
-                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rescue-medium/50"
                             />
                         </div>
                     </div>
@@ -169,7 +169,7 @@ export default function SupplyFormModal({
                     {/* Export Date - Only show when editing */}
                     {editingSupply && (
                         <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+                            <label className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
                                 Ngày xuất kho
                                 <span className="text-xs text-slate-500 font-normal">(Khi xuất hàng cứu trợ)</span>
                             </label>
@@ -196,7 +196,7 @@ export default function SupplyFormModal({
                         </button>
                         <button
                             type="submit"
-                            className="flex-1 px-4 py-3 bg-[#059669] text-white font-semibold rounded-xl shadow-lg shadow-emerald-900/30 hover:bg-emerald-700 transition transform hover:-translate-y-0.5"
+                            className="flex-1 px-4 py-3 bg-rescue-medium text-white font-semibold rounded-xl shadow-lg shadow-rescue-dark/30 hover:bg-rescue transition transform hover:-translate-y-0.5"
                         >
                             {editingSupply ? 'Cập nhật lô hàng' : 'Nhập lô mới'}
                         </button>

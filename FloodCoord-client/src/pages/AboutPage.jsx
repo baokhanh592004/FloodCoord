@@ -16,6 +16,10 @@ import {
     ArrowRightIcon,
     LifebuoyIcon
 } from '@heroicons/react/24/outline';
+import campaignImg from '../assets/images/register-bg.png';
+import beforeFloodImg from '../assets/images/thing-to-do-before-flood.png';
+import afterFloodImg from '../assets/images/things-to-do-after-flood.png';
+import diseaseProtectImg from '../assets/images/disease-protect.png';
 
 // ── DATA QUY TRÌNH ──────────────────────────────────────────────────────────
 const PROCESS_STEPS = [
@@ -127,20 +131,24 @@ function FaqItem({ q, a }) {
 
 // ── MAIN COMPONENT ────────────────────────────────────────────────────────────
 export default function AboutPage() {
+    const [previewImage, setPreviewImage] = useState(null);
+
     return (
         <div className="bg-[#FBFCFE] min-h-screen font-sans text-slate-900">
 
-            {/* ══ HERO SECTION ═══════════════════════════════════════════════════ */}
-            <section className="relative bg-white pt-24 pb-32 px-4 border-b border-slate-50 overflow-hidden text-center">
-                <div className="max-w-6xl mx-auto relative z-10">
-                    <div className="inline-flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-full px-4 py-1 text-blue-600 text-xs font-bold mb-8">
-                        Hoạt động 24/7
+            {/* ══ HERO ══════════════════════════════════════════════════════════ */}
+            <section className="bg-linear-to-br from-blue-700 via-blue-600 to-teal-500 text-white py-20 px-4">
+                <div className="max-w-4xl mx-auto text-center">
+                    <div className="inline-flex items-center gap-2 bg-white/20 rounded-full px-4 py-1.5 text-sm font-medium mb-6">
+                        <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                        Hệ thống đang hoạt động 24/7
+
                     </div>
-                    <h1 className="text-4xl md:text-6xl font-black text-slate-900 mb-6 tracking-tight">
+                    <h1 className="text-4xl md:text-6xl font-black text-white mb-6 tracking-tight drop-shadow-sm">
                         Cùng nhau vượt qua <br />
-                        <span className="text-blue-600">Mùa lũ TP. Hồ Chí Minh</span>
+                        <span className="text-cyan-200">Mùa lũ TP. Hồ Chí Minh</span>
                     </h1>
-                    <p className="text-lg text-slate-500 max-w-2xl mx-auto mb-10 leading-relaxed">
+                    <p className="text-lg text-blue-100 max-w-2xl mx-auto mb-10 leading-relaxed">
                         Hệ thống kết nối cứu hộ nhanh chóng, minh bạch và hoàn toàn miễn phí cho người dân.
                     </p>
                     <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -154,33 +162,191 @@ export default function AboutPage() {
                 </div>
             </section>
 
-            {/* ══ QUY TRÌNH SECTION ═══════════════════════════════════════════════ */}
-            <section className="max-w-6xl mx-auto px-4 py-32">
-                <div className="grid lg:grid-cols-12 gap-16">
-                    <div className="lg:col-span-4 sticky top-10">
-                        <h2 className="text-3xl font-bold text-slate-900 mb-6">Quy trình <br/><span className="text-blue-600 text-4xl">5 bước</span> vận hành</h2>
-                        <p className="text-slate-500 leading-relaxed">Chúng tôi tối ưu mọi công đoạn để hỗ trợ người dân nhanh nhất có thể.</p>
-                    </div>
-                    <div className="lg:col-span-8 space-y-10">
-                        {PROCESS_STEPS.map((item, idx) => (
-                            <div key={idx} className="group relative flex gap-8">
-                                <div className="flex flex-col items-center">
-                                    <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${item.color} text-white flex items-center justify-center shadow-lg z-10 transition-transform group-hover:scale-105`}>
-                                        <item.icon className="h-7 w-7" />
-                                    </div>
-                                    {idx !== PROCESS_STEPS.length - 1 && <div className="w-px h-full bg-slate-100 absolute top-14" />}
+            {/* ══ TRUYỀN THÔNG CỘNG ĐỒNG ═════════════════════════════════════ */}
+            <section className="max-w-5xl mx-auto px-4 py-16">
+                <div className="text-center mb-10">
+                    <h2 className="text-3xl font-extrabold text-gray-900 mb-3">Truyền thông cộng đồng</h2>
+                    <p className="text-gray-500 max-w-2xl mx-auto">
+                        Các ấn phẩm truyền thông giúp người dân chuẩn bị tốt hơn trước thiên tai và giảm thiểu rủi ro sức khỏe.
+                    </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <article className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition">
+                        <img
+                            src={campaignImg}
+                            alt="Thông điệp hành động sớm giảm thiểu thiệt hại thiên tai"
+                            onClick={() => setPreviewImage({ src: campaignImg, title: 'Hành động sớm' })}
+                            className="w-full h-80 object-contain bg-slate-50 p-2 cursor-zoom-in"
+                        />
+                        <div className="p-4">
+                            <h3 className="font-bold text-gray-900">Hành động sớm</h3>
+                            <p className="text-sm text-gray-500 mt-1">Nhấn mạnh vai trò chuẩn bị chủ động của cộng đồng địa phương.</p>
+                            <button
+                                type="button"
+                                onClick={() => setPreviewImage({ src: campaignImg, title: 'Hành động sớm' })}
+                                className="mt-2 text-sm font-semibold text-blue-700 hover:text-blue-800"
+                            >
+                                Phóng to ảnh
+                            </button>
+                        </div>
+                    </article>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        {[{ src: beforeFloodImg, title: 'Trước bão' }, { src: afterFloodImg, title: 'Sau bão' }, { src: diseaseProtectImg, title: 'Phòng dịch trong mùa lũ' }].map((item) => (
+                            <article key={item.title} className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition">
+                                <img
+                                    src={item.src}
+                                    alt={item.title}
+                                    onClick={() => setPreviewImage(item)}
+                                    className="w-full h-48 object-contain bg-slate-50 p-2 cursor-zoom-in"
+                                />
+                                <div className="p-3">
+                                    <h4 className="text-sm font-semibold text-gray-800">{item.title}</h4>
+                                    <button
+                                        type="button"
+                                        onClick={() => setPreviewImage(item)}
+                                        className="mt-1 text-xs font-semibold text-blue-700 hover:text-blue-800"
+                                    >
+                                        Phóng to ảnh
+                                    </button>
                                 </div>
-                                <div className="pb-8">
-                                    <h3 className="text-lg font-bold text-slate-800 mb-2 group-hover:text-blue-600 transition-colors">{item.title}</h3>
-                                    <p className="text-slate-500 text-sm mb-4 leading-relaxed">{item.description}</p>
-                                    <div className="flex flex-wrap gap-2">
-                                        {item.details.map((d, i) => (
-                                            <span key={i} className="text-[10px] font-bold bg-white border border-slate-100 text-slate-400 px-3 py-1.5 rounded-full uppercase">{d}</span>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
+                            </article>
                         ))}
+                    </div>
+                </div>
+            </section>
+
+            {previewImage && (
+                <div
+                    className="fixed inset-0 z-80 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+                    onClick={() => setPreviewImage(null)}
+                >
+                    <div className="relative max-w-[95vw] max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+                        <button
+                            type="button"
+                            onClick={() => setPreviewImage(null)}
+                            className="absolute -top-11 right-0 text-white font-bold text-lg"
+                        >
+                            Đóng
+                        </button>
+                        <img
+                            src={previewImage.src}
+                            alt={previewImage.title}
+                            className="max-w-[95vw] max-h-[85vh] object-contain rounded-xl bg-white"
+                        />
+                    </div>
+                </div>
+            )}
+
+            {/* ══ THỐNG KÊ NHANH ════════════════════════════════════════════════ */}
+            <section className="bg-white border-b border-gray-200">
+                <div className="max-w-5xl mx-auto px-4 py-8 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+                    {[
+                        { value: '24/7', label: 'Hoạt động liên tục' },
+                        { value: '5',    label: 'Loại phương tiện' },
+                        { value: '4',    label: 'Vai trò trong hệ thống' },
+                        { value: '0đ',   label: 'Hoàn toàn miễn phí' },
+                    ].map(({ value, label }) => (
+                        <div key={label}>
+                            <p className="text-3xl font-extrabold text-blue-600">{value}</p>
+                            <p className="text-sm text-gray-500 mt-1">{label}</p>
+                        </div>
+                    ))}
+                </div>
+            </section>
+
+            {/* ══ QUY TRÌNH HOẠT ĐỘNG ══════════════════════════════════════════ */}
+            <section className="max-w-5xl mx-auto px-4 py-16">
+                <div className="text-center mb-12">
+                    <h2 className="text-3xl font-extrabold text-gray-900 mb-3">Quy trình hoạt động</h2>
+                    <p className="text-gray-500 max-w-xl mx-auto">
+                        Từ lúc người dân gửi SOS đến khi nhiệm vụ hoàn thành — tất cả được theo dõi minh bạch trên một nền tảng.
+                    </p>
+                </div>
+
+                <div className="relative">
+                    {/* Đường kết nối dọc */}
+                    <div className="hidden md:block absolute left-9.5 top-10 bottom-10 w-0.5 bg-linear-to-b from-red-300 via-blue-300 to-green-300" />
+
+                    <div className="space-y-6">
+                        {PROCESS_STEPS.map((step, idx) => {
+                            const Icon = step.icon;
+                            return (
+                                <div key={idx} className={`relative flex gap-5 p-5 rounded-2xl border ${step.borderColor} ${step.bgLight} transition-all hover:shadow-md`}>
+                                    {/* Icon bước */}
+                                    <div className={`shrink-0 w-16 h-16 rounded-2xl bg-linear-to-br ${step.color} flex items-center justify-center shadow-lg`}>
+                                        <Icon className="h-7 w-7 text-white" />
+                                    </div>
+
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-3 mb-2">
+                                            <span className="text-xs font-bold text-gray-400 tracking-widest">BƯỚC {step.step}</span>
+                                        </div>
+                                        <h3 className="text-base font-bold text-gray-900 mb-1">{step.title}</h3>
+                                        <p className="text-sm text-gray-600 mb-3 leading-relaxed">{step.description}</p>
+                                        <ul className="space-y-1">
+                                            {step.details.map((d, i) => (
+                                                <li key={i} className="flex items-start gap-2 text-xs text-gray-600">
+                                                    <span className="mt-0.5 w-1.5 h-1.5 rounded-full bg-gray-400 shrink-0" />
+                                                    {d}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                        {step.action && (
+                                            <Link
+                                                to={step.action.href}
+                                                className={`mt-3 inline-flex items-center gap-1.5 text-xs font-semibold bg-linear-to-r ${step.color} text-white px-4 py-1.5 rounded-lg hover:opacity-90 transition shadow`}
+                                            >
+                                                {step.action.label} →
+                                            </Link>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            </section>
+
+            {/* ══ LIÊN HỆ & CTA ════════════════════════════════════════════════ */}
+            <section className="max-w-5xl mx-auto px-4 py-16">
+                <div className="bg-linear-to-br from-blue-600 to-teal-500 rounded-3xl p-8 md:p-12 text-white text-center shadow-xl">
+                    <StarIcon className="h-10 w-10 mx-auto mb-4 text-yellow-300" />
+                    <h2 className="text-2xl md:text-3xl font-extrabold mb-3">Cần hỗ trợ khẩn cấp?</h2>
+                    <p className="text-blue-100 mb-8 max-w-lg mx-auto">
+                        Đừng chần chừ — gửi yêu cầu ngay hoặc gọi đường dây nóng để được hỗ trợ kịp thời.
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-4 justify-center mb-10">
+                        <Link
+                            to="/request-rescue"
+                            className="inline-flex items-center justify-center gap-2 bg-white text-blue-700 font-bold px-8 py-3 rounded-xl hover:bg-blue-50 transition shadow-lg text-sm"
+                        >
+                            <ShieldExclamationIcon className="h-5 w-5" />
+                            Gửi yêu cầu SOS ngay
+                        </Link>
+                        <a
+                            href="tel:113"
+                            className="inline-flex items-center justify-center gap-2 bg-white/20 text-white font-semibold px-8 py-3 rounded-xl hover:bg-white/30 transition border border-white/40 text-sm"
+                        >
+                            <PhoneIcon className="h-5 w-5" />
+                            Gọi Hotline: 113
+                        </a>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm text-blue-100">
+                        <div className="flex items-center justify-center gap-2">
+                            <PhoneIcon className="h-4 w-4 text-teal-200" />
+                            <span>Hotline: <strong className="text-white">113</strong></span>
+                        </div>
+                        <div className="flex items-center justify-center gap-2">
+                            <EnvelopeIcon className="h-4 w-4 text-teal-200" />
+                            <span>Email: <strong className="text-white">cuutro@tphcm.gov.vn</strong></span>
+                        </div>
+                        <div className="flex items-center justify-center gap-2">
+                            <MapPinIcon className="h-4 w-4 text-teal-200" />
+                            <span>TP. Hồ Chí Minh</span>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -255,7 +421,7 @@ export default function AboutPage() {
 
             {/* ══ FINAL CTA ═══════════════════════════════════════════════════════ */}
             <section className="max-w-6xl mx-auto px-4 pb-24 text-center">
-                <div className="bg-gradient-to-br from-blue-600 to-blue-500 rounded-[3rem] p-12 md:p-20 text-white shadow-2xl shadow-blue-200">
+                <div className="bg-linear-to-br from-blue-600 to-blue-500 rounded-[3rem] p-12 md:p-20 text-white shadow-2xl shadow-blue-200">
                     <h2 className="text-3xl md:text-5xl font-black mb-8">Bạn đang cần trợ giúp?</h2>
                     <p className="text-blue-100 mb-12 max-w-xl mx-auto text-lg leading-relaxed">Hãy giữ bình tĩnh, di chuyển lên cao và nhấn nút gửi SOS ngay bên dưới.</p>
                     <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
