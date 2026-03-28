@@ -128,7 +128,7 @@ public class IncidentReportServiceImpl implements IncidentReportService {
                 // Ghi chú
                 String oldNote = rescueRequest.getCoordinatorNote() != null ? rescueRequest.getCoordinatorNote() : "";
                 String baseNote = String.format(
-                        "[%s - %s]: Sự cố xảy ra sau khi đội xuất phát. Đội %s đang nghỉ trực, xe đưa vào bảo trì. Lý do: %s",
+                        "[%s - %s]: POST-DEPARTURE - Sự cố sau khi xuất phát. Đội %s OFF_DUTY, xe bảo trì. Lý do: %s",
                         LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm dd/MM")),
                         coordinator.getFullName(),
                         oldTeam != null ? oldTeam.getName() : "cũ",
@@ -189,8 +189,9 @@ public class IncidentReportServiceImpl implements IncidentReportService {
                 }
 
                 rescueRequest.setStatus(RequestStatus.IN_PROGRESS);
-                String reassignNote = baseNote + String.format(". Nhiệm vụ giao lại cho đội %s.", newTeam.getName());
-                rescueRequest.setCoordinatorNote(oldNote.isEmpty() ? reassignNote : oldNote + "\n" + reassignNote);
+                String reassignNote = baseNote + String.format(" Giao lại cho đội %s.", newTeam.getName());
+                // Để tránh note quá dài, chỉ lưu note hiện tại thay vì concatenate tất cả history
+                rescueRequest.setCoordinatorNote(reassignNote);
 
             } else {
                 // ============================================================
@@ -275,15 +276,15 @@ public class IncidentReportServiceImpl implements IncidentReportService {
 
                 rescueRequest.setStatus(RequestStatus.IN_PROGRESS);
 
-                String oldNote = rescueRequest.getCoordinatorNote() != null ? rescueRequest.getCoordinatorNote() : "";
                 String reassignNote = String.format(
-                        "[%s - %s]: Sự cố được xử lý. Nhiệm vụ giao lại cho đội %s. Lý do: %s",
+                        "[%s - %s]: PRE-DEPARTURE - Sự cố xử lý trước khi xuất phát. Nhiệm vụ giao cho đội %s. Lý do: %s",
                         LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm dd/MM")),
                         coordinator.getFullName(),
                         newTeam.getName(),
                         resolveRequest.getCoordinatorResponse() != null ? resolveRequest.getCoordinatorResponse() : "Không có ghi chú"
                 );
-                rescueRequest.setCoordinatorNote(oldNote.isEmpty() ? reassignNote : oldNote + "\n" + reassignNote);
+                // Để tránh note quá dài, chỉ lưu note hiện tại thay vì concatenate tất cả history
+                rescueRequest.setCoordinatorNote(reassignNote);
             }
 
             requestRepo.save(rescueRequest);

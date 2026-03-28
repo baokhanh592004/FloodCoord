@@ -91,6 +91,12 @@ function DetailModal({ mission, onClose }) {
                   <p className="text-sm text-gray-700 leading-relaxed">{mission.description}</p>
                 </div>
               )}
+              {mission.completedAt && (
+                <div className="flex justify-between items-start text-sm mt-3 pt-3 border-t border-gray-100">
+                  <span className="text-gray-500 w-32 shrink-0">Hoàn thành lúc:</span>
+                  <span className="font-semibold text-emerald-600 text-right">{formatDate(mission.completedAt)}</span>
+                </div>
+              )}
             </div>
           </section>
 
