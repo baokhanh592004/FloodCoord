@@ -566,11 +566,38 @@ export default function MissionDetail() {
             type="file"
             multiple
             accept="image/*"
-            onChange={e => setIncidentForm(prev => ({ ...prev, files: Array.from(e.target.files) }))}
+            onChange={e => {
+              const newFiles = Array.from(e.target.files).map(f => Object.assign(f, { preview: URL.createObjectURL(f) }));
+              setIncidentForm(prev => ({ ...prev, files: [...prev.files, ...newFiles] }));
+              e.target.value = '';
+            }}
             className="block w-full text-sm text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-600 hover:file:bg-orange-100 transition-all"
           />
           {incidentForm.files.length > 0 && (
-            <p className="text-xs text-slate-400 mt-1">{incidentForm.files.length} ảnh được chọn</p>
+            <div className="mt-3 grid grid-cols-4 gap-2">
+              {incidentForm.files.map((file, index) => (
+                <div key={index} className="relative aspect-square rounded-lg overflow-hidden border border-slate-200 group bg-slate-100">
+                  <img
+                    src={file.preview || URL.createObjectURL(file)}
+                    alt={`Preview ${index}`}
+                    className="w-full h-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIncidentForm(prev => ({
+                        ...prev,
+                        files: prev.files.filter((_, i) => i !== index)
+                      }));
+                    }}
+                    className="absolute top-1 right-1 bg-black/50 hover:bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-all"
+                    title="Xóa ảnh"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       </div>
