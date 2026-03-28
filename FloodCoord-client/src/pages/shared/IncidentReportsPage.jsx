@@ -63,6 +63,9 @@ export default function IncidentReportsPage() {
     const [loadingSupplies, setLoadingSupplies] = useState(false);
     const [selectedSupplies, setSelectedSupplies] = useState([]);
 
+    // --- Modal xác nhận post-departure trước hủy ---
+    const [showPostDepartureConfirm, setShowPostDepartureConfirm] = useState(false);
+
     // ============================================================
     // Data loading
     // ============================================================
@@ -191,13 +194,26 @@ export default function IncidentReportsPage() {
     // Resolve Abort (Step 1: Hủy sự cố - chỉ giải phóng tài nguyên cũ)
     // ============================================================
 
-    const handleResolveAbort = async () => {
+    const handleAbortConfirmClick = () => {
         if (!selectedItem) return;
 
         if (!resolveNote.trim()) {
             alert('Vui lòng nhập ghi chú lý do hủy.');
             return;
         }
+
+        // Nếu chưa tick "Đội đã xuất phát" nhưng có thể tick thì mở modal xác nhận
+        if (!isPostDeparture && canMarkPostDeparture) {
+            setShowPostDepartureConfirm(true);
+            return;
+        }
+
+        // Nếu đã tick hoặc không cần tick thì tiến hành hủy
+        handleResolveAbort();
+    };
+
+    const handleResolveAbort = async () => {
+        if (!selectedItem) return;
 
         setResolving(true);
         try {
@@ -209,6 +225,7 @@ export default function IncidentReportsPage() {
 
             await incidentReportApi.resolveIncident(selectedItem.id, payload);
             await loadIncidents();
+            setShowPostDepartureConfirm(false);
             handleAbortSuccess();
         } catch (error) {
             alert(error?.response?.data?.message || 'Có lỗi xảy ra khi hủy sự cố');
@@ -714,7 +731,7 @@ export default function IncidentReportsPage() {
                                         </button>
                                         <button
                                             type="button"
-                                            onClick={handleResolveAbort}
+                                            onClick={handleAbortConfirmClick}
                                             disabled={resolving || !canSubmitAbortNote}
                                             className="inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 transition-colors"
                                         >
@@ -964,6 +981,79 @@ export default function IncidentReportsPage() {
                                     </div>
                                 </div>
                             )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ===== MODAL XÁC NHẬN POST-DEPARTURE ===== */}
+            {showPostDepartureConfirm && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+                    <div className="w-full max-w-md rounded-xl bg-white shadow-xl overflow-hidden">
+                        <div className="flex items-center justify-between border-b border-orange-200 bg-orange-50 px-5 py-4">
+                            <h3 className="text-lg font-bold text-orange-900">⚠️ Xác nhận lại thông tin</h3>
+                            <button
+                                type="button"
+                                onClick={() => setShowPostDepartureConfirm(false)}
+                                className="rounded-md p-1.5 text-orange-700 hover:bg-orange-100"
+                            >
+                                <XMarkIcon className="h-5 w-5" />
+                            </button>
+                        </div>
+
+                        <div className="space-y-4 px-5 py-4 text-sm">
+                            <div className="rounded-lg border border-orange-200 bg-orange-50 p-3 space-y-2">
+                                <p className="font-semibold text-orange-900">
+                                    🚗 Bạn có chắc chắn đội <strong>{selectedItem?.teamName}</strong> đã xuất phát khi sự cố xảy ra?
+                                </p>
+                                <p className="text-xs text-orange-800 leading-relaxed">
+                                    Nếu <strong>CHƯA xuất phát</strong> (đội đang chờ ở cơ sở, chưa di chuyển):
+                                    <br />→ Hãy bỏ tick "Đội đã xuất phát" và nhấn quay lại
+                                </p>
+                                <p className="text-xs text-orange-800 leading-relaxed">
+                                    Nếu <strong>ĐÃ xuất phát</strong> (đội đang trên đường hoặc đang làm nhiệm vụ):
+                                    <br />→ Hãy nhấn "Xác nhận" dưới đây để tiếp tục
+                                </p>
+                            </div>
+
+                            <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                                <p className="font-semibold mb-1">❗ Lưu ý quan trọng:</p>
+                                <p>
+                                    Tùy theo lựa chọn của bạn, hệ thống sẽ xử lý khác nhau:
+                                </p>
+                                <p className="mt-1">
+                                    • <strong>Đã xuất phát:</strong> Đội → OFF_DUTY, Xe → MAINTENANCE
+                                </p>
+                                <p>
+                                    • <strong>Chưa xuất phát:</strong> Đội → trở lại AVAILABLE, Xe/Vật tư → thu hồi đúng quy trình
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end gap-2 border-t border-gray-200 bg-gray-50 px-5 py-3">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setShowPostDepartureConfirm(false);
+                                    setIsPostDeparture(false);
+                                    setModalStep('ABORT');
+                                }}
+                                className="rounded-md px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 hover:bg-gray-100"
+                            >
+                                ← Quay lại (chưa xuất phát)
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setShowPostDepartureConfirm(false);
+                                    setIsPostDeparture(true);
+                                    handleResolveAbort();
+                                }}
+                                disabled={resolving}
+                                className="inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-semibold text-white bg-orange-600 hover:bg-orange-700 disabled:opacity-50 transition-colors"
+                            >
+                                ✓ Xác nhận (đã xuất phát)
+                            </button>
                         </div>
                     </div>
                 </div>
