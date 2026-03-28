@@ -5,8 +5,8 @@ import AssignTaskModal from '../../components/coordinator/AssignTaskModal';
 import RequestDetailModal from '../../components/coordinator/RequestDetailModal';
 import PriorityBadge from '../../components/coordinator/PriorityBadge';
 import StatusBadge from '../../components/coordinator/StatusBadge';
+import SearchAndFilterBar from '../../components/shared/filters/SearchAndFilterBar';
 import {
-    MagnifyingGlassIcon,
     ArrowPathIcon,
     EyeIcon,
     ShieldCheckIcon,
@@ -153,10 +153,19 @@ export default function RequestQueue() {
         REJECTED: requests.filter((r) => r.status === 'REJECTED').length,
     }), [requests]);
 
+    const filterTabs = [
+        { key: 'ALL', label: 'Tất cả', count: statusCounts.ALL },
+        { key: 'PENDING', label: 'Chờ duyệt', count: statusCounts.PENDING },
+        { key: 'VERIFIED', label: 'Đã xác thực', count: statusCounts.VERIFIED },
+        { key: 'IN_PROGRESS', label: 'Đang thực thi', count: statusCounts.IN_PROGRESS },
+        { key: 'COMPLETED', label: 'Hoàn thành', count: statusCounts.COMPLETED },
+        { key: 'REJECTED', label: 'Không duyệt', count: statusCounts.REJECTED },
+    ];
+
     return (
         <div className="h-full flex flex-col p-4 gap-3">
             {/* Header — compact */}
-            <div className="flex-shrink-0 flex items-center justify-between">
+            <div className="shrink-0 flex items-center justify-between">
                 <div>
                     <h1 className="text-xl font-bold text-gray-900">Danh sách yêu cầu</h1>
                     <p className="text-xs text-gray-500">
@@ -181,41 +190,16 @@ export default function RequestQueue() {
             </div>
 
             {/* Filters: search + status tabs — compact */}
-            <div className="flex-shrink-0 flex flex-col sm:flex-row gap-2 items-start sm:items-center">
-                <div className="relative flex-1 max-w-sm">
-                    <MagnifyingGlassIcon className="absolute left-2.5 top-2 h-3.5 w-3.5 text-gray-400" />
-                    <input
-                        type="text"
-                        placeholder="Tìm theo tên, địa điểm..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-8 pr-3 py-1.5 border border-gray-200 rounded-md text-xs focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                    />
-                </div>
-                <div className="flex gap-0.5 bg-gray-100 p-0.5 rounded-lg flex-wrap">
-                    {[
-                        { key: 'ALL', label: 'Tất cả' },
-                        { key: 'PENDING', label: 'Chờ duyệt' },
-                        { key: 'VERIFIED', label: 'Đã xác thực' },
-                        { key: 'IN_PROGRESS', label: 'Đang thực thi' },
-                        { key: 'COMPLETED', label: 'Hoàn thành' },
-                        { key: 'REJECTED', label: 'Không duyệt' },
-                    ].map((tab) => (
-                        <button
-                            key={tab.key}
-                            onClick={() => setStatusFilter(tab.key)}
-                            className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
-                                statusFilter === tab.key
-                                    ? 'bg-white text-teal-700 shadow-sm'
-                                    : 'text-gray-500 hover:text-gray-700'
-                            }`}
-                        >
-                            {tab.label}
-                            <span className="ml-1 text-gray-400">({statusCounts[tab.key]})</span>
-                        </button>
-                    ))}
-                </div>
-            </div>
+            <SearchAndFilterBar
+                variant="coordinator"
+                searchValue={searchTerm}
+                onSearchChange={setSearchTerm}
+                searchPlaceholder="Tìm theo tên, địa điểm..."
+                onClearSearch={() => setSearchTerm('')}
+                tabs={filterTabs}
+                activeTab={statusFilter}
+                onTabChange={setStatusFilter}
+            />
 
             {/* Table — fills remaining space, scrolls internally */}
             <div className="flex-1 min-h-0 bg-white border border-gray-200 rounded-lg flex flex-col overflow-hidden">
@@ -224,9 +208,9 @@ export default function RequestQueue() {
                         <thead className="sticky top-0 z-10">
                             <tr className="bg-gray-50 border-b border-gray-200">
                                 <th className="text-left px-3 py-2 font-semibold text-gray-600 w-10">#</th>
-                                <th className="text-left px-3 py-2 font-semibold text-gray-600">Tiêu đề</th>
-                                <th className="text-left px-3 py-2 font-semibold text-gray-600">Người gửi</th>
-                                <th className="text-left px-3 py-2 font-semibold text-gray-600">Địa điểm cứu trợ</th>
+                                <th className="text-left px-3 py-2 font-semibold text-gray-600 w-64">Tiêu đề</th>
+                                <th className="text-left px-3 py-2 font-semibold text-gray-600 w-44">Người gửi</th>
+                                <th className="text-left px-3 py-2 font-semibold text-gray-600 w-80">Địa điểm cứu trợ</th>
                                 <th className="text-left px-3 py-2 font-semibold text-gray-600 w-28">Thời gian</th>
                                 <th className="text-center px-3 py-2 font-semibold text-gray-600 w-24">Mức độ</th>
                                 <th className="text-center px-3 py-2 font-semibold text-gray-600 w-28">Trạng thái</th>
@@ -240,27 +224,27 @@ export default function RequestQueue() {
                                     <td className="px-3 py-2 text-gray-400 font-mono">{(currentPage - 1) * ITEMS_PER_PAGE + index + 1}</td>
 
                                     {/* Tiêu đề */}
-                                    <td className="px-3 py-2">
-                                        <p className="font-medium text-gray-900">
+                                    <td className="px-3 py-2 min-w-64">
+                                        <p className="font-medium text-gray-900 truncate" title={req.title || 'Yêu cầu cứu hộ'}>
                                             {req.title || 'Yêu cầu cứu hộ'}
                                         </p>
                                     </td>
 
                                     {/* Người gửi (tên + SĐT) */}
-                                    <td className="px-3 py-2">
-                                        <p className="text-gray-900 font-medium">
+                                    <td className="px-3 py-2 min-w-44">
+                                        <p className="text-gray-900 font-medium truncate" title={req.contactName || req.citizenName || 'Không rõ'}>
                                             {req.contactName || req.citizenName || 'Không rõ'}
                                         </p>
                                         {(req.contactPhone) && (
-                                            <p className="text-gray-400 mt-0.5">
+                                            <p className="text-gray-400 mt-0.5 truncate" title={req.contactPhone}>
                                                 {req.contactPhone}
                                             </p>
                                         )}
                                     </td>
 
                                     {/* Địa điểm cứu trợ — sau khi enrich sẽ có location từ detail API */}
-                                    <td className="px-3 py-2">
-                                        <p className="text-gray-700">
+                                    <td className="px-3 py-2 min-w-80">
+                                        <p className="text-gray-700 truncate" title={req.location?.addressText || 'Đang tải...'}>
                                             {req.location?.addressText || 'Đang tải...'}
                                         </p>
                                     </td>
@@ -348,7 +332,7 @@ export default function RequestQueue() {
 
                 {/* Footer: phân trang */}
                 {filteredRequests.length > 0 && (
-                    <div className="flex-shrink-0 px-3 py-2 bg-gray-50 border-t border-gray-200 text-xs text-gray-500 flex items-center justify-between">
+                    <div className="shrink-0 px-3 py-2 bg-gray-50 border-t border-gray-200 text-xs text-gray-500 flex items-center justify-between">
                         <span>
                             Hiển thị {(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, filteredRequests.length)} / {filteredRequests.length} yêu cầu
                         </span>
