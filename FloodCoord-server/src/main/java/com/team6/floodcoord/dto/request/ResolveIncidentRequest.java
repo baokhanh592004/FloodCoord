@@ -10,9 +10,13 @@ public class ResolveIncidentRequest {
     private IncidentAction action;
     private String coordinatorResponse;
 
-    // --- ABORT without reassign: where to put the old vehicle ---
-    // "AVAILABLE" = return to ready, "MAINTENANCE" = send for repair
-    private String vehicleStatus;
+    /**
+     * true = đội đã xuất phát khi sự cố xảy ra (post-departure).
+     * Khi true + ABORT: đội cũ → OFF_DUTY, xe cũ → MAINTENANCE, vật tư KHÔNG hoàn lại kho.
+     * Đội cũ phải gửi báo cáo tình trạng xe/vật tư sau khi về.
+     */
+    private Boolean isPostDeparture;
+
 
     // --- ABORT with reassign ---
     private Long newTeamId;       // RescueTeam ID of the new team

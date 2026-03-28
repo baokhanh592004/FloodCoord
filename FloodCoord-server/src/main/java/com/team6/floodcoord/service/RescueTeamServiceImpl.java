@@ -35,6 +35,9 @@ public class RescueTeamServiceImpl implements RescueTeamService{
         team.setName(request.getName());
         team.setDescription(request.getDescription());
         team.setIsActive(true);
+        if (request.getStatus() != null) {
+            team.setStatus(request.getStatus());
+        }
 
         // Lưu trước để có ID
         team = teamRepo.save(team);
@@ -66,6 +69,10 @@ public class RescueTeamServiceImpl implements RescueTeamService{
         }
 
         if (request.getDescription() != null) team.setDescription(request.getDescription());
+
+        if (request.getStatus() != null) {
+            team.setStatus(request.getStatus());
+        }
 
         // Update Leader
         if (request.getLeaderId() != null) {

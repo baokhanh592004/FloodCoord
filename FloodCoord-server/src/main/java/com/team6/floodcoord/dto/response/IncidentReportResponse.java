@@ -33,5 +33,6 @@ public class IncidentReportResponse {
     // Kết quả xử lý
     private String coordinatorResponse;
     private IncidentAction coordinatorAction;
+    private Boolean isPostDeparture;   // true = đội đã xuất phát khi sự cố → OFF_DUTY + MAINTENANCE
     private LocalDateTime resolvedAt;
 }

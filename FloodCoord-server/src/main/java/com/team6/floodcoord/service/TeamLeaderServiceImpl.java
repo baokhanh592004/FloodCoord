@@ -421,6 +421,18 @@ public class TeamLeaderServiceImpl implements TeamLeaderService {
                     .toList();
         }
 
+        // 📝 Report
+        ReportDetailDTO reportDto = null;
+        if (r.getReport() != null) {
+            RescueReport report = r.getReport();
+            reportDto = ReportDetailDTO.builder()
+                    .rescuedPeople(report.getRescuedPeople())
+                    .reportNote(report.getReportNote())
+                    .reportedAt(report.getReportedAt())
+                    .leaderName(report.getLeader() != null ? report.getLeader().getFullName() : null)
+                    .build();
+        }
+
         return CompletedRequestDTO.builder()
                 .requestId(r.getRequestId())
                 .trackingCode(r.getTrackingCode())
@@ -447,6 +459,7 @@ public class TeamLeaderServiceImpl implements TeamLeaderService {
                         r.getAssignedTeam() != null && r.getAssignedTeam().getLeader() != null
                                 ? r.getAssignedTeam().getLeader().getPhoneNumber()
                                 : null)
+                .report(reportDto)
                 .build();
     }
 }

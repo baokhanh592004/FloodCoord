@@ -19,6 +19,8 @@ const STATUS_META = {
     RESOLVED: 'bg-green-100 text-green-800 border-green-200',
 };
 
+const ITEMS_PER_PAGE = 7;
+
 const ACTION_META = {
     CONTINUE: 'Yêu cầu đội tiếp tục',
     ABORT: 'Hủy nhiệm vụ & Giao đội mới',
@@ -31,11 +33,16 @@ export default function IncidentReportsPage() {
     const [selectedItem, setSelectedItem] = useState(null);
     const [loading, setLoading] = useState(true);
     const [errorMessage, setErrorMessage] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
 
     // --- Resolution state ---
     const [resolveNote, setResolveNote] = useState('');
     const [actionType, setActionType] = useState('CONTINUE');
     const [resolving, setResolving] = useState(false);
+
+    // --- Post-departure flag ---
+    // true = đội đã xuất phát khi sự cố xảy ra → OFF_DUTY + MAINTENANCE + vật tư không hoàn
+    const [isPostDeparture, setIsPostDeparture] = useState(false);
 
     // --- Team ---
     const [availableTeams, setAvailableTeams] = useState([]);
@@ -47,7 +54,7 @@ export default function IncidentReportsPage() {
     const [loadingVehicles, setLoadingVehicles] = useState(false);
     const [newVehicleId, setNewVehicleId] = useState('');
 
-    // --- Vehicle status (for "no reassign" branch only) ---
+    // --- Vehicle status (for pre-departure "no reassign" branch only) ---
     const [vehicleStatus, setVehicleStatus] = useState('AVAILABLE');
 
     // --- Supplies for new team ---
@@ -112,6 +119,7 @@ export default function IncidentReportsPage() {
         setSelectedItem(item);
         setResolveNote('');
         setActionType('CONTINUE');
+        setIsPostDeparture(false);
         setNewTeamId('');
         setNewVehicleId('');
         setVehicleStatus('AVAILABLE');
@@ -160,16 +168,9 @@ export default function IncidentReportsPage() {
             return;
         }
 
-        if (actionType === 'ABORT' && !newTeamId && availableTeams.length > 0) {
-            const confirmed = window.confirm(
-                'Bạn chưa chọn đội mới.\n\n' +
-                'Nếu tiếp tục:\n' +
-                '• Nhiệm vụ sẽ trở về hàng chờ (VERIFIED)\n' +
-                '• Toàn bộ vật tư sẽ được thu hồi về kho\n' +
-                '• Xe sẽ được trả về theo trạng thái bạn chọn\n\n' +
-                'Bạn có chắc chắn không muốn giao cho đội nào không?'
-            );
-            if (!confirmed) return;
+        if (actionType === 'ABORT' && !newTeamId) {
+            alert('Vui lòng chọn đội mới để giao nhiệm vụ.');
+            return;
         }
 
         setResolving(true);
@@ -180,19 +181,13 @@ export default function IncidentReportsPage() {
             };
 
             if (actionType === 'ABORT') {
-                if (newTeamId) {
-                    // Reassign branch: send vehicle + supplies for new team
-                    payload.newTeamId = parseInt(newTeamId);
-                    payload.newVehicleId = newVehicleId ? parseInt(newVehicleId) : null;
-                    const suppliesWithQty = selectedSupplies.filter(
-                        (s) => s.quantity > 0
-                    );
-                    payload.newSupplies = suppliesWithQty.length > 0 ? suppliesWithQty : null;
-                } else {
-                    // No reassign: tell backend what to do with old vehicle
-                    payload.vehicleStatus = vehicleStatus;
-                    payload.newTeamId = null;
-                }
+                payload.isPostDeparture = isPostDeparture;
+                payload.newTeamId = parseInt(newTeamId);
+                payload.newVehicleId = newVehicleId ? parseInt(newVehicleId) : null;
+                const suppliesWithQty = selectedSupplies.filter(
+                    (s) => s.quantity > 0
+                );
+                payload.newSupplies = suppliesWithQty.length > 0 ? suppliesWithQty : null;
             }
 
             await incidentReportApi.resolveIncident(selectedItem.id, payload);
@@ -225,6 +220,16 @@ export default function IncidentReportsPage() {
             })
             .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
     }, [incidents, keyword, statusFilter]);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [keyword, statusFilter]);
+
+    const totalPages = Math.ceil(filteredIncidents.length / ITEMS_PER_PAGE);
+    const paginatedIncidents = filteredIncidents.slice(
+        (currentPage - 1) * ITEMS_PER_PAGE,
+        currentPage * ITEMS_PER_PAGE
+    );
 
     const stats = useMemo(() => ({
         total: incidents.length,
@@ -334,10 +339,10 @@ export default function IncidentReportsPage() {
                         <tbody>
                             {loading ? (
                                 <tr><td colSpan={6} className="px-3 py-6 text-center text-gray-500">Đang tải dữ liệu...</td></tr>
-                            ) : filteredIncidents.length === 0 ? (
+                            ) : paginatedIncidents.length === 0 ? (
                                 <tr><td colSpan={6} className="px-3 py-8 text-center text-gray-500">Không có sự cố nào phù hợp.</td></tr>
                             ) : (
-                                filteredIncidents.map((item) => (
+                                paginatedIncidents.map((item) => (
                                     <tr key={item.id} className="border-t border-gray-100 align-top hover:bg-gray-50">
                                         <td className="px-3 py-3 w-1/4">
                                             <p className="font-semibold text-gray-900">{item.title}</p>
@@ -375,6 +380,47 @@ export default function IncidentReportsPage() {
                         </tbody>
                     </table>
                 </div>
+
+                {/* Footer phân trang */}
+                {filteredIncidents.length > 0 && (
+                    <div className="shrink-0 px-3 py-2 bg-gray-50 border-t border-gray-200 text-xs text-gray-500 flex items-center justify-between rounded-b-lg">
+                        <span>
+                            Hiển thị {(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, filteredIncidents.length)} / {filteredIncidents.length} sự cố
+                        </span>
+                        {totalPages > 1 && (
+                            <div className="flex items-center gap-1">
+                                <button
+                                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                    disabled={currentPage === 1}
+                                    className="px-2 py-1 rounded border border-gray-300 bg-white hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                                >
+                                    ‹
+                                </button>
+                                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                                    <button
+                                        key={page}
+                                        onClick={() => setCurrentPage(page)}
+                                        className={`px-2 py-1 rounded border ${
+                                            currentPage === page
+                                                ? 'bg-blue-600 text-white border-blue-600'
+                                                : 'border-gray-300 bg-white hover:bg-gray-100'
+                                        }`}
+                                    >
+                                        {page}
+                                    </button>
+                                ))}
+                                <button
+                                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                    disabled={currentPage === totalPages}
+                                    className="px-2 py-1 rounded border border-gray-300 bg-white hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                                >
+                                    ›
+                                </button>
+                            </div>
+                        )}
+                        <span>{filteredIncidents.length} kết quả</span>
+                    </div>
+                )}
             </div>
 
             {/* ===== MODAL ===== */}
@@ -499,17 +545,33 @@ export default function IncidentReportsPage() {
                                         <div className="rounded-lg border border-red-200 bg-red-50 p-3 space-y-4">
                                             <p className="text-xs font-bold text-red-800 uppercase tracking-wide">⚠️ Cấu hình hủy nhiệm vụ</p>
 
+                                            {/* 0. Post-departure toggle */}
+                                            <label className="flex items-start gap-3 cursor-pointer p-3 rounded-lg bg-orange-50 border border-orange-200 hover:bg-orange-100 transition-colors">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={isPostDeparture}
+                                                    onChange={(e) => setIsPostDeparture(e.target.checked)}
+                                                    className="mt-0.5 h-4 w-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+                                                />
+                                                <div>
+                                                    <p className="text-sm font-semibold text-orange-900">🚗 Đội đã xuất phát khi sự cố xảy ra</p>
+                                                    <p className="text-xs text-orange-700 mt-0.5">
+                                                        Nếu tích: Đội cũ → <strong>Nghỉ trực (OFF_DUTY)</strong>, xe → <strong>Bảo trì (MAINTENANCE)</strong>, vật tư <strong>không hoàn lại kho</strong>. Đội cũ phải gửi báo cáo tình trạng.
+                                                    </p>
+                                                </div>
+                                            </label>
+
                                             {/* 1. Select new team */}
                                             <div>
                                                 <label className="block text-xs font-semibold text-gray-700 mb-1">
                                                     Giao nhiệm vụ cho đội mới
-                                                    <span className="ml-1 text-gray-500 font-normal">(tùy chọn)</span>
+                                                    <span className="text-red-500 ml-1">*</span>
                                                 </label>
                                                 {loadingTeams ? (
                                                     <p className="text-sm text-gray-500 py-1">Đang tải danh sách đội...</p>
                                                 ) : availableTeams.length === 0 ? (
                                                     <div className="rounded-md border border-orange-200 bg-orange-50 px-3 py-2 text-xs text-orange-700">
-                                                        ⚠️ Hiện không có đội nào sẵn sàng. Nhiệm vụ sẽ trở về hàng chờ để điều phối sau.
+                                                        ⚠️ Hiện không có đội nào sẵn sàng. Vui lòng điều phối đội trước khi tiếp tục.
                                                     </div>
                                                 ) : (
                                                     <select
@@ -521,30 +583,13 @@ export default function IncidentReportsPage() {
                                                         }}
                                                         className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none bg-white"
                                                     >
-                                                        <option value="">-- Không giao (trả về hàng chờ) --</option>
+                                                        <option value="">-- Chọn đội mới --</option>
                                                         {availableTeams.map((team) => (
                                                             <option key={team.id} value={team.id}>{team.name}</option>
                                                         ))}
                                                     </select>
                                                 )}
                                             </div>
-
-                                            {/* 2. If no new team: show vehicle-status selector for old vehicle */}
-                                            {!newTeamId && (
-                                                <div>
-                                                    <label className="block text-xs font-semibold text-gray-700 mb-1">
-                                                        Trạng thái phương tiện cũ sau sự cố
-                                                    </label>
-                                                    <select
-                                                        value={vehicleStatus}
-                                                        onChange={(e) => setVehicleStatus(e.target.value)}
-                                                        className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none bg-white"
-                                                    >
-                                                        <option value="AVAILABLE">🟢 Còn dùng được (AVAILABLE) – Trả về kho</option>
-                                                        <option value="MAINTENANCE">🔴 Cần bảo trì (MAINTENANCE) – Đưa vào sửa chữa</option>
-                                                    </select>
-                                                </div>
-                                            )}
 
                                             {/* 3. If new team chosen: assign new vehicle */}
                                             {newTeamId && (
@@ -651,9 +696,19 @@ export default function IncidentReportsPage() {
                                             {/* Summary */}
                                             <div className="rounded-md border border-gray-200 bg-white px-3 py-2 text-xs text-gray-600 space-y-1">
                                                 <p className="font-semibold text-gray-700">Kết quả sau khi xác nhận:</p>
-                                                <p>• Đội cũ ({selectedItem.teamName}) → giải phóng về trạng thái <strong>Sẵn sàng</strong></p>
-                                                <p>• Xe cũ → thu hồi về kho {!newTeamId && vehicleStatus === 'MAINTENANCE' ? '(đưa vào bảo trì)' : '(AVAILABLE)'}</p>
-                                                <p>• Vật tư cũ → <strong>thu hồi toàn bộ về kho</strong></p>
+                                                {isPostDeparture ? (
+                                                    <>
+                                                        <p>• Đội cũ ({selectedItem.teamName}) → <strong className="text-orange-700">Nghỉ trực (OFF_DUTY)</strong> — chờ về + gửi báo cáo tình trạng</p>
+                                                        <p>• Xe cũ → <strong className="text-orange-700">Bảo trì (MAINTENANCE)</strong> — không trả về kho ngay</p>
+                                                        <p>• Vật tư cũ → <strong className="text-red-700">KHÔNG hoàn lại kho</strong> (đã mang đi)</p>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <p>• Đội cũ ({selectedItem.teamName}) → giải phóng về trạng thái <strong>Sẵn sàng</strong></p>
+                                                        <p>• Xe cũ → thu hồi về kho (AVAILABLE)</p>
+                                                        <p>• Vật tư cũ → <strong>thu hồi toàn bộ về kho</strong></p>
+                                                    </>
+                                                )}
                                                 {newTeamId ? (
                                                     <>
                                                         <p>• Đội mới (<strong>{selectedNewTeam?.name}</strong>) → nhận nhiệm vụ ngay (IN_PROGRESS)</p>
@@ -663,7 +718,7 @@ export default function IncidentReportsPage() {
                                                         )}
                                                     </>
                                                 ) : (
-                                                    <p>• Nhiệm vụ → trở về <strong>hàng chờ (VERIFIED)</strong></p>
+                                                    <p>• <strong>Vui lòng chọn đội mới để giao nhiệm vụ</strong></p>
                                                 )}
                                             </div>
                                         </div>
