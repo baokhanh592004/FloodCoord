@@ -1,24 +1,39 @@
-import React from 'react';
+import { createElement } from 'react';
 import { Package } from 'lucide-react';
 
-export default function EmptyState({ onAdd, title, description, buttonText, icon: Icon = Package }) {
-    return (
-        <div className="text-center py-20 bg-white/40 backdrop-blur-md rounded-3xl border border-dashed border-slate-300">
-            <div className="mx-auto w-24 h-24 bg-green-50 rounded-full flex items-center justify-center mb-4">
-                <Icon size={40} className="text-green-300" />
-            </div>
-            <h3 className="text-xl font-bold text-slate-700 mb-2">
-                {title || 'Chưa có vật tư nào'}
-            </h3>
-            <p className="text-slate-500 mb-6 max-w-sm mx-auto">
-                {description || 'Hệ thống chưa ghi nhận vật tư cứu trợ nào. Hãy thêm vật tư để bắt đầu quản lý kho.'}
-            </p>
-            <button
-                onClick={onAdd}
-                className="px-6 py-3 bg-[#f97316] text-white rounded-xl shadow-lg shadow-orange-500/30 hover:bg-orange-600 hover:scale-105 transition font-semibold"
-            >
-                {buttonText || '+ Thêm vật tư đầu tiên'}
-            </button>
-        </div>
-    );
+export default function EmptyState({
+  onAdd,
+  title,
+  description,
+  buttonText,
+  icon = Package,
+}) {
+  const iconElement = createElement(icon, { size: 36, className: 'text-accent' });
+
+  return (
+    <div className="text-center py-20 rounded-2xl border border-dashed border-neutral-200 bg-neutral-50">
+      {/* Icon ring */}
+      <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full border-2 border-accent-100 bg-accent-50">
+        {iconElement}
+      </div>
+
+      {/* Text */}
+      <h3 className="mb-2 font-condensed text-xl font-bold text-navy-dark">
+        {title || 'Chưa có dữ liệu'}
+      </h3>
+      <p className="mx-auto mb-8 max-w-sm text-sm leading-relaxed text-neutral-400">
+        {description || 'Chưa có dữ liệu nào được ghi nhận. Hãy thêm mới để bắt đầu.'}
+      </p>
+
+      {/* CTA button */}
+      {onAdd && (
+        <button
+          onClick={onAdd}
+          className="inline-flex items-center gap-2 rounded-lg bg-accent px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-accent/20 transition-all duration-200 hover:-translate-y-0.5 hover:bg-accent-hover hover:shadow-lg hover:shadow-accent/35"
+        >
+          {buttonText || '+ Thêm mới'}
+        </button>
+      )}
+    </div>
+  );
 }
