@@ -13,13 +13,9 @@ public class ResolveIncidentRequest {
     /**
      * true = đội đã xuất phát khi sự cố xảy ra (post-departure).
      * Khi true + ABORT: đội cũ → OFF_DUTY, xe cũ → MAINTENANCE, vật tư KHÔNG hoàn lại kho.
-     * Đội cũ phải gửi báo cáo tình trạng xe/vật tư sau khi về.
+     * Khi false + ABORT: đội cũ → AVAILABLE, xe cũ → AVAILABLE, vật tư hoàn lại kho.
+     * Sau đó cần gọi API /api/incidents/{id}/assign-team để giao đội mới.
      */
     private Boolean isPostDeparture;
-
-
-    // --- ABORT with reassign ---
-    private Long newTeamId;       // RescueTeam ID of the new team
-    private Long newVehicleId;    // Optional: new vehicle to give to the new team
-    private List<AssignSupplyDTO> newSupplies; // Optional: supplies to allocate to new team
 }
+

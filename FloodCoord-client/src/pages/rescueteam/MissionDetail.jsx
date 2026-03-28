@@ -119,14 +119,12 @@ export default function MissionDetail() {
       if (!incident) {
         const persistedWaitingState = localStorage.getItem(waitingStateKey) === "1";
         setWaitingCoordinatorDecision(persistedWaitingState);
-        setAttendanceDone(false);
         return;
       }
 
       if (incident.status === "PENDING") {
         localStorage.setItem(waitingStateKey, "1");
         setWaitingCoordinatorDecision(true);
-        setAttendanceDone(false);
         return;
       }
 
@@ -147,13 +145,9 @@ export default function MissionDetail() {
 
       localStorage.setItem(waitingStateKey, "1");
       setWaitingCoordinatorDecision(true);
-      setAttendanceDone(false);
     } catch (err) {
       const persistedWaitingState = localStorage.getItem(waitingStateKey) === "1";
       setWaitingCoordinatorDecision(persistedWaitingState);
-      if (persistedWaitingState) {
-        setAttendanceDone(false);
-      }
     }
   };
 
@@ -305,7 +299,7 @@ export default function MissionDetail() {
 
   // Khi nhiệm vụ đã bị hủy (ABORT) và giao cho đội khác
   if (!mission && missionAborted && latestIncident) {
-    // Post-departure: đội đang nghỉ trực, chờ gửi báo cáo tình trạng
+    // Post-departure: đội đang nghỉ trực, liên hệ trực tiếp coordinator
     if (latestIncident.isPostDeparture) {
       return (
         <div className="p-8 max-w-xl mx-auto">
@@ -330,14 +324,8 @@ export default function MissionDetail() {
               </div>
             </div>
             <div className="bg-orange-100 rounded-xl px-4 py-3 text-sm text-orange-900 font-medium">
-              📋 Đội trưởng cần gửi báo cáo tình trạng xe và vật tư để Coordinator cập nhật.
+              📞 Đội trưởng vui lòng liên hệ trực tiếp Coordinator để báo tình trạng đội/xe và nhận hướng dẫn tiếp theo.
             </div>
-            <button
-              onClick={() => navigate(`/rescue-team/missions/${latestIncident.rescueRequestId}/standby-report`)}
-              className="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 rounded-xl shadow-md transition-all active:scale-95"
-            >
-              Gửi báo cáo tình trạng xe &amp; vật tư
-            </button>
           </div>
         </div>
       );
@@ -825,12 +813,9 @@ export default function MissionDetail() {
                           </div>
                         </div>
                         {currentUser?.isTeamLeader && (
-                          <button
-                            onClick={() => navigate(`/rescue-team/missions/${mission?.requestId || id}/standby-report`)}
-                            className="w-full bg-orange-600 hover:bg-orange-700 text-white text-sm font-bold px-4 py-2.5 rounded-lg shadow-sm transition-all active:scale-95"
-                          >
-                            📋 Gửi báo cáo tình trạng xe &amp; vật tư
-                          </button>
+                          <div className="w-full rounded-lg bg-orange-100 px-3 py-2.5 text-xs text-orange-900 font-medium">
+                            📞 Đội trưởng liên hệ trực tiếp Coordinator để báo tình trạng đội/xe.
+                          </div>
                         )}
                       </div>
                     ) : (

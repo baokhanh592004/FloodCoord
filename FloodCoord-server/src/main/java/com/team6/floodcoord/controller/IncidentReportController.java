@@ -1,5 +1,6 @@
 package com.team6.floodcoord.controller;
 
+import com.team6.floodcoord.dto.request.AssignTeamRequest;
 import com.team6.floodcoord.dto.request.CreateIncidentRequest;
 import com.team6.floodcoord.dto.request.ResolveIncidentRequest;
 import com.team6.floodcoord.dto.response.IncidentReportResponse;
@@ -36,13 +37,24 @@ public class IncidentReportController {
 
     @PostMapping("/{id}/resolve")
     @PreAuthorize("hasRole('COORDINATOR') or hasRole('ADMIN') or hasRole('MANAGER')")
-    @Operation(summary = "Coordinator phản hồi sự cố (Quyết định CONTINUE hoặc ABORT)")
+    @Operation(summary = "Coordinator hủy sự cố (Step 1: Giải phóng tài nguyên cũ)")
     public ResponseEntity<String> resolveIncident(
             @PathVariable Long id,
             @RequestBody ResolveIncidentRequest request,
             @AuthenticationPrincipal User coordinator) {
         incidentService.resolveIncident(id, request, coordinator);
-        return ResponseEntity.ok("Đã xử lý sự cố và hệ thống đã cập nhật tự động.");
+        return ResponseEntity.ok("Đã hủy sự cố. Tài nguyên cũ đã được giải phóng. Vui lòng giao đội mới qua API assign-team.");
+    }
+
+    @PostMapping("/{id}/assign-team")
+    @PreAuthorize("hasRole('COORDINATOR') or hasRole('ADMIN') or hasRole('MANAGER')")
+    @Operation(summary = "Coordinator giao nhiệm vụ cho đội mới (Step 2: Sau khi đã hủy)")
+    public ResponseEntity<String> assignTeamToIncident(
+            @PathVariable Long id,
+            @RequestBody AssignTeamRequest request,
+            @AuthenticationPrincipal User coordinator) {
+        incidentService.assignTeamToIncident(id, request, coordinator);
+        return ResponseEntity.ok("Đã giao nhiệm vụ cho đội mới thành công.");
     }
 
     @GetMapping("/pending")

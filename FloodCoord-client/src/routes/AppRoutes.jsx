@@ -49,7 +49,6 @@ import RescueTeamDashboard from '../pages/rescueteam/RescueTeamDashboard'
 import MyMissions from '../pages/rescueteam/MyMissions'
 import MissionDetail from '../pages/rescueteam/MissionDetail'
 import RescueReport from '../pages/rescueteam/RescueReport'
-import StandbyStatusReport from '../pages/rescueteam/StandbyStatusReport'
 import CompletedMissions from '../pages/rescueteam/CompletedMissions'
 import TeamMembers from '../pages/rescueteam/TeamMembers'
 import WeatherDashboard from '../pages/WeatherDashboard'
@@ -154,7 +153,6 @@ export default function AppRoutes() {
         <Route path="missions" element={<MyMissions />} />
         <Route path="missions/:id" element={<MissionDetail />}/>
         <Route path="missions/:id/report" element={<RescueReport />}/>
-        <Route path="missions/:id/standby-report" element={<StandbyStatusReport />}/>
         <Route path="completed" element={<CompletedMissions />} />
         <Route path="members" element={<TeamMembers />} />
       </Route>
