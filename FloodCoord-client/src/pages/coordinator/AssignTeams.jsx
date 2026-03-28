@@ -35,7 +35,11 @@ export default function AssignTeams() {
     };
 
     useEffect(() => {
-        loadData();
+        const timer = setTimeout(() => {
+            loadData();
+        }, 0);
+
+        return () => clearTimeout(timer);
     }, []);
 
     const verifiedRequests = useMemo(

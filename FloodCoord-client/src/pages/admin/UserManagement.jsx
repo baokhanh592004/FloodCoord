@@ -18,35 +18,42 @@ import {
     ArrowPathIcon,
 } from '@heroicons/react/24/outline';
 
-const ITEMS_PER_PAGE = 10;
+// ── Admin color palette ──────────────────────────────────────────────────────
+const C = {
+    primary: '#1c1c18',
+    primaryHover: '#3a3a32',
+    primarySoft: '#f5f4ef',
+    accent: '#e85d26',
+    border: '#e2e8f0',
+    textMain: '#0d2240',
+    textMuted: '#64748b',
+    textFaint: '#9ab8d4',
+}
 
-const compareUserId = (leftId, rightId) => {
-    const leftNumber = Number(leftId);
-    const rightNumber = Number(rightId);
-
-    if (Number.isFinite(leftNumber) && Number.isFinite(rightNumber)) {
-        return leftNumber - rightNumber;
-    }
-
-    return String(leftId).localeCompare(String(rightId));
+// Role badges — each role gets its own identity color from the system
+const ROLE_BADGE = {
+    ADMIN: { bg: '#f5f4ef', color: '#1c1c18', border: '#d4d4c8' },  // charcoal (admin = system)
+    MANAGER: { bg: '#f5f3ff', color: '#312070', border: '#ddd6fe' },  // violet
+    COORDINATOR: { bg: '#eff6ff', color: '#2563eb', border: '#bfdbfe' },  // blue
+    RESCUE_TEAM: { bg: '#f0f9f4', color: '#0f4c35', border: '#a7f3d0' },  // forest green
+    MEMBER: { bg: '#f0f6ff', color: '#1a3a5c', border: '#c8d8ec' },  // navy (citizen)
+    CITIZEN: { bg: '#f0f6ff', color: '#1a3a5c', border: '#c8d8ec' },  // navy
 };
 
-const preserveUserOrder = (incomingUsers, previousUsers) => {
-    const previousIndex = new Map(previousUsers.map((user, index) => [user.id, index]));
+const ITEMS_PER_PAGE = 10;
 
-    return [...incomingUsers].sort((leftUser, rightUser) => {
-        const leftPrevIndex = previousIndex.has(leftUser.id)
-            ? previousIndex.get(leftUser.id)
-            : Number.MAX_SAFE_INTEGER;
-        const rightPrevIndex = previousIndex.has(rightUser.id)
-            ? previousIndex.get(rightUser.id)
-            : Number.MAX_SAFE_INTEGER;
+const compareUserId = (a, b) => {
+    const na = Number(a), nb = Number(b);
+    if (Number.isFinite(na) && Number.isFinite(nb)) return na - nb;
+    return String(a).localeCompare(String(b));
+};
 
-        if (leftPrevIndex !== rightPrevIndex) {
-            return leftPrevIndex - rightPrevIndex;
-        }
-
-        return compareUserId(leftUser.id, rightUser.id);
+const preserveUserOrder = (incoming, previous) => {
+    const prevIdx = new Map(previous.map((u, i) => [u.id, i]));
+    return [...incoming].sort((a, b) => {
+        const ai = prevIdx.has(a.id) ? prevIdx.get(a.id) : Number.MAX_SAFE_INTEGER;
+        const bi = prevIdx.has(b.id) ? prevIdx.get(b.id) : Number.MAX_SAFE_INTEGER;
+        return ai !== bi ? ai - bi : compareUserId(a.id, b.id);
     });
 };
 
@@ -54,13 +61,8 @@ const getDeleteUserErrorMessage = (error) => {
     const responseData = error?.response?.data;
     const rawMessage =
         (typeof responseData === 'string' && responseData) ||
-        responseData?.message ||
-        responseData?.error ||
-        error?.message ||
-        '';
-
+        responseData?.message || responseData?.error || error?.message || '';
     const normalized = rawMessage.toLowerCase();
-
     if (
         normalized.includes('violates foreign key constraint') ||
         normalized.includes('is still referenced from table') ||
@@ -68,7 +70,6 @@ const getDeleteUserErrorMessage = (error) => {
     ) {
         return 'Không thể xóa tài khoản này vì đang có dữ liệu yêu cầu cứu hộ liên kết. Vui lòng vô hiệu hóa tài khoản thay vì xóa.';
     }
-
     return responseData?.message || 'Không thể xóa người dùng. Vui lòng thử lại sau.';
 };
 
@@ -84,84 +85,49 @@ export default function UserManagement() {
     const [roleFilter, setRoleFilter] = useState('ALL');
     const [currentPage, setCurrentPage] = useState(1);
 
-    useEffect(() => {
-        fetchUsers();
-    }, []);
+    useEffect(() => { fetchUsers(); }, []);
 
     const fetchUsers = async () => {
         try {
             setLoading(true);
             const data = await adminUserApi.getAllUsers();
-            setUsers(prevUsers => preserveUserOrder(data, prevUsers));
+            setUsers(prev => preserveUserOrder(data, prev));
             setError('');
-        } catch (err) {
+        } catch {
             setError('Không thể tải danh sách người dùng. Vui lòng kiểm tra kết nối với server.');
-            console.error('Fetch users error:', err);
-        } finally {
-            setLoading(false);
-        }
+        } finally { setLoading(false); }
     };
 
-    const handleEdit = (user) => {
-        setEditingUser(user);
-        setShowModal(true);
-    };
+    const handleEdit = (user) => { setEditingUser(user); setShowModal(true); };
+    const handleView = (user) => { setSelectedUser(user); setShowDetailModal(true); };
+    const openCreateModal = () => { setEditingUser(null); setShowModal(true); };
 
-    const handleView = (user) => {
-        setSelectedUser(user);
-        setShowDetailModal(true);
-    };
 
     const handleDelete = async (userId) => {
-        if (!window.confirm('Bạn có chắc chắn muốn xóa người dùng này? Hành động này không thể hoàn tác.')) {
-            return;
-        }
-
-        try {
-            await adminUserApi.deleteUser(userId);
-            await fetchUsers();
-            setError('');
-        } catch (err) {
-            setError(getDeleteUserErrorMessage(err));
-        }
+        if (!window.confirm('Bạn có chắc chắn muốn xóa người dùng này? Hành động này không thể hoàn tác.')) return;
+        try { await adminUserApi.deleteUser(userId); await fetchUsers(); setError(''); }
+        catch (err) { setError(getDeleteUserErrorMessage(err)); }
     };
 
-    const openCreateModal = () => {
-        setEditingUser(null);
-        setShowModal(true);
-    };
-
-    const handleModalSuccess = () => {
-        fetchUsers();
-    };
-
-    // Reset về trang 1 khi thay đổi filter
     useEffect(() => { setCurrentPage(1); }, [roleFilter, searchTerm]);
 
-    // Statistics
-    const stats = useMemo(() => {
-        return {
-            total: users.length,
-            active: users.filter(u => u.status).length,
-            inactive: users.filter(u => !u.status).length,
-            roles: [...new Set(users.map(u => u.roleName))].length
-        };
-    }, [users]);
+    const stats = useMemo(() => ({
+        total: users.length,
+        active: users.filter(u => u.status).length,
+        inactive: users.filter(u => !u.status).length,
+        roles: [...new Set(users.map(u => u.roleName))].length,
+    }), [users]);
 
     // Filtered users
-    const filteredUsers = useMemo(() => {
-        return users.filter(user => {
-            const matchSearch = user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                user.email.toLowerCase().includes(searchTerm.toLowerCase());
-            const matchRole = roleFilter === 'ALL' || user.roleName === roleFilter;
-            return matchSearch && matchRole;
-        });
-    }, [users, searchTerm, roleFilter]);
+    const filteredUsers = useMemo(() => users.filter(user => {
+        const matchSearch = user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            user.email.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchRole = roleFilter === 'ALL' || user.roleName === roleFilter;
+        return matchSearch && matchRole;
+    }), [users, searchTerm, roleFilter]);
 
     // Get unique roles for filter
-    const uniqueRoles = useMemo(() => {
-        return [...new Set(users.map(u => u.roleName))];
-    }, [users]);
+    const uniqueRoles = useMemo(() => [...new Set(users.map(u => u.roleName))], [users]);
 
     // Pagination
     const totalPages = Math.ceil(filteredUsers.length / ITEMS_PER_PAGE);
@@ -171,28 +137,23 @@ export default function UserManagement() {
     }, [filteredUsers, currentPage]);
 
     // Role badge color
-    const getRoleBadge = (roleName) => {
-        const map = {
-            ADMIN: 'bg-purple-100 text-purple-700',
-            MANAGER: 'bg-blue-100 text-blue-700',
-            COORDINATOR: 'bg-teal-100 text-teal-700',
-            RESCUE_TEAM: 'bg-orange-100 text-orange-700',
-            CITIZEN: 'bg-gray-100 text-gray-600',
-        };
-        return map[roleName] || 'bg-gray-100 text-gray-600';
-    };
+    const getRoleBadge = (roleName) => ROLE_BADGE[roleName] || ROLE_BADGE.CITIZEN;
+
 
     return (
         <div className="h-full flex flex-col p-6 gap-4">
             {/* Header */}
             <div className="flex items-start justify-between shrink-0">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Quản lý Người dùng</h1>
-                    <p className="text-sm text-gray-500">Quản lý tài khoản và phân quyền hệ thống.</p>
+                    <h1 className="text-2xl font-bold" style={{ color: C.textMain }}>Quản lý Người dùng</h1>
+                    <p className="text-sm mt-0.5" style={{ color: C.textMuted }}>Quản lý tài khoản và phân quyền hệ thống.</p>
                 </div>
                 <button
                     onClick={openCreateModal}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors"
+                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white rounded-lg transition-colors"
+                    style={{ background: C.primary }}
+                    onMouseEnter={e => e.currentTarget.style.background = C.primaryHover}
+                    onMouseLeave={e => e.currentTarget.style.background = C.primary}
                 >
                     <PlusIcon className="h-4 w-4" /> Tạo tài khoản mới
                 </button>
@@ -209,131 +170,118 @@ export default function UserManagement() {
             {/* Search & Filter */}
             <div className="flex flex-col sm:flex-row gap-3 shrink-0">
                 <div className="relative flex-1 max-w-xs">
-                    <MagnifyingGlassIcon className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <MagnifyingGlassIcon className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2" style={{ color: C.textFaint }} />
                     <input
-                        type="text"
-                        placeholder="Tìm kiếm theo tên hoặc email..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-9 pr-9 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500"
+                        type="text" placeholder="Tìm kiếm theo tên hoặc email..."
+                        value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+                        className="w-full pl-9 pr-9 py-2 rounded-lg text-sm outline-none transition-all focus:ring-2 focus:ring-admin/20 focus:border-admin"
+                        style={{ border: `1px solid ${C.border}` }}
                     />
                     {searchTerm && (
-                        <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                        <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2"
+                            style={{ color: C.textFaint }}>
                             <XMarkIcon className="h-4 w-4" />
                         </button>
                     )}
                 </div>
                 <select
-                    value={roleFilter}
-                    onChange={(e) => setRoleFilter(e.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 bg-white"
+                    value={roleFilter} onChange={e => setRoleFilter(e.target.value)}
+                    className="px-3 py-2 rounded-lg text-sm outline-none transition-all focus:ring-2 focus:ring-admin/20 focus:border-admin bg-white"
+                    style={{ border: `1px solid ${C.border}`, color: C.textMain }}
                 >
                     <option value="ALL">Tất cả vai trò</option>
-                    {uniqueRoles.map(role => (
-                        <option key={role} value={role}>{role}</option>
-                    ))}
+                    {uniqueRoles.map(role => <option key={role} value={role}>{role}</option>)}
                 </select>
             </div>
 
             {/* Error */}
             {error && (
-                <div className="shrink-0 p-4 rounded-lg bg-red-50 border border-red-200 text-red-700 flex items-center gap-3 text-sm">
+                <div className="shrink-0 p-4 rounded-lg flex items-center gap-3 text-sm"
+                    style={{ background: '#fff0ed', border: `1px solid #ffd5c2`, color: '#9a3a10' }}>
                     <AlertCircle size={18} /> {error}
                 </div>
             )}
 
             {/* Table */}
-            <div className="flex-1 min-h-0 bg-white border border-gray-200 rounded-lg flex flex-col overflow-hidden">
+            <div className="flex-1 min-h-0 bg-white rounded-lg flex flex-col overflow-hidden"
+                style={{ border: `1px solid ${C.border}` }}>
                 <div className="flex-1 min-h-0 overflow-auto">
                     {loading ? (
                         <div className="flex justify-center items-center h-40">
-                            <ArrowPathIcon className="h-7 w-7 animate-spin text-blue-500" />
+                            <ArrowPathIcon className="h-7 w-7 animate-spin" style={{ color: C.primary }} />
                         </div>
                     ) : (
-                        <table className="w-full text-base text-left text-gray-500">
+                        <table className="w-full text-xs text-left">
                             <thead className="sticky top-0 z-10">
-                                <tr className="bg-gray-50 border-b border-gray-200">
-                                    <th className="text-left px-3 py-2 font-semibold text-gray-600 w-10">#</th>
-                                    <th className="text-left px-3 py-2 font-semibold text-gray-600">Họ tên</th>
-                                    <th className="text-left px-3 py-2 font-semibold text-gray-600">Email</th>
-                                    <th className="text-center px-3 py-2 font-semibold text-gray-600 w-32">Vai trò</th>
-                                    <th className="text-center px-3 py-2 font-semibold text-gray-600 w-32">Trạng thái</th>
-                                    <th className="text-center px-3 py-2 font-semibold text-gray-600 w-28">Hành động</th>
+                                <tr style={{ background: '#f4f6fa', borderBottom: `1px solid ${C.border}` }}>
+                                    {['#', 'Họ tên', 'Email', 'Vai trò', 'Trạng thái', 'Hành động'].map((h, i) => (
+                                        <th key={i}
+                                            className={`px-3 py-2 font-semibold ${[3, 4, 5].includes(i) ? 'text-center' : 'text-left'}`}
+                                            style={{ color: C.textMuted, width: [40, 208, 256, 128, 128, 112][i] }}>
+                                            {h}
+                                        </th>
+                                    ))}
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-100">
-                                {paginatedUsers.map((user, index) => (
-                                    <tr key={user.id} className="hover:bg-gray-50 transition-colors">
-                                        {/* # */}
-                                        <td className="px-4 py-3 text-gray-400 font-mono">
-                                            {(currentPage - 1) * ITEMS_PER_PAGE + index + 1}
-                                        </td>
-
-                                        {/* Họ tên */}
-                                        <td className="px-4 py-3">
-                                            <p className="font-medium text-gray-900">{user.fullName}</p>
-                                        </td>
-
-                                        {/* Email */}
-                                        <td className="px-4 py-3 text-gray-600">{user.email}</td>
-
-                                        {/* Vai trò */}
-                                        <td className="px-4 py-3 text-center">
-                                            <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-medium ${getRoleBadge(user.roleName)}`}>
-                                                {user.roleName}
-                                            </span>
-                                        </td>
-
-                                        {/* Trạng thái */}
-                                        <td className="px-4 py-3 text-center">
-                                            {user.status ? (
-                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-[11px] font-medium">
-                                                    <span className="h-1.5 w-1.5 rounded-full bg-green-500"></span>
-                                                    Hoạt động
+                            <tbody className="divide-y" style={{ borderColor: '#f4f6fa' }}>
+                                {paginatedUsers.map((user, index) => {
+                                    const badge = getRoleBadge(user.roleName);
+                                    return (
+                                        <tr key={user.id} className="hover:bg-admin-50 transition-colors">
+                                            <td className="px-3 py-2 font-mono" style={{ color: C.textFaint }}>
+                                                {(currentPage - 1) * ITEMS_PER_PAGE + index + 1}
+                                            </td>
+                                            <td className="px-3 py-2 min-w-52">
+                                                <p className="font-medium truncate" style={{ color: C.textMain }}>{user.fullName}</p>
+                                            </td>
+                                            <td className="px-3 py-2 max-w-64 truncate" style={{ color: C.textMuted }}>{user.email}</td>
+                                            <td className="px-3 py-2 text-center">
+                                                <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-semibold border"
+                                                    style={{ background: badge.bg, color: badge.color, borderColor: badge.border }}>
+                                                    {user.roleName}
                                                 </span>
-                                            ) : (
-                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-[11px] font-medium">
-                                                    <span className="h-1.5 w-1.5 rounded-full bg-red-500"></span>
-                                                    Vô hiệu hóa
-                                                </span>
-                                            )}
-                                        </td>
-
-                                        {/* Hành động */}
-                                        <td className="px-4 py-3">
-                                            <div className="flex items-center justify-center gap-0.5">
-                                                <button
-                                                    onClick={() => handleView(user)}
-                                                    title="Xem chi tiết"
-                                                    className="p-1 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                                                >
-                                                    <EyeIcon className="h-4 w-4" />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleEdit(user)}
-                                                    title="Chỉnh sửa"
-                                                    className="p-1 text-gray-500 hover:text-yellow-600 hover:bg-yellow-50 rounded transition-colors"
-                                                >
-                                                    <PencilSquareIcon className="h-4 w-4" />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDelete(user.id)}
-                                                    title="Xóa tài khoản"
-                                                    className="p-1 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                                                >
-                                                    <TrashIcon className="h-4 w-4" />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
+                                            </td>
+                                            <td className="px-3 py-2 text-center">
+                                                {user.status ? (
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium"
+                                                        style={{ background: '#edfbf3', color: '#14532d' }}>
+                                                        <span className="h-1.5 w-1.5 rounded-full bg-success" />
+                                                        Hoạt động
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium"
+                                                        style={{ background: '#fff0ed', color: '#9a3a10' }}>
+                                                        <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+                                                        Vô hiệu hóa
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td className="px-3 py-2">
+                                                <div className="flex items-center justify-center gap-0.5">
+                                                    <ActionBtn title="Xem chi tiết" hoverBg="#f0f6ff" hoverColor="#1a3a5c"
+                                                        onClick={() => handleView(user)}>
+                                                        <EyeIcon className="h-4 w-4" />
+                                                    </ActionBtn>
+                                                    <ActionBtn title="Chỉnh sửa" hoverBg="#fefce8" hoverColor="#78350f"
+                                                        onClick={() => handleEdit(user)}>
+                                                        <PencilSquareIcon className="h-4 w-4" />
+                                                    </ActionBtn>
+                                                    <ActionBtn title="Xóa tài khoản" hoverBg="#fff0ed" hoverColor="#9a3a10"
+                                                        onClick={() => handleDelete(user.id)}>
+                                                        <TrashIcon className="h-4 w-4" />
+                                                    </ActionBtn>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
                     )}
 
                     {/* Empty state */}
                     {!loading && filteredUsers.length === 0 && (
-                        <div className="text-center py-12 text-gray-400">
+                        <div className="text-center py-12" style={{ color: C.textFaint }}>
                             <UsersIcon className="h-8 w-8 mx-auto mb-2 opacity-50" />
                             <p className="text-xs">
                                 {searchTerm || roleFilter !== 'ALL'
@@ -344,41 +292,20 @@ export default function UserManagement() {
                     )}
                 </div>
 
-                {/* Footer: phân trang */}
+                {/* ── Pagination ── */}
                 {filteredUsers.length > 0 && (
-                    <div className="shrink-0 px-3 py-2 bg-gray-50 border-t border-gray-200 text-xs text-gray-500 flex items-center justify-between">
+                    <div className="shrink-0 px-3 py-2 border-t text-xs flex items-center justify-between"
+                        style={{ background: '#f4f6fa', borderColor: C.border, color: C.textMuted }}>
                         <span>
                             Hiển thị {Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, filteredUsers.length)}–{Math.min(currentPage * ITEMS_PER_PAGE, filteredUsers.length)} / {filteredUsers.length} người dùng
                         </span>
                         {totalPages > 1 && (
                             <div className="flex items-center gap-1">
-                                <button
-                                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                                    disabled={currentPage === 1}
-                                    className="px-2 py-1 rounded border border-gray-300 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed"
-                                >
-                                    ‹
-                                </button>
+                                <PaginationBtn onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>‹</PaginationBtn>
                                 {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                                    <button
-                                        key={page}
-                                        onClick={() => setCurrentPage(page)}
-                                        className={`px-2 py-1 rounded border ${
-                                            currentPage === page
-                                                ? 'bg-blue-600 text-white border-blue-600'
-                                                : 'border-gray-300 hover:bg-white'
-                                        }`}
-                                    >
-                                        {page}
-                                    </button>
+                                    <PaginationBtn key={page} onClick={() => setCurrentPage(page)} active={currentPage === page}>{page}</PaginationBtn>
                                 ))}
-                                <button
-                                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                                    disabled={currentPage === totalPages}
-                                    className="px-2 py-1 rounded border border-gray-300 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed"
-                                >
-                                    ›
-                                </button>
+                                <PaginationBtn onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>›</PaginationBtn>
                             </div>
                         )}
                         <span>{users.length} tổng số tài khoản</span>
@@ -391,7 +318,7 @@ export default function UserManagement() {
                 <UserFormModal
                     editingUser={editingUser}
                     onClose={() => setShowModal(false)}
-                    onSuccess={handleModalSuccess}
+                    onSuccess={fetchUsers}
                 />
             )}
             {showDetailModal && (
@@ -401,5 +328,32 @@ export default function UserManagement() {
                 />
             )}
         </div>
+    );
+}
+
+function ActionBtn({ children, onClick, title, hoverBg, hoverColor }) {
+    const [hovered, setHovered] = React.useState(false);
+    return (
+        <button title={title} onClick={onClick}
+            onMouseEnter={() => setHovered(true)}
+            onMouseLeave={() => setHovered(false)}
+            className="p-1 rounded transition-colors"
+            style={{ color: hovered ? hoverColor : '#64748b', background: hovered ? hoverBg : 'transparent' }}>
+            {children}
+        </button>
+    );
+}
+
+function PaginationBtn({ children, onClick, disabled, active }) {
+    return (
+        <button onClick={onClick} disabled={disabled}
+            className="px-2 py-1 rounded border text-xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{
+                background: active ? '#1c1c18' : '#fff',
+                color: active ? '#fff' : '#64748b',
+                borderColor: active ? '#1c1c18' : '#e2e8f0',
+            }}>
+            {children}
+        </button>
     );
 }

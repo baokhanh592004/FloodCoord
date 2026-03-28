@@ -1,7 +1,12 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { loginApi } from '../../services/authApi'
 import toast from 'react-hot-toast'
+import AuthShell from '../../components/auth/AuthShell'
+import AuthField from '../../components/auth/AuthField'
+import AuthPasswordField from '../../components/auth/AuthPasswordField'
+import AuthStrengthMeter from '../../components/auth/AuthStrengthMeter'
+import '../../styles/auth-pages.css'
 
 import registerBg from '../../assets/images/register-bg.png'
 
@@ -34,7 +39,7 @@ const EyeShut = () => (
 
 export default function RegisterPage() {
   const navigate = useNavigate()
-
+ 
   const [formData, setFormData] = useState({
     fullName: '', email: '', phoneNumber: '',
     password: '', confirmPassword: '', rollCode: 'MEMBER',
@@ -44,7 +49,7 @@ export default function RegisterPage() {
   const [showPw,     setShowPw]     = useState(false)
   const [showCpw,    setShowCpw]    = useState(false)
   const [pwStrength, setPwStrength] = useState(0)
-
+ 
   const handleChange = (e) => {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
@@ -89,121 +94,31 @@ export default function RegisterPage() {
 
   return (
     <>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700&family=Barlow:wght@300;400;500&display=swap');
-        @keyframes hqPulse2  { 0%,100%{opacity:1} 50%{opacity:.3} }
-        @keyframes hqFadeUp2 { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
-
-        .hq-reg {
-          display: flex;
-          height: calc(100vh - 73px);
-          margin-top: 73px;
-          width: 100%;
-          overflow: hidden;
-          font-family: 'Barlow', sans-serif;
-        }
-
-        .hq-reg-l {
-          position: relative;
-          width: 45%;
-          flex-shrink: 0;
-          overflow: hidden;
-          display: flex;
-          flex-direction: column;
-          justify-content: space-between;
-          padding: 40px;
-          background-image: ;
-          background-size: cover;
-          background-position: center;
-        }
-        @media(max-width:768px){ .hq-reg-l{ display:none; } }
-        .hq-reg-l::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          background: linear-gradient(180deg, rgba(10,18,32,0.82) 0%, rgba(13,34,64,0.40) 45%, rgba(10,18,32,0.88) 100%);
-          z-index: 0;
-        }
-        .hq-reg-l > * { position:relative; z-index:1; }
-
-        .hq-reg-badge { display:inline-flex; align-items:center; gap:8px; background:rgba(232,93,38,0.18); border:1px solid rgba(232,93,38,0.5); color:#e85d26; font-family:'Barlow Condensed',sans-serif; font-size:11px; font-weight:700; letter-spacing:2px; padding:5px 13px; border-radius:3px; width:fit-content; }
-        .hq-reg-dot   { width:6px; height:6px; border-radius:50%; background:#e85d26; animation:hqPulse2 1.3s infinite; }
-        .hq-reg-hero  { font-family:'Barlow Condensed',sans-serif; font-size:48px; font-weight:700; line-height:1.05; color:#f0f6ff; margin-top:14px; }
-        .hq-reg-hero em { font-style:normal; color:#e85d26; }
-        .hq-reg-sub   { font-size:13px; color:rgba(200,220,240,0.62); line-height:1.8; margin-top:10px; }
-
-        .hq-why { background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.11); border-radius:10px; padding:18px; backdrop-filter:blur(6px); }
-        .hq-why-title { font-size:10px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:rgba(200,220,240,0.42); margin-bottom:12px; font-family:'Barlow Condensed',sans-serif; }
-        .hq-why-item  { display:flex; align-items:flex-start; gap:10px; margin-bottom:10px; font-size:12px; color:rgba(200,220,240,0.78); line-height:1.55; }
-        .hq-why-item:last-child { margin-bottom:0; }
-        .hq-why-arrow { color:#e85d26; font-weight:700; flex-shrink:0; }
-
-        .hq-reg-r { flex:1; background:#f4f6fa; display:flex; flex-direction:column; justify-content:center; padding:32px 48px; overflow-y:auto; }
-        @media(max-width:768px){ .hq-reg-r{ padding:24px 20px; background:#fff; } }
-
-        .hq-reg-fw { max-width:400px; width:100%; margin:0 auto; animation:hqFadeUp2 .35s ease; }
-
-        .hq-reg-toprow { display:flex; justify-content:space-between; align-items:center; margin-bottom:22px; }
-        .hq-reg-ptitle { font-family:'Barlow Condensed',sans-serif; font-size:24px; font-weight:700; color:#0d2240; }
-        .hq-reg-sw   { font-size:12px; color:#7a9abf; }
-        .hq-reg-sw a { color:#1a3a5c; font-weight:600; text-decoration:none; }
-        .hq-reg-sw a:hover { color:#e85d26; }
-
-        .hq-reg-rl    { font-size:10px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:#9ab8d4; margin-bottom:8px; }
-        .hq-reg-roles { display:flex; gap:6px; margin-bottom:18px; }
-        .hq-reg-chip  { flex:1; border:1.5px solid #c8d8ec; border-radius:6px; padding:7px 4px; text-align:center; font-family:'Barlow',sans-serif; font-size:12px; font-weight:500; color:#6a8aaa; cursor:pointer; background:#fff; transition:all .18s; }
-        .hq-reg-chip:hover  { border-color:#1a3a5c; color:#1a3a5c; }
-        .hq-reg-chip.active { border-color:#1a3a5c; background:#1a3a5c; color:#fff; }
-
-        .hq-name-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-
-        .hq-rf  { margin-bottom:12px; }
-        .hq-rfl { display:block; font-size:10px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:#9ab8d4; margin-bottom:5px; }
-        .hq-riw { display:flex; align-items:center; gap:10px; background:#fff; border:1.5px solid #c8d8ec; border-radius:8px; padding:0 12px; height:42px; transition:border-color .18s,box-shadow .18s; color:#9ab8d4; }
-        .hq-riw:focus-within { border-color:#1a3a5c; box-shadow:0 0 0 3px rgba(26,58,92,0.09); color:#1a3a5c; }
-        .hq-ri  { background:transparent; border:none; outline:none; color:#0d2240; font-family:'Barlow',sans-serif; font-size:13px; width:100%; height:100%; }
-        .hq-ri::placeholder { color:#c0d0e0; }
-        .hq-reye { background:none; border:none; cursor:pointer; color:#c0d0e0; padding:0; display:flex; align-items:center; flex-shrink:0; transition:color .18s; }
-        .hq-reye:hover { color:#e85d26; }
-
-        .hq-sbars { display:flex; gap:4px; margin-bottom:3px; }
-        .hq-sbar  { flex:1; height:3px; border-radius:2px; background:#dde8f0; transition:background .3s; }
-        .hq-slbl  { font-size:10px; text-align:right; font-family:'Barlow Condensed',sans-serif; letter-spacing:1px; margin-bottom:10px; }
-
-        .hq-rerr  { background:#fff0ed; border:1.5px solid #f4b8a8; color:#c04a15; border-radius:7px; font-size:12px; padding:10px 14px; margin-bottom:12px; text-align:center; }
-
-        .hq-reg-btn { width:100%; height:44px; background:#e85d26; color:#fff; border:none; border-radius:8px; font-family:'Barlow Condensed',sans-serif; font-size:16px; font-weight:700; letter-spacing:1.5px; cursor:pointer; transition:background .18s,transform .1s; margin-top:4px; }
-        .hq-reg-btn:hover    { background:#d14e1a; }
-        .hq-reg-btn:active   { transform:scale(.98); }
-        .hq-reg-btn:disabled { opacity:.55; cursor:not-allowed; }
-
-        .hq-terms { font-size:11px; color:#9ab8d4; text-align:center; margin-top:10px; }
-        .hq-terms a { color:#1a3a5c; font-weight:500; text-decoration:none; }
-        .hq-terms a:hover { color:#e85d26; }
-      `}</style>
-
-      <div className="hq-reg">
-        {/* ── LEFT ── */}
-        <div className="hq-reg-l">
-          <div>
-            <div className="hq-reg-badge"><div className="hq-reg-dot" />THAM GIA MẠNG LƯỚI</div>
-            <div className="hq-reg-hero">Đăng Ký<br />Đơn Vị<br /><em>Cứu Hộ</em></div>
-            <div className="hq-reg-sub">
-              Kết nối với các đội cứu hộ<br />
-              trên toàn bộ vùng bị ảnh hưởng
+      <AuthShell
+        rootClass="hq-reg"
+        leftClass="hq-reg-l"
+        rightClass="hq-reg-r"
+        leftStyle={{ '--auth-bg-image': `url(${registerBg})` }}
+        leftContent={(
+          <>
+            <div>
+              <div className="hq-reg-badge"><div className="hq-reg-dot" />THAM GIA MẠNG LƯỚI</div>
+              <div className="hq-reg-hero">Đăng Ký<br />Đơn Vị<br /><em>Cứu Hộ</em></div>
+              <div className="hq-reg-sub">
+                Kết nối với các đội cứu hộ<br />
+                trên toàn bộ vùng bị ảnh hưởng
+              </div>
             </div>
-          </div>
-          <div className="hq-why">
-            <div className="hq-why-title">Tại sao tham gia?</div>
-            <div className="hq-why-item"><span className="hq-why-arrow">→</span>Phối hợp cứu hộ theo thời gian thực</div>
-            <div className="hq-why-item"><span className="hq-why-arrow">→</span>Theo dõi nguồn lực & vật tư cứu trợ</div>
-            <div className="hq-why-item"><span className="hq-why-arrow">→</span>Liên lạc đa cơ quan, đa vùng</div>
-            <div className="hq-why-item"><span className="hq-why-arrow">→</span>Báo cáo thiệt hại & bản đồ ngập lụt</div>
-          </div>
-        </div>
-
-        {/* ── RIGHT ── */}
-        <div className="hq-reg-r">
+            <div className="hq-why">
+              <div className="hq-why-title">Tại sao tham gia?</div>
+              <div className="hq-why-item"><span className="hq-why-arrow">→</span>Phối hợp cứu hộ theo thời gian thực</div>
+              <div className="hq-why-item"><span className="hq-why-arrow">→</span>Theo dõi nguồn lực & vật tư cứu trợ</div>
+              <div className="hq-why-item"><span className="hq-why-arrow">→</span>Liên lạc đa cơ quan, đa vùng</div>
+              <div className="hq-why-item"><span className="hq-why-arrow">→</span>Báo cáo thiệt hại & bản đồ ngập lụt</div>
+            </div>
+          </>
+        )}
+        rightContent={(
           <div className="hq-reg-fw">
             <div className="hq-reg-toprow">
               <div className="hq-reg-ptitle">TẠO TÀI KHOẢN</div>
@@ -213,69 +128,102 @@ export default function RegisterPage() {
             <form onSubmit={handleRegister}>
               {error && <div className="hq-rerr">{error}</div>}
 
-                <div className="hq-rf">
-                  <label className="hq-rfl">Họ và tên</label>
-                  <div className="hq-riw">
-                    <input className="hq-ri" type="text" name="fullName" placeholder="Nguyễn Văn A"
-                      value={formData.fullName} onChange={handleChange} required />
-                  </div>
-                </div>                
+              <AuthField
+                fieldClassName="hq-rf"
+                label="Họ và tên"
+                labelClassName="hq-rfl"
+                inputWrapperClassName="hq-riw"
+                inputClassName="hq-ri"
+                type="text"
+                name="fullName"
+                placeholder="Nguyễn Văn A"
+                value={formData.fullName}
+                onChange={handleChange}
+                required
+                autoComplete="name"
+              />
 
-              <div className="hq-rf">
-                <label className="hq-rfl">Email</label>
-                <div className="hq-riw">
-                  <MailIcon />
-                  <input className="hq-ri" type="email" name="email" placeholder="nguyenvana@gmail.com"
-                    value={formData.email} onChange={handleChange} required />
-                </div>
-              </div>
+              <AuthField
+                fieldClassName="hq-rf"
+                label="Email"
+                labelClassName="hq-rfl"
+                inputWrapperClassName="hq-riw"
+                inputClassName="hq-ri"
+                icon={<MailIcon />}
+                type="email"
+                name="email"
+                placeholder="nguyenvana@gmail.com"
+                value={formData.email}
+                onChange={handleChange}
+                required
+                autoComplete="email"
+              />
 
-              <div className="hq-rf">
-                <label className="hq-rfl">Số điện thoại</label>
-                <div className="hq-riw">
-                  <PhoneIcon />
-                  <input className="hq-ri" type="tel" name="phoneNumber" placeholder="0912 345 678"
-                    value={formData.phoneNumber} onChange={handleChange} required />
-                </div>
-              </div>
+              <AuthField
+                fieldClassName="hq-rf"
+                label="Số điện thoại"
+                labelClassName="hq-rfl"
+                inputWrapperClassName="hq-riw"
+                inputClassName="hq-ri"
+                icon={<PhoneIcon />}
+                type="tel"
+                name="phoneNumber"
+                placeholder="0912 345 678"
+                value={formData.phoneNumber}
+                onChange={handleChange}
+                required
+                autoComplete="tel"
+              />
 
-              <div className="hq-rf">
-                <label className="hq-rfl">Mật khẩu</label>
-                <div className="hq-riw">
-                  <LockIcon />
-                  <input className="hq-ri" type={showPw ? 'text' : 'password'} name="password"
-                    placeholder="Tối thiểu 8 ký tự, bao gồm chữ và số" value={formData.password} onChange={handleChange} required />
-                  <button type="button" className="hq-reye" onClick={() => setShowPw(p => !p)}>
-                    {showPw ? <EyeShut /> : <EyeOpen />}
-                  </button>
-                </div>
-              </div>
+              <AuthPasswordField
+                fieldClassName="hq-rf"
+                label="Mật khẩu"
+                labelClassName="hq-rfl"
+                inputWrapperClassName="hq-riw"
+                inputClassName="hq-ri"
+                icon={<LockIcon />}
+                toggleButtonClassName="hq-reye"
+                visible={showPw}
+                onToggle={() => setShowPw(p => !p)}
+                visibleIcon={<EyeOpen />}
+                hiddenIcon={<EyeShut />}
+                name="password"
+                placeholder="Tối thiểu 8 ký tự, bao gồm chữ và số"
+                value={formData.password}
+                onChange={handleChange}
+                required
+                autoComplete="new-password"
+              />
 
-              {formData.password && (
-                <>
-                  <div className="hq-sbars">
-                    {[1, 2, 3, 4].map(i => (
-                      <div key={i} className="hq-sbar"
-                        style={{ background: pwStrength >= i ? strengthColors[pwStrength] : '#dde8f0' }} />
-                    ))}
-                  </div>
-                  <div className="hq-slbl" style={{ color: strengthColors[pwStrength] }}>
-                    {strengthLabels[pwStrength]}
-                  </div>
-                </>
-              )}
+              <AuthStrengthMeter
+                show={Boolean(formData.password)}
+                value={pwStrength}
+                colors={strengthColors}
+                labels={strengthLabels}
+                barsClassName="hq-sbars"
+                barClassName="hq-sbar"
+                labelClassName="hq-slbl"
+              />
 
-              <div className="hq-rf">
-                <label className="hq-rfl">Xác nhận mật khẩu</label>
-                <div className="hq-riw">
-                  <LockIcon />
-                  <input className="hq-ri" type={showCpw ? 'text' : 'password'} name="confirmPassword"
-                    placeholder="Nhập lại mật khẩu" value={formData.confirmPassword} onChange={handleChange} required />
-                  <button type="button" className="hq-reye" onClick={() => setShowCpw(p => !p)}>
-                    {showCpw ? <EyeShut /> : <EyeOpen />}
-                  </button>
-                </div>
-              </div>
+              <AuthPasswordField
+                fieldClassName="hq-rf"
+                label="Xác nhận mật khẩu"
+                labelClassName="hq-rfl"
+                inputWrapperClassName="hq-riw"
+                inputClassName="hq-ri"
+                icon={<LockIcon />}
+                toggleButtonClassName="hq-reye"
+                visible={showCpw}
+                onToggle={() => setShowCpw(p => !p)}
+                visibleIcon={<EyeOpen />}
+                hiddenIcon={<EyeShut />}
+                name="confirmPassword"
+                placeholder="Nhập lại mật khẩu"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                required
+                autoComplete="new-password"
+              />
 
               <button type="submit" className="hq-reg-btn" disabled={loading}>
                 {loading ? 'ĐANG XỬ LÝ...' : 'TẠO TÀI KHOẢN →'}
@@ -285,8 +233,8 @@ export default function RegisterPage() {
               </div> */}
             </form>
           </div>
-        </div>
-      </div>
+        )}
+      />
     </>
   )
 }

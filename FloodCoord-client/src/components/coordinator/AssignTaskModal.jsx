@@ -4,6 +4,7 @@ import { coordinatorApi } from '../../services/coordinatorApi';
 import { teamApi } from '../../services/teamApi';
 import { vehicleApi } from '../../services/vehicleApi';
 import { supplyApi } from '../../services/supplyApi';
+import { MODAL_STYLE_MAP } from '../shared/styleMaps';
 import toast from 'react-hot-toast';
 
 /**
@@ -155,17 +156,17 @@ export default function AssignTaskModal({ request, isOpen, onClose, onSuccess })
     return (
         <>
             {/* Main Modal */}
-            <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] flex flex-col">
+            <div className={MODAL_STYLE_MAP.overlaySoft}>
+                <div className={`${MODAL_STYLE_MAP.shell} max-w-3xl`}>
                     {/* Header — cố định */}
-                    <div className="flex-shrink-0 flex items-center justify-between p-5 border-b border-gray-200">
+                    <div className={MODAL_STYLE_MAP.header}>
                         <div>
                             <h2 className="text-lg font-semibold text-gray-900">Phân công đội cứu hộ</h2>
                             <p className="text-xs text-gray-500 mt-0.5">
                                 Chọn đội, phương tiện và hàng cứu trợ cho nhiệm vụ
                             </p>
                         </div>
-                        <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+                        <button onClick={onClose} className={MODAL_STYLE_MAP.closeButton}>
                             <XMarkIcon className="h-5 w-5" />
                         </button>
                     </div>
@@ -173,14 +174,14 @@ export default function AssignTaskModal({ request, isOpen, onClose, onSuccess })
                     {/* Content — cuộn được */}
                     <div className="flex-1 min-h-0 overflow-y-auto p-5 space-y-5">
                         {/* Tóm tắt yêu cầu */}
-                        <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
-                            <p className="text-sm font-semibold text-blue-900 mb-1">
+                        <div className="bg-coordinator-50 border border-coordinator-100 p-4 rounded-lg">
+                            <p className="text-sm font-semibold text-coordinator-900 mb-1">
                                 {request.title || request.trackingCode}
                             </p>
-                            <p className="text-xs text-blue-700">
+                            <p className="text-xs text-coordinator-dark">
                                 📍 {request.location?.addressText || 'Chưa xác định'}
                             </p>
-                            <p className="text-xs text-blue-700 mt-1">
+                            <p className="text-xs text-coordinator-dark mt-1">
                                 👥 {request.peopleCount || 0} người cần cứu
                             </p>
                         </div>
@@ -409,18 +410,18 @@ export default function AssignTaskModal({ request, isOpen, onClose, onSuccess })
                     </div>
 
                     {/* Footer — cố định */}
-                    <div className="flex-shrink-0 flex items-center justify-end gap-3 px-5 py-4 border-t border-gray-200 bg-gray-50">
+                    <div className={MODAL_STYLE_MAP.footerEnd}>
                         <button
                             onClick={onClose}
                             disabled={loading}
-                            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+                            className={MODAL_STYLE_MAP.secondaryButton}
                         >
                             Hủy
                         </button>
                         <button
                             onClick={handleClickAssign}
                             disabled={loading || !formData.rescueTeamId}
-                            className="px-6 py-2 text-sm font-medium text-white bg-teal-600 rounded-md hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className={MODAL_STYLE_MAP.primaryTeal}
                         >
                             Xác nhận phân công
                         </button>
@@ -430,10 +431,10 @@ export default function AssignTaskModal({ request, isOpen, onClose, onSuccess })
 
             {/* Confirmation Dialog — modal nhỏ xác nhận lần cuối */}
             {showConfirmDialog && (
-                <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-                    <div className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6">
+                <div className={MODAL_STYLE_MAP.overlayStrong}>
+                    <div className={MODAL_STYLE_MAP.shellCompact}>
                         <div className="flex items-center gap-3 mb-4">
-                            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                            <div className="shrink-0 w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
                                 <ExclamationTriangleIcon className="h-5 w-5 text-green-600" />
                             </div>
                             <div>
@@ -464,14 +465,14 @@ export default function AssignTaskModal({ request, isOpen, onClose, onSuccess })
                             <button
                                 onClick={() => setShowConfirmDialog(false)}
                                 disabled={loading}
-                                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                                className={MODAL_STYLE_MAP.secondaryButton}
                             >
                                 Quay lại
                             </button>
                             <button
                                 onClick={handleConfirmAssign}
                                 disabled={loading}
-                                className="px-6 py-2 text-sm font-medium text-white bg-teal-600 rounded-md hover:bg-teal-700 disabled:opacity-50"
+                                className={MODAL_STYLE_MAP.primaryTeal}
                             >
                                 {loading ? 'Đang xử lý...' : 'Xác nhận'}
                             </button>

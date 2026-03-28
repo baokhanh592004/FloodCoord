@@ -4,6 +4,13 @@ import { vehicleApi } from '../../services/vehicleApi';
 import { Ship, Truck, Plane, Activity, Bus, AlertCircle, Plus, FileDown } from 'lucide-react';
 import toast from 'react-hot-toast';
 import StatCard from '../../components/coordinator/StatCard';
+import TableActionCell from '../../components/shared/table/TableActionCell';
+import {
+    VEHICLE_TYPES,
+    VEHICLE_STATUSES,
+    getVehicleTypeMeta,
+    getVehicleStatusMeta,
+} from '../../components/shared/styleMaps';
 import {
     TruckIcon,
     CheckCircleIcon,
@@ -19,24 +26,6 @@ import {
 } from '@heroicons/react/24/outline';
 
 const ITEMS_PER_PAGE = 10;
-
-const TYPE_LABELS = {
-    BOAT:       { label: 'Tàu / Cano',  color: 'bg-blue-100 text-blue-700' },
-    TRUCK:      { label: 'Xe tải',       color: 'bg-slate-100 text-slate-700' },
-    HELICOPTER: { label: 'Trực thăng',   color: 'bg-orange-100 text-orange-700' },
-    AMBULANCE:  { label: 'Xe cấp cứu',   color: 'bg-red-100 text-red-700' },
-    RESCUE_VAN: { label: 'Xe cứu hộ',    color: 'bg-teal-100 text-teal-700' },
-};
-
-const STATUS_CONFIG = {
-    AVAILABLE:   { label: 'Sẵn sàng',        color: 'bg-emerald-100 text-emerald-700', dot: 'bg-emerald-500' },
-    IN_USE:      { label: 'Đang hoạt động',   color: 'bg-blue-100 text-blue-700',       dot: 'bg-blue-500' },
-    MAINTENANCE: { label: 'Bảo trì',          color: 'bg-orange-100 text-orange-700',   dot: 'bg-orange-500' },
-    UNAVAILABLE: { label: 'Không khả dụng',   color: 'bg-red-100 text-red-700',         dot: 'bg-red-500' },
-};
-
-const VEHICLE_TYPES    = ['BOAT', 'TRUCK', 'HELICOPTER', 'AMBULANCE', 'RESCUE_VAN'];
-const VEHICLE_STATUSES = ['AVAILABLE', 'IN_USE', 'MAINTENANCE', 'UNAVAILABLE'];
 
 const STATUS_FILTER_TABS = [
     { key: 'ALL',         label: 'Tất cả' },
@@ -194,10 +183,10 @@ export default function VehicleManagement() {
         const exportData = vehicles.map((v, idx) => ({
             'STT': idx + 1,
             'Tên phương tiện': v.name || '',
-            'Loại': TYPE_LABELS[v.type]?.label || v.type || '',
+            'Loại': getVehicleTypeMeta(v.type).label,
             'Biển số': v.licensePlate || '',
             'Sức chứa (người)': v.capacity ?? '',
-            'Trạng thái': STATUS_CONFIG[v.status]?.label || v.status || '',
+            'Trạng thái': getVehicleStatusMeta(v.status).label,
             'Đội đang dùng': v.currentTeamName || 'Không có',
         }));
 
@@ -310,7 +299,7 @@ export default function VehicleManagement() {
                         <thead className="sticky top-0 z-10">
                             <tr className="bg-gray-50 border-b border-gray-200">
                                 <th className="text-left px-3 py-2 font-semibold text-gray-600 w-10">#</th>
-                                <th className="text-left px-3 py-2 font-semibold text-gray-600">Tên phương tiện</th>
+                                <th className="text-left px-3 py-2 font-semibold text-gray-600 w-72">Tên phương tiện</th>
                                 <th className="text-left px-3 py-2 font-semibold text-gray-600 w-32">Loại</th>
                                 <th className="text-left px-3 py-2 font-semibold text-gray-600 w-32">Biển số</th>
                                 <th className="text-center px-3 py-2 font-semibold text-gray-600 w-28">Sức chứa</th>
@@ -345,17 +334,17 @@ export default function VehicleManagement() {
                                 </tr>
                             ) : (
                                 paginated.map((vehicle, index) => {
-                                    const typeInfo   = TYPE_LABELS[vehicle.type]     || { label: vehicle.type,   color: 'bg-gray-100 text-gray-600' };
-                                    const statusInfo = STATUS_CONFIG[vehicle.status] || STATUS_CONFIG.AVAILABLE;
+                                    const typeInfo = getVehicleTypeMeta(vehicle.type);
+                                    const statusInfo = getVehicleStatusMeta(vehicle.status);
                                     return (
                                         <tr key={vehicle.id} className="hover:bg-gray-50 transition-colors">
                                             <td className="px-3 py-2 text-gray-400 font-mono">
                                                 {(currentPage - 1) * ITEMS_PER_PAGE + index + 1}
                                             </td>
-                                            <td className="px-3 py-2">
+                                            <td className="px-3 py-2 min-w-60">
                                                 <div className="flex items-center gap-2">
                                                     <TypeIcon type={vehicle.type} size={15} />
-                                                    <span className="font-medium text-gray-900">{vehicle.name}</span>
+                                                    <span className="font-medium text-gray-900 truncate">{vehicle.name}</span>
                                                 </div>
                                             </td>
                                             <td className="px-3 py-2">
@@ -379,30 +368,32 @@ export default function VehicleManagement() {
                                                 </span>
                                             </td>
                                             <td className="px-3 py-2">
-                                                <div className="flex items-center justify-center gap-0.5">
-                                                    <button
-                                                        onClick={() => { setSelectedVehicle(vehicle); setShowDetailModal(true); }}
-                                                        title="Xem chi tiết"
-                                                        className="p-1 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                                                    >
-                                                        <EyeIcon className="h-4 w-4" />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleEdit(vehicle)}
-                                                        title="Chỉnh sửa"
-                                                        className="p-1 text-gray-500 hover:text-yellow-600 hover:bg-yellow-50 rounded transition-colors"
-                                                    >
-                                                        <PencilSquareIcon className="h-4 w-4" />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDelete(vehicle)}
-                                                        title={vehicle.status === 'IN_USE' ? 'Không thể vô hiệu hóa khi đang hoạt động' : 'Vô hiệu hóa'}
-                                                        disabled={vehicle.status === 'IN_USE'}
-                                                        className="p-1 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                                                    >
-                                                        <TrashIcon className="h-4 w-4" />
-                                                    </button>
-                                                </div>
+                                                <TableActionCell
+                                                    actions={[
+                                                        {
+                                                            key: 'view',
+                                                            title: 'Xem chi tiết',
+                                                            icon: EyeIcon,
+                                                            onClick: () => { setSelectedVehicle(vehicle); setShowDetailModal(true); },
+                                                            tone: 'view',
+                                                        },
+                                                        {
+                                                            key: 'edit',
+                                                            title: 'Chỉnh sửa',
+                                                            icon: PencilSquareIcon,
+                                                            onClick: () => handleEdit(vehicle),
+                                                            tone: 'edit',
+                                                        },
+                                                        {
+                                                            key: 'delete',
+                                                            title: vehicle.status === 'IN_USE' ? 'Không thể vô hiệu hóa khi đang hoạt động' : 'Vô hiệu hóa',
+                                                            icon: TrashIcon,
+                                                            onClick: () => handleDelete(vehicle),
+                                                            tone: 'delete',
+                                                            disabled: vehicle.status === 'IN_USE',
+                                                        },
+                                                    ]}
+                                                />
                                             </td>
                                         </tr>
                                     );
@@ -472,7 +463,7 @@ export default function VehicleManagement() {
                                 <div>
                                     <h3 className="text-lg font-bold text-gray-900">{selectedVehicle.name}</h3>
                                     <p className="text-xs text-gray-500 uppercase tracking-wider">
-                                        {TYPE_LABELS[selectedVehicle.type]?.label || selectedVehicle.type}
+                                        {getVehicleTypeMeta(selectedVehicle.type).label}
                                     </p>
                                 </div>
                             </div>
@@ -487,10 +478,15 @@ export default function VehicleManagement() {
                                 </div>
                                 <div className="bg-gray-50 rounded-lg p-3 col-span-2">
                                     <p className="text-xs text-gray-500 mb-1">Trạng thái</p>
-                                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${STATUS_CONFIG[selectedVehicle.status]?.color}`}>
-                                        <span className={`w-2 h-2 rounded-full ${STATUS_CONFIG[selectedVehicle.status]?.dot}`} />
-                                        {STATUS_CONFIG[selectedVehicle.status]?.label}
-                                    </span>
+                                    {(() => {
+                                        const statusInfo = getVehicleStatusMeta(selectedVehicle.status);
+                                        return (
+                                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${statusInfo.color}`}>
+                                                <span className={`w-2 h-2 rounded-full ${statusInfo.dot}`} />
+                                                {statusInfo.label}
+                                            </span>
+                                        );
+                                    })()}
                                 </div>
                                 <div className="bg-gray-50 rounded-lg p-3 col-span-2">
                                     <p className="text-xs text-gray-500 mb-1">Đội đang sử dụng</p>
@@ -554,7 +550,7 @@ export default function VehicleManagement() {
                                     <select name="type" value={formData.type} onChange={handleInputChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40">
                                         {VEHICLE_TYPES.map(t => (
-                                            <option key={t} value={t}>{TYPE_LABELS[t]?.label || t}</option>
+                                            <option key={t} value={t}>{getVehicleTypeMeta(t).label}</option>
                                         ))}
                                     </select>
                                 </div>
@@ -575,7 +571,7 @@ export default function VehicleManagement() {
                                         disabled={editingVehicle?.status === 'IN_USE'}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 disabled:opacity-50 disabled:cursor-not-allowed">
                                         {VEHICLE_STATUSES.map(s => (
-                                            <option key={s} value={s}>{STATUS_CONFIG[s]?.label || s}</option>
+                                            <option key={s} value={s}>{getVehicleStatusMeta(s).label}</option>
                                         ))}
                                     </select>
                                 </div>

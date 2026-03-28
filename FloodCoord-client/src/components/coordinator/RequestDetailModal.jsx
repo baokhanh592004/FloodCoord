@@ -7,6 +7,7 @@ import {
 import { coordinatorApi } from '../../services/coordinatorApi';
 import StatusBadge from './StatusBadge';
 import PriorityBadge from './PriorityBadge';
+import { MODAL_STYLE_MAP } from '../shared/styleMaps';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -60,10 +61,10 @@ export default function RequestDetailModal({ request, isOpen, onClose, onValidat
     };
 
     return (
-        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
+        <div className={MODAL_STYLE_MAP.overlaySoft}>
+            <div className={`${MODAL_STYLE_MAP.shell} max-w-4xl`}>
                 {/* Header — cố định */}
-                <div className="flex-shrink-0 flex items-start justify-between p-5 border-b border-gray-200">
+                <div className={MODAL_STYLE_MAP.headerStart}>
                     <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1.5">
                             <PriorityBadge priority={displayData.emergencyLevel} />
@@ -78,7 +79,7 @@ export default function RequestDetailModal({ request, isOpen, onClose, onValidat
                             {displayData.title || 'Chi tiết yêu cầu cứu hộ'}
                         </h2>
                     </div>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+                    <button onClick={onClose} className={MODAL_STYLE_MAP.closeButton}>
                         <XMarkIcon className="h-5 w-5" />
                     </button>
                 </div>
@@ -94,15 +95,15 @@ export default function RequestDetailModal({ request, isOpen, onClose, onValidat
                         const senderName = request?.contactName || displayData.contactName || request?.citizenName || displayData.citizenName || 'Không rõ';
                         const senderPhone = request?.contactPhone || displayData.contactPhone || null;
                         return (
-                            <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
-                                <h3 className="text-sm font-semibold text-blue-900 mb-3 uppercase tracking-wider">Thông tin người gửi</h3>
+                            <div className="bg-coordinator-50 border border-coordinator-100 p-4 rounded-lg">
+                                <h3 className="text-sm font-semibold text-coordinator-900 mb-3 uppercase tracking-wider">Thông tin người gửi</h3>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    <div className="flex items-center gap-2 text-sm text-blue-800">
-                                        <UserIcon className="h-4 w-4 flex-shrink-0" />
+                                    <div className="flex items-center gap-2 text-sm text-coordinator-dark">
+                                        <UserIcon className="h-4 w-4 shrink-0" />
                                         <span><strong>Người gửi:</strong> {senderName}</span>
                                     </div>
-                                    <div className="flex items-center gap-2 text-sm text-blue-800">
-                                        <PhoneIcon className="h-4 w-4 flex-shrink-0" />
+                                    <div className="flex items-center gap-2 text-sm text-coordinator-dark">
+                                        <PhoneIcon className="h-4 w-4 shrink-0" />
                                         <span>
                                             <strong>Số điện thoại:</strong>{' '}
                                             {senderPhone ? (
@@ -185,7 +186,7 @@ export default function RequestDetailModal({ request, isOpen, onClose, onValidat
                         {/* Cột 2: Độ sâu lũ */}
                         <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
                             <p className="text-xs text-gray-500 mb-1 whitespace-nowrap">Độ sâu lũ</p>
-                            <p className="text-lg font-bold text-blue-600">
+                            <p className="text-lg font-bold text-coordinator">
                                 {location.floodDepth ? `${location.floodDepth}m` : 'N/A'}
                             </p>
                         </div>
@@ -213,7 +214,7 @@ export default function RequestDetailModal({ request, isOpen, onClose, onValidat
                     <div>
                         <h3 className="text-sm font-semibold text-gray-900 mb-2 uppercase tracking-wider">Vị trí hiện trường</h3>
                         <div className="flex items-start gap-2 mb-3 bg-gray-50 p-3 rounded border border-gray-100">
-                            <MapPinIcon className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
+                            <MapPinIcon className="h-5 w-5 text-red-500 mt-0.5 shrink-0" />
                             <p className="text-sm text-gray-700 font-medium">
                                 {location.addressText || 'Chưa xác định địa chỉ'}
                             </p>
@@ -298,17 +299,17 @@ export default function RequestDetailModal({ request, isOpen, onClose, onValidat
                 </div>
 
                 {/* Footer — cố định */}
-                <div className="flex-shrink-0 flex items-center justify-end gap-3 px-5 py-4 border-t border-gray-200 bg-gray-50">
+                <div className={MODAL_STYLE_MAP.footerEnd}>
                     <button
                         onClick={onClose}
-                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                        className={MODAL_STYLE_MAP.secondaryButton}
                     >
                         Đóng
                     </button>
                     {displayData.status === 'PENDING' && onValidate && (
                         <button
                             onClick={() => { onClose(); onValidate(displayData); }}
-                            className="px-5 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 shadow-sm"
+                            className={MODAL_STYLE_MAP.primaryCoordinator}
                         >
                             Xác thực yêu cầu
                         </button>

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { rescueApi } from '../../services/rescueApi';
 import { useSearchParams } from 'react-router-dom';
+import afterFloodImg from '../../assets/images/things-to-do-after-flood.png';
 
 const StarRating = ({ value, onChange, readonly = false }) => {
     const [hovered, setHovered] = useState(0);
@@ -152,6 +153,17 @@ const TrackRescuePage = () => {
                 <p className="text-center text-gray-600 mb-6">
                     Nhập mã tra cứu để xem tình trạng yêu cầu cứu trợ của bạn
                 </p>
+
+                <div className="mb-6 overflow-hidden rounded-2xl border border-yellow-200 bg-yellow-50/40">
+                    <img
+                        src={afterFloodImg}
+                        alt="Hướng dẫn an toàn sau bão lũ"
+                        className="w-full h-60 object-contain bg-white p-2"
+                    />
+                    <div className="px-4 py-3 text-sm text-yellow-800">
+                        Lưu ý an toàn sau bão: tránh khu vực điện hở, giữ vệ sinh tay và dùng nguồn nước đã xử lý.
+                    </div>
+                </div>
 
                 {/* Form tra cứu */}
                 <form onSubmit={handleSearch} className="mb-6">
