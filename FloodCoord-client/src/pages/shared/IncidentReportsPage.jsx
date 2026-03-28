@@ -98,12 +98,27 @@ export default function IncidentReportsPage() {
                 vehicleApi.getAvailableVehicles(),
                 supplyApi.getAllSupplies(),
             ]);
-            setAvailableTeams(Array.isArray(teams) ? teams : []);
-            setAvailableVehicles(Array.isArray(vehicles) ? vehicles : []);
-            // Only keep supplies with stock
-            setSupplyList(
-                (Array.isArray(supplies) ? supplies : []).filter((s) => s.quantity > 0)
+
+            const validTeams = (Array.isArray(teams) ? teams : [])
+                .filter((t) => t?.status === 'AVAILABLE' && t?.isActive !== false)
+                .sort((a, b) => {
+                    if (a.status === 'AVAILABLE' && b.status !== 'AVAILABLE') return -1;
+                    if (a.status !== 'AVAILABLE' && b.status === 'AVAILABLE') return 1;
+                    return (b.experienceYears || 0) - (a.experienceYears || 0);
+                });
+
+            const validVehicles = (Array.isArray(vehicles) ? vehicles : []).filter(
+                (v) => v?.status === 'AVAILABLE'
             );
+
+            const now = new Date();
+            const validSupplies = (Array.isArray(supplies) ? supplies : []).filter(
+                (s) => (s?.quantity ?? 0) > 0 && (!s?.expiryDate || new Date(s.expiryDate) > now)
+            );
+
+            setAvailableTeams(validTeams);
+            setAvailableVehicles(validVehicles);
+            setSupplyList(validSupplies);
         } catch (err) {
             console.error('Lỗi khi tải tài nguyên:', err);
         } finally {
