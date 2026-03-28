@@ -8,7 +8,7 @@ import com.nimbusds.jwt.SignedJWT;
 import com.team6.floodcoord.dto.JwtInfo;
 import com.team6.floodcoord.dto.TokenPayLoad;
 import com.team6.floodcoord.model.User;
-import com.team6.floodcoord.repository.BlacklistedAccessTokenRepository;
+import com.team6.floodcoord.repository.redis.BlacklistedAccessTokenRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

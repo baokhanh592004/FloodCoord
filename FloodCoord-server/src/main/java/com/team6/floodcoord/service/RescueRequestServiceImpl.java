@@ -8,8 +8,8 @@ import com.team6.floodcoord.model.*;
 import com.team6.floodcoord.model.enums.RequestStatus;
 import com.team6.floodcoord.model.enums.TeamStatus;
 import com.team6.floodcoord.model.enums.VehicleStatus;
-import com.team6.floodcoord.repository.*;
 
+import com.team6.floodcoord.repository.jpa.*;
 import com.team6.floodcoord.utils.RescueRequestMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -731,6 +731,11 @@ public class RescueRequestServiceImpl implements RescueRequestService {
         dto.setCreatedAt(request.getCreatedAt());
         dto.setContactName(request.getContactName());
         dto.setContactPhone(request.getContactPhone());
+        // Thêm thông tin đội đã phân công
+        if (request.getAssignedTeam() != null) {
+            dto.setAssignedTeamId(request.getAssignedTeam().getId());
+            dto.setAssignedTeamName(request.getAssignedTeam().getName());
+        }
         return dto;
     }
 }

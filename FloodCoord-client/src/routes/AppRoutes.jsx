@@ -42,12 +42,14 @@ import CoordinatorDashboard from '../pages/coordinator/CoordinatorDashboard'
 import RequestQueue from '../pages/coordinator/RequestQueue'
 import Operations from '../pages/coordinator/Operations'
 import IncidentReportsPage from '../pages/shared/IncidentReportsPage'
+import RescueReportsPage from '../pages/shared/RescueReportsPage'
 
 /* Rescue Team */
 import RescueTeamDashboard from '../pages/rescueteam/RescueTeamDashboard'
 import MyMissions from '../pages/rescueteam/MyMissions'
 import MissionDetail from '../pages/rescueteam/MissionDetail'
 import RescueReport from '../pages/rescueteam/RescueReport'
+import StandbyStatusReport from '../pages/rescueteam/StandbyStatusReport'
 import CompletedMissions from '../pages/rescueteam/CompletedMissions'
 import TeamMembers from '../pages/rescueteam/TeamMembers'
 import WeatherDashboard from '../pages/WeatherDashboard'
@@ -100,6 +102,7 @@ export default function AppRoutes() {
         <Route path="vehicles" element={<AdminVehicleManagement />} />
         <Route path="supplies" element={<AdminSupplyManagement />} />
         <Route path="incident-reports" element={<IncidentReportsPage />} />
+        <Route path="rescue-reports" element={<RescueReportsPage />} />
       </Route>
 
       {/* ================= MANAGER (WITH SIDEBAR) ================= */}
@@ -117,6 +120,7 @@ export default function AppRoutes() {
         <Route path="rescue-teams" element={<RescueTeamManagement />} />
         <Route path="supplies" element={<SupplyManagement />} />
         <Route path="incident-reports" element={<IncidentReportsPage />} />
+        <Route path="rescue-reports" element={<RescueReportsPage />} />
       </Route>
 
       {/* ================= COORDINATOR (WITH SIDEBAR) ================= */}
@@ -133,6 +137,7 @@ export default function AppRoutes() {
         <Route path="requests" element={<RequestQueue />} />
         <Route path="operations" element={<Operations />} />
         <Route path="incident-reports" element={<IncidentReportsPage />} />
+        <Route path="rescue-reports" element={<RescueReportsPage />} />
       </Route>
 
 {/* ================= RESCUE TEAM (WITH SIDEBAR) ================= */}
@@ -149,6 +154,7 @@ export default function AppRoutes() {
         <Route path="missions" element={<MyMissions />} />
         <Route path="missions/:id" element={<MissionDetail />}/>
         <Route path="missions/:id/report" element={<RescueReport />}/>
+        <Route path="missions/:id/standby-report" element={<StandbyStatusReport />}/>
         <Route path="completed" element={<CompletedMissions />} />
         <Route path="members" element={<TeamMembers />} />
       </Route>

@@ -21,8 +21,13 @@ public class RescueRequest {
     @JoinColumn(name = "citizen_id")
     private com.team6.floodcoord.model.User citizen;
 
+    @Column(length = 500)
     private String title;
+    
+    @Column(columnDefinition = "TEXT")
     private String description;
+    
+    @Column(length = 50)
     private String emergencyLevel;
 
     @Enumerated(EnumType.STRING)
@@ -46,19 +51,19 @@ public class RescueRequest {
     @OneToMany(mappedBy = "request", cascade = CascadeType.ALL)
     private List<RequestSupply> supplies;
 
-    @Column(name = "coordinator_note")
+    @Column(name = "coordinator_note", columnDefinition = "TEXT")
     private String coordinatorNote;
 
-    @Column(name = "tracking_code", unique = true, nullable = false)
+    @Column(name = "tracking_code", unique = true, nullable = false, length = 50)
     private String trackingCode; // Mã để tra cứu (VD: 8X29SA)
 
-    @Column(name = "contact_name", nullable = false)
+    @Column(name = "contact_name", nullable = false, length = 200)
     private String contactName;  // Tên người báo tin
 
-    @Column(name = "contact_phone", nullable = false)
+    @Column(name = "contact_phone", nullable = false, length = 20)
     private String contactPhone; // SĐT để Coordinator gọi xác minh
 
-    @Column(name = "citizen_feedback")
+    @Column(name = "citizen_feedback", columnDefinition = "TEXT")
     private String citizenFeedback; // Lời cảm ơn hoặc góp ý của người dân
 
     @Column(name = "citizen_rating")

@@ -60,7 +60,7 @@ public class WeatherPollingScheduler {
      * Runs every 30 minutes. Fetches weather + flood + risk for all locations.
      * Results are stored in Redis automatically by WeatherService / FloodService.
      */
-    @Scheduled(fixedDelayString = "${weather.cache.ttl-minutes:30}000",
+    @Scheduled(fixedDelayString = "${weather.cache.ttl:PT5M}",
             initialDelay = 10000)  // 10s delay on startup to let context load
     public void pollAllLocations() {
         if (!schedulerEnabled) {

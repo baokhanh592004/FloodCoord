@@ -1,5 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { X, UserPlus, Shield } from 'lucide-react';
+
+const normalizeId = (id) => {
+    if (id === null || id === undefined || id === '') return '';
+    return String(id);
+};
+
+const toApiId = (id) => (/^\d+$/.test(id) ? Number(id) : id);
 
 export default function TeamFormModal({ 
     showModal, 
@@ -10,28 +17,32 @@ export default function TeamFormModal({
     onClose,
     availableUsers = []
 }) {
-    const [selectedLeaderId, setSelectedLeaderId] = useState('');
-    const [selectedMemberIds, setSelectedMemberIds] = useState([]);
+    const [selectedLeaderId, setSelectedLeaderId] = useState(
+        normalizeId(editingTeam?.leader?.id || editingTeam?.leaderId || '')
+    );
+    const [selectedMemberIds, setSelectedMemberIds] = useState(
+        editingTeam?.members?.map((member) => normalizeId(member.id)) || []
+    );
 
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            if (editingTeam) {
-                setSelectedLeaderId(editingTeam.leader?.id || '');
-                setSelectedMemberIds(editingTeam.members?.map(m => m.id) || []);
-            } else {
-                setSelectedLeaderId('');
-                setSelectedMemberIds([]);
-            }
-        }, 0);
+    const selectableUsers = useMemo(() => {
+        const userMap = new Map();
+        const editingMembers = editingTeam?.members || [];
+        const editingLeader = editingTeam?.leader ? [editingTeam.leader] : [];
 
-        return () => clearTimeout(timer);
-    }, [editingTeam]);
+        [...availableUsers, ...editingMembers, ...editingLeader].forEach((user) => {
+            if (!user?.id) return;
+            userMap.set(normalizeId(user.id), user);
+        });
+
+        return Array.from(userMap.values());
+    }, [availableUsers, editingTeam]);
 
     const handleMemberToggle = (userId) => {
+        const normalizedUserId = normalizeId(userId);
         setSelectedMemberIds(prev => 
-            prev.includes(userId) 
-                ? prev.filter(id => id !== userId)
-                : [...prev, userId]
+            prev.includes(normalizedUserId)
+                ? prev.filter(id => id !== normalizedUserId)
+                : [...prev, normalizedUserId]
         );
     };
 
@@ -39,8 +50,9 @@ export default function TeamFormModal({
         e.preventDefault();
         const submitData = {
             ...formData,
-            leaderId: selectedLeaderId || null,
-            memberIds: selectedMemberIds
+            teamId: editingTeam?.id || null,
+            leaderId: selectedLeaderId ? toApiId(selectedLeaderId) : null,
+            memberIds: selectedMemberIds.map(toApiId)
         };
         onSubmit(submitData);
     };
@@ -48,9 +60,9 @@ export default function TeamFormModal({
     if (!showModal) return null;
 
     return (
-        <div className="fixed inset-0 bg-coordinator-dark/20 backdrop-blur-sm flex items-center justify-center z-50 transition-opacity p-4">
+        <div className="fixed inset-0 bg-[#1e40af]/20 backdrop-blur-sm flex items-center justify-center z-50 transition-opacity p-4">
             <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden transform transition-all scale-100 max-h-[90vh] overflow-y-auto">
-                <div className="bg-coordinator-dark p-6 text-white flex justify-between items-center sticky top-0 z-10">
+                <div className="bg-[#1e40af] p-6 text-white flex justify-between items-center sticky top-0 z-10">
                     <h2 className="text-xl font-bold">
                         {editingTeam ? 'Cập nhật đội cứu hộ' : 'Tạo đội cứu hộ mới'}
                     </h2>
@@ -97,18 +109,18 @@ export default function TeamFormModal({
 
                     {/* Team Leader Selection */}
                     <div>
-                        <label className=" text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+                        <label className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
                             <Shield size={16} className="text-orange-500" />
                             Đội trưởng
                         </label>
                         <select
                             value={selectedLeaderId}
-                            onChange={(e) => setSelectedLeaderId(e.target.value)}
+                            onChange={(e) => setSelectedLeaderId(normalizeId(e.target.value))}
                             className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                         >
                             <option value="">-- Chọn đội trưởng --</option>
-                            {availableUsers.map(user => (
-                                <option key={user.id} value={user.id}>
+                            {selectableUsers.map(user => (
+                                <option key={user.id} value={normalizeId(user.id)}>
                                     {user.fullName || user.email} ({user.email})
                                 </option>
                             ))}
@@ -117,25 +129,25 @@ export default function TeamFormModal({
 
                     {/* Team Members Selection */}
                     <div>
-                        <label className=" text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
+                        <label className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
                             <UserPlus size={16} className="text-blue-500" />
                             Thành viên đội ({selectedMemberIds.length} người)
                         </label>
                         <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 max-h-60 overflow-y-auto">
-                            {availableUsers.length === 0 ? (
+                            {selectableUsers.length === 0 ? (
                                 <p className="text-slate-500 text-sm text-center py-4">
                                     Không có người dùng khả dụng
                                 </p>
                             ) : (
                                 <div className="space-y-2">
-                                    {availableUsers.map(user => (
+                                    {selectableUsers.map(user => (
                                         <label 
                                             key={user.id}
                                             className="flex items-center gap-3 p-3 bg-white rounded-lg hover:bg-blue-50 cursor-pointer transition border border-slate-100"
                                         >
                                             <input
                                                 type="checkbox"
-                                                checked={selectedMemberIds.includes(user.id)}
+                                                checked={selectedMemberIds.includes(normalizeId(user.id))}
                                                 onChange={() => handleMemberToggle(user.id)}
                                                 className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
                                             />
@@ -145,7 +157,7 @@ export default function TeamFormModal({
                                                 </p>
                                                 <p className="text-xs text-slate-500">{user.email}</p>
                                             </div>
-                                            {selectedLeaderId === user.id.toString() && (
+                                            {selectedLeaderId === normalizeId(user.id) && (
                                                 <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full font-semibold">
                                                     Đội trưởng
                                                 </span>
@@ -173,9 +185,8 @@ export default function TeamFormModal({
                                 className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                             >
                                 <option value="AVAILABLE">Sẵn sàng</option>
-                                <option value="IN_MISSION">Đang nhiệm vụ</option>
-                                <option value="RESTING">Nghỉ ngơi</option>
-                                <option value="INACTIVE">Không hoạt động</option>
+                                <option value="BUSY">Đang nhiệm vụ</option>
+                                <option value="OFF_DUTY">Nghỉ trực</option>
                             </select>
                         </div>
                     )}
@@ -191,7 +202,7 @@ export default function TeamFormModal({
                         </button>
                         <button
                             type="submit"
-                            className="flex-1 px-4 py-3 bg-coordinator-dark text-white font-semibold rounded-xl shadow-lg shadow-blue-900/30 hover:bg-blue-800 transition transform hover:-translate-y-0.5"
+                            className="flex-1 px-4 py-3 bg-[#1e40af] text-white font-semibold rounded-xl shadow-lg shadow-blue-900/30 hover:bg-blue-800 transition transform hover:-translate-y-0.5"
                         >
                             {editingTeam ? 'Lưu thay đổi' : 'Tạo đội mới'}
                         </button>

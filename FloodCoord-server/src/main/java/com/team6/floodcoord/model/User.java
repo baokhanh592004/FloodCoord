@@ -36,6 +36,9 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private String password;
 
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
+
     @Column(name = "failed_login_attempts")
     private Integer failedLoginAttempts = 0;
 
@@ -109,6 +112,7 @@ public class User implements UserDetails {
 
     @PrePersist
     protected void onCreate() {
+        if (createdAt == null) createdAt = LocalDateTime.now();
         if (lastPasswordChangeDate == null) lastPasswordChangeDate = LocalDateTime.now();
         if (lastLoginDate == null) lastLoginDate = LocalDateTime.now();
         if (failedLoginAttempts == null) failedLoginAttempts = 0;

@@ -18,5 +18,9 @@ public class RescueRequestSummaryResponse {
 
     private String contactName;
     private String contactPhone;
+
+    // Thông tin đội đã phân công (dùng để hiển thị trong danh sách)
+    private Long assignedTeamId;
+    private String assignedTeamName;
     
 }

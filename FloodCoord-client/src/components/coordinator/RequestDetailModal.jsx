@@ -314,7 +314,7 @@ export default function RequestDetailModal({ request, isOpen, onClose, onValidat
                             Xác thực yêu cầu
                         </button>
                     )}
-                    {(displayData.status === 'VERIFIED' || displayData.status === 'VALIDATED') && onAssign && (
+                    {(displayData.status === 'VERIFIED' || displayData.status === 'VALIDATED') && !displayData.assignedTeamId && !displayData.assignedTeamName && onAssign && (
                         <button
                             onClick={() => { onClose(); onAssign(displayData); }}
                             className="px-5 py-2 text-sm font-medium text-white bg-teal-600 rounded-md hover:bg-teal-700 shadow-sm"

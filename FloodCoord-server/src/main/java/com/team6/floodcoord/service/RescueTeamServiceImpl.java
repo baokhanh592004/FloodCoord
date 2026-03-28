@@ -1,22 +1,16 @@
 package com.team6.floodcoord.service;
 
-import com.team6.floodcoord.dto.request.AssignSupplyDTO;
-import com.team6.floodcoord.dto.request.AssignTaskRequest;
 import com.team6.floodcoord.dto.request.RescueTeamRequest;
 import com.team6.floodcoord.dto.response.RescueTeamResponse;
 import com.team6.floodcoord.model.*;
-import com.team6.floodcoord.model.enums.RequestStatus;
-import com.team6.floodcoord.model.enums.VehicleStatus;
-import com.team6.floodcoord.repository.*;
+import com.team6.floodcoord.repository.jpa.*;
 import com.team6.floodcoord.utils.RescueTeamMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -41,6 +35,9 @@ public class RescueTeamServiceImpl implements RescueTeamService{
         team.setName(request.getName());
         team.setDescription(request.getDescription());
         team.setIsActive(true);
+        if (request.getStatus() != null) {
+            team.setStatus(request.getStatus());
+        }
 
         // Lưu trước để có ID
         team = teamRepo.save(team);
@@ -73,6 +70,10 @@ public class RescueTeamServiceImpl implements RescueTeamService{
 
         if (request.getDescription() != null) team.setDescription(request.getDescription());
 
+        if (request.getStatus() != null) {
+            team.setStatus(request.getStatus());
+        }
+
         // Update Leader
         if (request.getLeaderId() != null) {
             assignLeader(team, request.getLeaderId());
@@ -99,6 +100,16 @@ public class RescueTeamServiceImpl implements RescueTeamService{
         return teamRepo.findAll().stream()
                 .map(RescueTeamMapper::mapToResponse) // SỬ DỤNG METHOD REFERENCE
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<RescueTeamResponse> getAvailableTeams() {
+        List<RescueTeamResponse> availableTeams = teamRepo.findByStatus(com.team6.floodcoord.model.enums.TeamStatus.AVAILABLE).stream()
+                .map(RescueTeamMapper::mapToResponse)
+                .collect(Collectors.toList());
+        log.info("Found {} available teams", availableTeams.size());
+        availableTeams.forEach(team -> log.info("- Team: {} (ID: {})", team.getName(), team.getId()));
+        return availableTeams;
     }
 
     @Override

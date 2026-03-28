@@ -1,6 +1,6 @@
 package com.team6.floodcoord.service;
 
-import com.team6.floodcoord.repository.UserRepository;
+import com.team6.floodcoord.repository.jpa.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.userdetails.UserDetails;
