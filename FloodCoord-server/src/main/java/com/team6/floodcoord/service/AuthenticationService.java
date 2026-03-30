@@ -14,5 +14,5 @@ public interface AuthenticationService {
     void changePassword(Long userId, ChangePasswordRequest request);
     void forgotPassword(ForgotPasswordRequest request);
     void resetPassword(ResetPasswordRequest request);
-    UserResponse register(UserRequest request);
+    UserResponse register(RegisterRequest request);
 }

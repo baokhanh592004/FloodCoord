@@ -28,7 +28,7 @@ public class AuthenticationController {
 
     @PostMapping("/register")
     @Operation(summary = "Register new user", description = "Đăng ký tài khoản người dùng mới (Public)")
-    public ResponseEntity<UserResponse> register(@Valid @RequestBody UserRequest request) {
+    public ResponseEntity<UserResponse> register(@Valid @RequestBody RegisterRequest request) {
         log.info("Registration request received for email: {}", request.getEmail());
         UserResponse response = authenticationService.register(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
