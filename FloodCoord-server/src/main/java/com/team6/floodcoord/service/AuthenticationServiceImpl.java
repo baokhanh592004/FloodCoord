@@ -116,6 +116,8 @@ public class AuthenticationServiceImpl implements AuthenticationService{
                     .revoked(false)
                     .build();
 
+            validRefreshTokenRepository.save(refreshToken);
+
             return LoginResponse.builder()
                     .accessToken(accessPayload.getToken())
                     .refreshToken(refreshPayload.getToken())
@@ -329,7 +331,7 @@ public class AuthenticationServiceImpl implements AuthenticationService{
     }
 
     @Override
-    public UserResponse register(UserRequest request) {
+    public UserResponse register(RegisterRequest request) {
 
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new IllegalArgumentException("Email already exists: " + request.getEmail());
@@ -356,7 +358,7 @@ public class AuthenticationServiceImpl implements AuthenticationService{
                 .phoneNumber(request.getPhoneNumber())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .status(true) // Mặc định Active khi đăng ký
-                .role(role)
+                .role(role  )
                 .build();
 
         user = userRepository.save(user);
