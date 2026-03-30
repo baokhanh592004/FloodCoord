@@ -39,6 +39,7 @@ import SupplyManagement from '../pages/manager/SupplyManagement'
 
 /* Coordinator */
 import CoordinatorDashboard from '../pages/coordinator/CoordinatorDashboard'
+import AnalyticsPage from '../pages/coordinator/AnalyticsPage'
 import RequestQueue from '../pages/coordinator/RequestQueue'
 import Operations from '../pages/coordinator/Operations'
 import IncidentReportsPage from '../pages/shared/IncidentReportsPage'
@@ -134,6 +135,7 @@ export default function AppRoutes() {
       >
         <Route path="" element={<CoordinatorDashboard />} />
         <Route path="dashboard" element={<CoordinatorDashboard />} />
+        <Route path="analytics" element={<AnalyticsPage />} />
         <Route path="requests" element={<RequestQueue />} />
         <Route path="operations" element={<Operations />} />
         <Route path="incident-reports" element={<IncidentReportsPage />} />
