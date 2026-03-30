@@ -81,7 +81,7 @@ export default function AssignTaskModal({ request, isOpen, onClose, onSuccess })
     const handleConfirmAssign = async () => {
         setLoading(true);
         try {
-            await coordinatorApi.assignTask(request.requestId || request.id, {
+            await coordinatorApi.assignTask(request.requestId, {
                 rescueTeamId: Number(formData.rescueTeamId),
                 vehicleId: useVehicle && formData.vehicleId
                     ? Number(formData.vehicleId)

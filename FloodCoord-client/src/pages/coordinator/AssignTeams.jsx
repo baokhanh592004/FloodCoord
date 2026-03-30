@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { coordinatorApi } from '../../services/coordinatorApi';
+import { coordinatorDashboardApi } from '../../services/coordinatorDashboardApi';
 import { teamApi } from '../../services/teamApi';
 import { vehicleApi } from '../../services/vehicleApi';
 import { supplyApi } from '../../services/supplyApi';
@@ -19,7 +19,7 @@ export default function AssignTeams() {
     const loadData = async () => {
         try {
             const [reqData, teamData, vehicleData, supplyData] = await Promise.all([
-                coordinatorApi.getAllRequests(),
+                coordinatorDashboardApi.getRequests(),
                 teamApi.getAllTeams(),
                 vehicleApi.getAllVehicles(),
                 supplyApi.getAllSupplies(),
@@ -50,14 +50,14 @@ export default function AssignTeams() {
     return (
         <div className="p-6 space-y-6">
             <div>
-                <h1 className="text-2xl font-bold text-gray-900">Phân công đội cứu hộ</h1>
-                <p className="text-sm text-gray-600">Phân công đội cứu hộ cho các yêu cầu đã xác minh.</p>
+                <h1 className="text-2xl font-bold text-neutral-900">Phân công đội cứu hộ</h1>
+                <p className="text-sm text-neutral-600">Phân công đội cứu hộ cho các yêu cầu đã xác minh.</p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 space-y-4">
                     {verifiedRequests.map((req) => (
-                        <div key={req.requestId || req.id}>
+                        <div key={req.requestId}>
                             <RequestCard
                                 request={req}
                                 onAssign={(r) => {
@@ -72,31 +72,31 @@ export default function AssignTeams() {
                         </div>
                     ))}
                     {verifiedRequests.length === 0 && (
-                        <div className="text-sm text-gray-500">Không có yêu cầu đã xác minh để phân công.</div>
+                        <div className="text-sm text-neutral-400">Không có yêu cầu đã xác minh để phân công.</div>
                     )}
                 </div>
 
-                <div className="bg-white border border-gray-200 rounded-lg p-5">
-                    <h2 className="text-lg font-semibold text-gray-900 mb-4">Thông tin nhanh</h2>
+                <div className="bg-white border border-neutral-100 rounded-lg p-5">
+                    <h2 className="text-lg font-semibold text-neutral-900 mb-4">Thông tin nhanh</h2>
                     <div className="space-y-4">
-                        <div className="bg-gray-50 p-4 rounded-lg">
-                            <p className="text-sm text-gray-600">Đội cứu hộ khả dụng</p>
-                            <p className="text-2xl font-bold text-gray-900">
+                        <div className="bg-neutral-50 p-4 rounded-lg">
+                            <p className="text-sm text-neutral-600">Đội cứu hộ khả dụng</p>
+                            <p className="text-2xl font-bold text-neutral-900">
                                 {teams.filter((t) => t.status === 'AVAILABLE').length}
                             </p>
                         </div>
-                        <div className="bg-gray-50 p-4 rounded-lg">
-                            <p className="text-sm text-gray-600">Xe cứu hộ khả dụng</p>
-                            <p className="text-2xl font-bold text-gray-900">
+                        <div className="bg-neutral-50 p-4 rounded-lg">
+                            <p className="text-sm text-neutral-600">Xe cứu hộ khả dụng</p>
+                            <p className="text-2xl font-bold text-neutral-900">
                                 {vehicles.filter((v) => v.status === 'AVAILABLE').length}
                             </p>
                         </div>
-                        <div className="bg-gray-50 p-4 rounded-lg">
-                            <p className="text-sm text-gray-600">Vật tư khả dụng</p>
-                            <p className="text-2xl font-bold text-gray-900">{supplies.length}</p>
+                        <div className="bg-neutral-50 p-4 rounded-lg">
+                            <p className="text-sm text-neutral-600">Vật tư khả dụng</p>
+                            <p className="text-2xl font-bold text-neutral-900">{supplies.length}</p>
                         </div>
                     </div>
-                    <p className="text-xs text-gray-500 mt-4">
+                    <p className="text-xs text-neutral-400 mt-4">
                         Nhấn "Phân công đội" trên thẻ yêu cầu để điều phối tài nguyên
                     </p>
                 </div>
