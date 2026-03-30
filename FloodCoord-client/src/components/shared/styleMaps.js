@@ -252,9 +252,10 @@ export const COORDINATOR_PRIORITY_BADGE_DEFAULT = {
 };
 
 export const MODAL_STYLE_MAP = {
-  overlaySoft: 'fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4',
-  overlayDefault: 'fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4',
-  overlayStrong: 'fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-60 p-4',
+  // Keep overlays above Leaflet panes/controls (which use high z-index values).
+  overlaySoft: 'fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-[2000] p-4',
+  overlayDefault: 'fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-[2000] p-4',
+  overlayStrong: 'fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-[2100] p-4',
   shell: 'bg-white rounded-lg shadow-xl w-full max-h-[90vh] flex flex-col',
   shellCompact: 'bg-white rounded-lg shadow-2xl max-w-md w-full p-6',
   header: 'shrink-0 flex items-center justify-between p-5 border-b border-neutral-100',

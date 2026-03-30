@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
     XMarkIcon, MapPinIcon, UserIcon, PhoneIcon, ClockIcon,
     UserGroupIcon, XCircleIcon, TruckIcon, BeakerIcon,
@@ -27,16 +27,11 @@ export default function RequestDetailModal({ request, isOpen, onClose, onValidat
     const [details, setDetails] = useState(null);
     const [loading, setLoading] = useState(false);
 
-    useEffect(() => {
-        if (isOpen && request) {
-            loadDetails();
-        }
-    }, [isOpen, request]);
-
-    const loadDetails = async () => {
+    const loadDetails = useCallback(async () => {
+        if (!request) return;
         setLoading(true);
         try {
-            const data = await coordinatorApi.getRequestDetail(request.requestId || request.id);
+            const data = await coordinatorApi.getRequestDetail(request.requestId);
             setDetails(data);
         } catch (error) {
             console.error('Failed to load request details:', error);
@@ -44,7 +39,13 @@ export default function RequestDetailModal({ request, isOpen, onClose, onValidat
         } finally {
             setLoading(false);
         }
-    };
+    }, [request]);
+
+    useEffect(() => {
+        if (isOpen && request) {
+            loadDetails();
+        }
+    }, [isOpen, request, loadDetails]);
 
     if (!isOpen || !request) return null;
 

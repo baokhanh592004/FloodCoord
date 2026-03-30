@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { coordinatorApi } from '../../services/coordinatorApi';
+import { coordinatorDashboardApi } from '../../services/coordinatorDashboardApi';
 import VerifyRequestModal from '../../components/coordinator/VerifyRequestModal';
 import AssignTaskModal from '../../components/coordinator/AssignTaskModal';
 import RequestDetailModal from '../../components/coordinator/RequestDetailModal';
@@ -43,37 +43,9 @@ export default function RequestQueue() {
     const loadRequests = useCallback(async () => {
         setLoading(true);
         try {
-            const data = await coordinatorApi.getAllRequests();
-            const list = data || [];
-            setRequests(list);
+            const list = await coordinatorDashboardApi.getRequestsWithDetails();
+            setRequests(list || []);
             setLastRefresh(new Date());
-
-            // Enrich: list API thiếu location/media, detail API thiếu contactName/contactPhone
-            // Gọi detail API cho từng yêu cầu rồi merge dữ liệu
-            Promise.allSettled(
-                list.map((req) => coordinatorApi.getRequestDetail(req.requestId || req.id))
-            ).then((results) => {
-                const detailMap = {};
-                list.forEach((req, i) => {
-                    if (results[i].status === 'fulfilled') {
-                        detailMap[req.requestId || req.id] = results[i].value;
-                    }
-                });
-                setRequests((prev) =>
-                    prev.map((req) => {
-                        const detail = detailMap[req.requestId || req.id];
-                        if (detail) {
-                            return {
-                                ...detail,                          // detail: location, media, ...
-                                ...req,                             // list: contactName, contactPhone, ... (ưu tiên)
-                                location: detail.location || req.location,
-                                media: detail.media || req.media,
-                            };
-                        }
-                        return req;
-                    })
-                );
-            });
         } catch (error) {
             console.error('Failed to load requests:', error);
         } finally {
@@ -158,21 +130,21 @@ export default function RequestQueue() {
             {/* Header — compact */}
             <div className="flex-shrink-0 flex items-center justify-between">
                 <div>
-                    <h1 className="text-xl font-bold text-gray-900">Danh sách yêu cầu</h1>
-                    <p className="text-xs text-gray-500">
+                    <h1 className="text-xl font-bold text-neutral-900">Danh sách yêu cầu</h1>
+                    <p className="text-xs text-neutral-400">
                         Xem, xác thực và phân công đội cứu hộ cho các yêu cầu.
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
                     {lastRefresh && (
-                        <span className="text-xs text-gray-400">
+                        <span className="text-xs text-neutral-400">
                             Cập nhật: {lastRefresh.toLocaleTimeString('vi-VN')}
                         </span>
                     )}
                     <button
                         onClick={loadRequests}
                         disabled={loading}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-teal-600 text-white text-xs font-medium rounded-md hover:bg-teal-700 disabled:opacity-60 transition-colors"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-coordinator text-white text-xs font-medium rounded-md hover:bg-coordinator-dark disabled:opacity-60 transition-colors"
                     >
                         <ArrowPathIcon className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
                         {loading ? 'Đang tải...' : 'Làm mới'}
@@ -183,16 +155,16 @@ export default function RequestQueue() {
             {/* Filters: search + status tabs — compact */}
             <div className="flex-shrink-0 flex flex-col sm:flex-row gap-2 items-start sm:items-center">
                 <div className="relative flex-1 max-w-sm">
-                    <MagnifyingGlassIcon className="absolute left-2.5 top-2 h-3.5 w-3.5 text-gray-400" />
+                    <MagnifyingGlassIcon className="absolute left-2.5 top-2 h-3.5 w-3.5 text-neutral-400" />
                     <input
                         type="text"
                         placeholder="Tìm theo tên, địa điểm..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-8 pr-3 py-1.5 border border-gray-200 rounded-md text-xs focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                        className="w-full pl-8 pr-3 py-1.5 border border-neutral-100 rounded-md text-xs focus:ring-2 focus:ring-coordinator focus:border-coordinator"
                     />
                 </div>
-                <div className="flex gap-0.5 bg-gray-100 p-0.5 rounded-lg flex-wrap">
+                <div className="flex gap-0.5 bg-neutral-100 p-0.5 rounded-lg flex-wrap">
                     {[
                         { key: 'ALL', label: 'Tất cả' },
                         { key: 'PENDING', label: 'Chờ duyệt' },
@@ -206,54 +178,54 @@ export default function RequestQueue() {
                             onClick={() => setStatusFilter(tab.key)}
                             className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
                                 statusFilter === tab.key
-                                    ? 'bg-white text-teal-700 shadow-sm'
-                                    : 'text-gray-500 hover:text-gray-700'
+                                    ? 'bg-white text-coordinator-dark shadow-sm'
+                                    : 'text-neutral-400 hover:text-neutral-600'
                             }`}
                         >
                             {tab.label}
-                            <span className="ml-1 text-gray-400">({statusCounts[tab.key]})</span>
+                            <span className="ml-1 text-neutral-400">({statusCounts[tab.key]})</span>
                         </button>
                     ))}
                 </div>
             </div>
 
             {/* Table — fills remaining space, scrolls internally */}
-            <div className="flex-1 min-h-0 bg-white border border-gray-200 rounded-lg flex flex-col overflow-hidden">
+            <div className="flex-1 min-h-0 bg-white border border-neutral-100 rounded-lg flex flex-col overflow-hidden">
                 <div className="flex-1 min-h-0 overflow-auto">
                     <table className="w-full text-xs">
                         <thead className="sticky top-0 z-10">
-                            <tr className="bg-gray-50 border-b border-gray-200">
-                                <th className="text-left px-3 py-2 font-semibold text-gray-600 w-10">#</th>
-                                <th className="text-left px-3 py-2 font-semibold text-gray-600">Tiêu đề</th>
-                                <th className="text-left px-3 py-2 font-semibold text-gray-600">Người gửi</th>
-                                <th className="text-left px-3 py-2 font-semibold text-gray-600">Địa điểm cứu trợ</th>
-                                <th className="text-left px-3 py-2 font-semibold text-gray-600 w-32">Đội phân công</th>
-                                <th className="text-left px-3 py-2 font-semibold text-gray-600 w-28">Thời gian</th>
-                                <th className="text-center px-3 py-2 font-semibold text-gray-600 w-24">Mức độ</th>
-                                <th className="text-center px-3 py-2 font-semibold text-gray-600 w-28">Trạng thái</th>
-                                <th className="text-center px-3 py-2 font-semibold text-gray-600 w-32">Hành động</th>
+                            <tr className="bg-neutral-50 border-b border-neutral-100">
+                                <th className="text-left px-3 py-2 font-semibold text-neutral-600 w-10">#</th>
+                                <th className="text-left px-3 py-2 font-semibold text-neutral-600">Tiêu đề</th>
+                                <th className="text-left px-3 py-2 font-semibold text-neutral-600">Người gửi</th>
+                                <th className="text-left px-3 py-2 font-semibold text-neutral-600">Địa điểm cứu trợ</th>
+                                <th className="text-left px-3 py-2 font-semibold text-neutral-600 w-32">Đội phân công</th>
+                                <th className="text-left px-3 py-2 font-semibold text-neutral-600 w-28">Thời gian</th>
+                                <th className="text-center px-3 py-2 font-semibold text-neutral-600 w-24">Mức độ</th>
+                                <th className="text-center px-3 py-2 font-semibold text-neutral-600 w-28">Trạng thái</th>
+                                <th className="text-center px-3 py-2 font-semibold text-neutral-600 w-32">Hành động</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100">
+                        <tbody className="divide-y divide-neutral-100">
                             {paginatedRequests.map((req, index) => (
-                                <tr key={req.requestId || req.id} className="hover:bg-gray-50 transition-colors">
+                                <tr key={req.requestId} className="hover:bg-neutral-50 transition-colors">
                                     {/* # Thứ tự */}
-                                    <td className="px-3 py-2 text-gray-400 font-mono">{(currentPage - 1) * ITEMS_PER_PAGE + index + 1}</td>
+                                    <td className="px-3 py-2 text-neutral-400 font-mono">{(currentPage - 1) * ITEMS_PER_PAGE + index + 1}</td>
 
                                     {/* Tiêu đề */}
                                     <td className="px-3 py-2">
-                                        <p className="font-medium text-gray-900">
+                                        <p className="font-medium text-neutral-900">
                                             {req.title || 'Yêu cầu cứu hộ'}
                                         </p>
                                     </td>
 
                                     {/* Người gửi (tên + SĐT) */}
                                     <td className="px-3 py-2">
-                                        <p className="text-gray-900 font-medium">
+                                        <p className="text-neutral-900 font-medium">
                                             {req.contactName || req.citizenName || 'Không rõ'}
                                         </p>
                                         {(req.contactPhone) && (
-                                            <p className="text-gray-400 mt-0.5">
+                                            <p className="text-neutral-400 mt-0.5">
                                                 {req.contactPhone}
                                             </p>
                                         )}
@@ -261,7 +233,7 @@ export default function RequestQueue() {
 
                                     {/* Địa điểm cứu trợ — sau khi enrich sẽ có location từ detail API */}
                                     <td className="px-3 py-2">
-                                        <p className="text-gray-700">
+                                        <p className="text-neutral-600">
                                             {req.location?.addressText || 'Đang tải...'}
                                         </p>
                                     </td>
@@ -269,17 +241,17 @@ export default function RequestQueue() {
                                     {/* Đội phân công */}
                                     <td className="px-3 py-2">
                                         {req.assignedTeamName ? (
-                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-teal-50 text-teal-700 border border-teal-200 rounded-full text-[11px] font-medium">
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-coordinator-50 text-coordinator-dark border border-coordinator-100 rounded-full text-[11px] font-medium">
                                                 🚨 {req.assignedTeamName}
                                             </span>
                                         ) : (
-                                            <span className="text-gray-400 text-[11px] italic">Chưa phân công</span>
+                                            <span className="text-neutral-400 text-[11px] italic">Chưa phân công</span>
                                         )}
                                     </td>
 
                                     {/* Thời gian gửi */}
                                     <td className="px-3 py-2" title={formatDateTime(req.createdAt)}>
-                                        <span className="text-gray-600">{formatTimeAgo(req.createdAt)}</span>
+                                        <span className="text-neutral-600">{formatTimeAgo(req.createdAt)}</span>
                                     </td>
 
                                     {/* Mức độ */}
@@ -299,7 +271,7 @@ export default function RequestQueue() {
                                             <button
                                                 onClick={() => { setSelectedRequest(req); setShowDetailModal(true); }}
                                                 title="Xem chi tiết"
-                                                className="p-1 text-gray-500 hover:text-teal-600 hover:bg-teal-50 rounded transition-colors"
+                                                className="p-1 text-neutral-400 hover:text-coordinator hover:bg-coordinator-50 rounded transition-colors"
                                             >
                                                 <EyeIcon className="h-4 w-4" />
                                             </button>
@@ -309,7 +281,7 @@ export default function RequestQueue() {
                                                 <button
                                                     onClick={() => { setSelectedRequest(req); setShowVerifyModal(true); }}
                                                     title="Xác thực yêu cầu"
-                                                    className="p-1 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors"
+                                                    className="p-1 text-info hover:text-info-dark hover:bg-info-50 rounded transition-colors"
                                                 >
                                                     <ShieldCheckIcon className="h-4 w-4" />
                                                 </button>
@@ -320,7 +292,7 @@ export default function RequestQueue() {
                                                 <button
                                                     onClick={() => { setSelectedRequest(req); setShowAssignModal(true); }}
                                                     title="Phân công đội cứu hộ"
-                                                    className="p-1 text-green-500 hover:text-green-700 hover:bg-green-50 rounded transition-colors"
+                                                    className="p-1 text-success hover:text-success-dark hover:bg-success-50 rounded transition-colors"
                                                 >
                                                     <TruckIcon className="h-4 w-4" />
                                                 </button>
@@ -331,7 +303,7 @@ export default function RequestQueue() {
                                                 <button
                                                     onClick={() => { setSelectedRequest(req); setShowDetailModal(true); }}
                                                     title="Theo dõi"
-                                                    className="p-1 text-yellow-500 hover:text-yellow-700 hover:bg-yellow-50 rounded transition-colors"
+                                                    className="p-1 text-warning hover:text-warning-dark hover:bg-warning-50 rounded transition-colors"
                                                 >
                                                     <SignalIcon className="h-4 w-4" />
                                                 </button>
@@ -345,13 +317,13 @@ export default function RequestQueue() {
 
                     {/* Trạng thái rỗng / đang tải */}
                     {filteredRequests.length === 0 && !loading && (
-                        <div className="text-center py-10 text-gray-400">
+                        <div className="text-center py-10 text-neutral-400">
                             <ClipboardDocumentListIcon className="h-8 w-8 mx-auto mb-2 opacity-50" />
                             <p className="text-xs">Không tìm thấy yêu cầu nào.</p>
                         </div>
                     )}
                     {loading && filteredRequests.length === 0 && (
-                        <div className="text-center py-10 text-gray-400">
+                        <div className="text-center py-10 text-neutral-400">
                             <ArrowPathIcon className="h-6 w-6 mx-auto mb-2 animate-spin" />
                             <p className="text-xs">Đang tải yêu cầu...</p>
                         </div>
@@ -360,7 +332,7 @@ export default function RequestQueue() {
 
                 {/* Footer: phân trang */}
                 {filteredRequests.length > 0 && (
-                    <div className="flex-shrink-0 px-3 py-2 bg-gray-50 border-t border-gray-200 text-xs text-gray-500 flex items-center justify-between">
+                    <div className="flex-shrink-0 px-3 py-2 bg-neutral-50 border-t border-neutral-100 text-xs text-neutral-400 flex items-center justify-between">
                         <span>
                             Hiển thị {(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, filteredRequests.length)} / {filteredRequests.length} yêu cầu
                         </span>
@@ -369,7 +341,7 @@ export default function RequestQueue() {
                                 <button
                                     onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                                     disabled={currentPage === 1}
-                                    className="px-2 py-1 rounded border border-gray-300 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed"
+                                    className="px-2 py-1 rounded border border-neutral-200 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed"
                                 >
                                     ‹
                                 </button>
@@ -379,8 +351,8 @@ export default function RequestQueue() {
                                         onClick={() => setCurrentPage(page)}
                                         className={`px-2 py-1 rounded border ${
                                             currentPage === page
-                                                ? 'bg-teal-600 text-white border-teal-600'
-                                                : 'border-gray-300 hover:bg-white'
+                                                ? 'bg-coordinator text-white border-coordinator'
+                                                : 'border-neutral-200 hover:bg-white'
                                         }`}
                                     >
                                         {page}
@@ -389,7 +361,7 @@ export default function RequestQueue() {
                                 <button
                                     onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                                     disabled={currentPage === totalPages}
-                                    className="px-2 py-1 rounded border border-gray-300 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed"
+                                    className="px-2 py-1 rounded border border-neutral-200 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed"
                                 >
                                     ›
                                 </button>
@@ -411,7 +383,7 @@ export default function RequestQueue() {
                     if (action === 'rejected' && selectedRequest) {
                         setRequests((prev) =>
                             prev.map((r) =>
-                                (r.requestId || r.id) === (selectedRequest.requestId || selectedRequest.id)
+                                r.requestId === selectedRequest.requestId
                                     ? { ...r, status: 'REJECTED' }
                                     : r
                             )
@@ -419,7 +391,7 @@ export default function RequestQueue() {
                     } else if (action === 'verified' && selectedRequest) {
                         setRequests((prev) =>
                             prev.map((r) =>
-                                (r.requestId || r.id) === (selectedRequest.requestId || selectedRequest.id)
+                                r.requestId === selectedRequest.requestId
                                     ? { ...r, status: 'VERIFIED' }
                                     : r
                             )

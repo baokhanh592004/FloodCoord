@@ -54,7 +54,7 @@ export default function RescueReportsPage() {
         try {
             const reportDetail = await rescueReportApi.getReportDetail(item.requestId);
             setSelectedDetail(reportDetail || item.report || null);
-        } catch (error) {
+        } catch {
             setSelectedDetail(item.report || null);
         } finally {
             setDetailLoading(false);

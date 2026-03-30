@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { X, User, Mail, Phone, Lock, Shield, AlertCircle } from 'lucide-react';
 import { adminUserApi } from '../../services/adminUserApi';
 import { MODAL_STYLE_MAP } from '../shared/styleMaps';
@@ -17,14 +17,26 @@ export default function UserFormModal({ editingUser, onClose, onSuccess }) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
-    const getRoleIdFromCode = (roleCode) => {
-    const role = roles.find(r => r.roleCode === roleCode);
-    return role ? role.id : '';
-};
+    const getRoleIdFromCode = useCallback((roleCode) => {
+        const role = roles.find((r) => r.roleCode === roleCode);
+        return role ? role.id : '';
+    }, [roles]);
+
+    const fetchRoles = useCallback(async () => {
+        try {
+            const data = await adminUserApi.getAllRoles();
+            setRoles(data);
+            if (!editingUser && data.length > 0) {
+                setFormData((prev) => ({ ...prev, roleId: data[0].id }));
+            }
+        } catch (err) {
+            console.error('Failed to fetch roles:', err);
+        }
+    }, [editingUser]);
 
     useEffect(() => {
-    fetchRoles();
-}, []);
+        fetchRoles();
+    }, [fetchRoles]);
 
     useEffect(() => {
         if (editingUser && roles.length > 0) {
@@ -38,19 +50,7 @@ export default function UserFormModal({ editingUser, onClose, onSuccess }) {
                 status: editingUser.status !== undefined ? editingUser.status : true
             });
         }
-        }, [editingUser, roles]);
-
-    const fetchRoles = async () => {
-        try {
-            const data = await adminUserApi.getAllRoles();
-            setRoles(data);
-            if (!editingUser && data.length > 0) {
-                setFormData(prev => ({ ...prev, roleId: data[0].id }));
-            }
-        } catch (err) {
-            console.error('Failed to fetch roles:', err);
-        }
-    };
+        }, [editingUser, roles, getRoleIdFromCode]);
 
     const handleInputChange = (e) => {
         const { name, value, type, checked } = e.target;

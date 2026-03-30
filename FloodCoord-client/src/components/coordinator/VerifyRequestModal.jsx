@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { XMarkIcon, ExclamationTriangleIcon, PhotoIcon, XCircleIcon } from '@heroicons/react/24/outline';
 import { coordinatorApi } from '../../services/coordinatorApi';
 import { MODAL_STYLE_MAP } from '../shared/styleMaps';
@@ -38,6 +38,19 @@ export default function VerifyRequestModal({ request, isOpen, onClose, onSuccess
     const [rejectReasons, setRejectReasons] = useState([]);
     const [rejectNote, setRejectNote] = useState('');
 
+    const loadDetails = useCallback(async () => {
+        if (!request) return;
+        setLoadingDetails(true);
+        try {
+            const data = await coordinatorApi.getRequestDetail(request.requestId);
+            setDetails(data);
+        } catch (error) {
+            console.error('Failed to load request details for verify:', error);
+        } finally {
+            setLoadingDetails(false);
+        }
+    }, [request]);
+
     // Reset form + load chi tiết (bao gồm media) khi mở modal
     useEffect(() => {
         if (isOpen && request) {
@@ -54,20 +67,7 @@ export default function VerifyRequestModal({ request, isOpen, onClose, onSuccess
             setDetails(null);
             loadDetails();
         }
-    }, [isOpen, request]);
-
-    const loadDetails = async () => {
-        if (!request) return;
-        setLoadingDetails(true);
-        try {
-            const data = await coordinatorApi.getRequestDetail(request.requestId || request.id);
-            setDetails(data);
-        } catch (error) {
-            console.error('Failed to load request details for verify:', error);
-        } finally {
-            setLoadingDetails(false);
-        }
-    };
+    }, [isOpen, request, loadDetails]);
 
     if (!isOpen || !request) return null;
 
@@ -86,7 +86,7 @@ export default function VerifyRequestModal({ request, isOpen, onClose, onSuccess
     const handleConfirmVerify = async () => {
         setLoading(true);
         try {
-            await coordinatorApi.verifyRequest(request.requestId || request.id, {
+            await coordinatorApi.verifyRequest(request.requestId, {
                 emergencyLevel: formData.emergencyLevel,
                 note: formData.note,
                 approved: true,
@@ -117,7 +117,7 @@ export default function VerifyRequestModal({ request, isOpen, onClose, onSuccess
             const reasonLabels = rejectReasons.map(
                 (id) => REJECT_REASONS.find((r) => r.id === id)?.label || id
             );
-            await coordinatorApi.verifyRequest(request.requestId || request.id, {
+            await coordinatorApi.verifyRequest(request.requestId, {
                 emergencyLevel: formData.emergencyLevel,
                 note: [reasonLabels.join('; '), rejectNote].filter(Boolean).join(' — '),
                 approved: false,
