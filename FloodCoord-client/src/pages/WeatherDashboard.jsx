@@ -44,7 +44,7 @@ const SAMPLE_EVERY = 3;
 
 function ChangeView({ center }) {
   const map = useMap();
-  useEffect(() => { map.setView(center, 13); }, [center]);
+  useEffect(() => { map.setView(center, 13); }, [center, map]);
   return null;
 }
 

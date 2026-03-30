@@ -6,8 +6,7 @@ import {
   Navigation, CheckCircle2, Waves,
   AlertTriangle, Lightbulb, Info
 } from "lucide-react";
-import logo from '../assets/images/logo1.png'
-import heroFloodImg from '../assets/images/forgot-bg.png'
+import heroFloodImg from '../assets/images/logo1.png'
 import beforeFloodImg from '../assets/images/thing-to-do-before-flood.png'
 import afterFloodImg from '../assets/images/things-to-do-after-flood.png'
 import diseaseProtectImg from '../assets/images/disease-protect.png'

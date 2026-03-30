@@ -14,7 +14,6 @@ import {
 } from 'recharts';
 
 export default function AdminDashboard() {
-  const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(false);
 
