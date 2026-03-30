@@ -15,4 +15,5 @@ public interface RescueTeamRepository extends JpaRepository<RescueTeam, Long> {
     Optional<RescueTeam> findByLeader_Id(Long leaderId);
 
     List<RescueTeam> findByStatus(TeamStatus status);
+    long countByStatus(TeamStatus status);
 }
