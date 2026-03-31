@@ -80,6 +80,7 @@ export default function SupplyTableSection({
   handleViewDetail,
   handleEdit,
   handleDelete,
+  readOnly = false,
 }) {
   const isAdmin = variant === 'admin';
 
@@ -215,20 +216,22 @@ export default function SupplyTableSection({
                           onClick: () => handleViewDetail(supply),
                           tone: 'view',
                         },
-                        {
-                          key: 'edit',
-                          title: 'Chỉnh sửa',
-                          icon: PencilSquareIcon,
-                          onClick: () => handleEdit(supply),
-                          tone: 'edit',
-                        },
-                        {
-                          key: 'delete',
-                          title: 'Xóa',
-                          icon: TrashIcon,
-                          onClick: () => handleDelete(supply.id),
-                          tone: 'delete',
-                        },
+                        ...(!readOnly ? [
+                          {
+                            key: 'edit',
+                            title: 'Chỉnh sửa',
+                            icon: PencilSquareIcon,
+                            onClick: () => handleEdit(supply),
+                            tone: 'edit',
+                          },
+                          {
+                            key: 'delete',
+                            title: 'Xóa',
+                            icon: TrashIcon,
+                            onClick: () => handleDelete(supply.id),
+                            tone: 'delete',
+                          },
+                        ] : []),
                       ]}
                     />
                   </td>

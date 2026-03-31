@@ -18,6 +18,7 @@ export default function SupplyManagementPage({
   title,
   subtitle,
   adminTheme,
+  readOnly = false,
 }) {
   const {
     itemsPerPage,
@@ -81,27 +82,29 @@ export default function SupplyManagementPage({
         </button>
       )}
 
-      {isAdmin ? (
-        <button
-          onClick={openCreateModal}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-white text-xs font-semibold rounded-lg transition-colors"
-          style={{ background: adminTheme.primary }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = adminTheme.primaryHover;
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = adminTheme.primary;
-          }}
-        >
-          <PlusIcon className="h-3.5 w-3.5" /> Nhập lô hàng mới
-        </button>
-      ) : (
-        <button
-          onClick={openCreateModal}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-medium hover:bg-blue-700 transition-colors"
-        >
-          <PlusIcon className="h-3.5 w-3.5" /> Nhập lô hàng mới
-        </button>
+      {!readOnly && (
+        isAdmin ? (
+          <button
+            onClick={openCreateModal}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-white text-xs font-semibold rounded-lg transition-colors"
+            style={{ background: adminTheme.primary }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = adminTheme.primaryHover;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = adminTheme.primary;
+            }}
+          >
+            <PlusIcon className="h-3.5 w-3.5" /> Nhập lô hàng mới
+          </button>
+        ) : (
+          <button
+            onClick={openCreateModal}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-medium hover:bg-blue-700 transition-colors"
+          >
+            <PlusIcon className="h-3.5 w-3.5" /> Nhập lô hàng mới
+          </button>
+        )
       )}
     </>
   );
@@ -163,6 +166,7 @@ export default function SupplyManagementPage({
         handleViewDetail={handleViewDetail}
         handleEdit={handleEdit}
         handleDelete={handleDelete}
+        readOnly={readOnly}
       />
 
       <SupplyFormModal

@@ -22,6 +22,7 @@ export default function TeamManagementPage({
   emptyTitle,
   emptyDescription,
   adminTheme,
+  readOnly = false,
 }) {
   const {
     teams,
@@ -49,7 +50,10 @@ export default function TeamManagementPage({
 
   const displayTeams = showSearch ? filteredTeams : teams;
 
-  const headerActions = variant === 'admin' ? (
+  let headerActions = null;
+
+  if (!readOnly) {
+    headerActions = variant === 'admin' ? (
     <button
       onClick={openCreateModal}
       className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white rounded-lg transition-colors"
@@ -70,7 +74,8 @@ export default function TeamManagementPage({
     >
       <PlusIcon className="h-4 w-4" /> Tạo đội mới
     </button>
-  );
+    );
+  }
 
   return (
     <div className="h-full flex flex-col p-4 gap-3 overflow-hidden">
@@ -117,6 +122,7 @@ export default function TeamManagementPage({
         emptyIcon={emptyIcon}
         emptyTitle={emptyTitle}
         emptyDescription={emptyDescription}
+          readOnly={readOnly}
         adminTheme={adminTheme}
       />
 
