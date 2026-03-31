@@ -9,6 +9,8 @@ import {
   ShieldCheckIcon,
   UserCircleIcon,
   ChartBarIcon,
+  TruckIcon,
+  ArchiveBoxIcon,
 } from '@heroicons/react/24/outline'
 import { useAuth } from '../context/AuthContext'
 
@@ -26,6 +28,9 @@ export default function CoordinatorLayout() {
     { name: 'Phân tích', href: '/coordinator/analytics', icon: ChartBarIcon },
     { name: 'Danh sách yêu cầu', href: '/coordinator/requests', icon: ClipboardDocumentListIcon },
     { name: 'Giám sát hoạt động', href: '/coordinator/operations', icon: MapIcon },
+    { name: 'Đội cứu hộ', href: '/coordinator/teams', icon: ShieldCheckIcon },
+    { name: 'Phương tiện', href: '/coordinator/vehicles', icon: TruckIcon },
+    { name: 'Vật tư', href: '/coordinator/supplies', icon: ArchiveBoxIcon },
     { name: 'Báo cáo sự cố', href: '/coordinator/incident-reports', icon: ExclamationTriangleIcon },
     { name: 'Báo cáo cứu hộ hoàn thành', href: '/coordinator/rescue-reports', icon: ChartBarIcon },
   ]

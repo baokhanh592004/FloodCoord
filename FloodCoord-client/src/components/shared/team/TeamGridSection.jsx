@@ -46,6 +46,7 @@ export default function TeamGridSection({
   emptyTitle,
   emptyDescription,
   adminTheme,
+  readOnly = false,
 }) {
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [currentPage, setCurrentPage] = useState(1);
@@ -221,31 +222,41 @@ export default function TeamGridSection({
                         </span>
                       </td>
                       <td className="px-3 py-2">
-                        <TableActionCell
-                          actions={[
-                            {
-                              key: 'view',
-                              title: 'Xem chi tiết',
-                              icon: EyeIcon,
-                              onClick: () => onViewDetails(team),
-                              tone: 'view',
-                            },
-                            {
-                              key: 'edit',
-                              title: 'Chỉnh sửa',
-                              icon: PencilSquareIcon,
-                              onClick: () => onEdit(team),
-                              tone: 'edit',
-                            },
-                            {
-                              key: 'delete',
-                              title: 'Xóa đội',
-                              icon: TrashIcon,
-                              onClick: () => onDelete(team.id),
-                              tone: 'delete',
-                            },
-                          ]}
-                        />
+                        {readOnly ? (
+                          <button
+                            onClick={() => onViewDetails(team)}
+                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                            title="Xem chi tiết"
+                          >
+                            <EyeIcon className="h-4 w-4" />
+                          </button>
+                        ) : (
+                          <TableActionCell
+                            actions={[
+                              {
+                                key: 'view',
+                                title: 'Xem chi tiết',
+                                icon: EyeIcon,
+                                onClick: () => onViewDetails(team),
+                                tone: 'view',
+                              },
+                              {
+                                key: 'edit',
+                                title: 'Chỉnh sửa',
+                                icon: PencilSquareIcon,
+                                onClick: () => onEdit(team),
+                                tone: 'edit',
+                              },
+                              {
+                                key: 'delete',
+                                title: 'Xóa đội',
+                                icon: TrashIcon,
+                                onClick: () => onDelete(team.id),
+                                tone: 'delete',
+                              },
+                            ]}
+                          />
+                        )}
                       </td>
                     </tr>
                   );

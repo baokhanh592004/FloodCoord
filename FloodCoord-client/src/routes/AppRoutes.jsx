@@ -42,6 +42,9 @@ import CoordinatorDashboard from '../pages/coordinator/CoordinatorDashboard'
 import AnalyticsPage from '../pages/coordinator/AnalyticsPage'
 import RequestQueue from '../pages/coordinator/RequestQueue'
 import Operations from '../pages/coordinator/Operations'
+import ViewTeams from '../pages/coordinator/ViewTeams'
+import ViewVehicles from '../pages/coordinator/ViewVehicles'
+import ViewSupplies from '../pages/coordinator/ViewSupplies'
 import IncidentReportsPage from '../pages/shared/IncidentReportsPage'
 import RescueReportsPage from '../pages/shared/RescueReportsPage'
 
@@ -137,6 +140,9 @@ export default function AppRoutes() {
         <Route path="analytics" element={<AnalyticsPage />} />
         <Route path="requests" element={<RequestQueue />} />
         <Route path="operations" element={<Operations />} />
+          <Route path="teams" element={<ViewTeams />} />
+          <Route path="vehicles" element={<ViewVehicles />} />
+          <Route path="supplies" element={<ViewSupplies />} />
         <Route path="incident-reports" element={<IncidentReportsPage />} />
         <Route path="rescue-reports" element={<RescueReportsPage />} />
       </Route>
