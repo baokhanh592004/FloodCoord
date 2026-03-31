@@ -17,6 +17,11 @@ export const importApi = {
   },
 
   vehicle: {
+    getTemplate: () =>
+      axiosClient.get('/api/manager/vehicles/template', {
+        responseType: 'blob'
+      }),
+
     importExcel: (file) => {
       const formData = new FormData();
       formData.append('file', file);

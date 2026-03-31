@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react'; // Thêm useRef
 import { adminUserApi } from '../../services/adminUserApi';
+import { importApi } from '../../services/importApi'; // Import thêm importApi
 import { AlertCircle } from 'lucide-react';
 import UserFormModal from '../../components/admin/UserFormModal';
 import UserDetailModal from '../../components/admin/UserDetailModal';
 import StatCard from '../../components/coordinator/StatCard';
+import { toast } from 'react-hot-toast'; // Giả định bạn dùng react-hot-toast
 import {
     UsersIcon,
     CheckCircleIcon,
@@ -16,6 +18,8 @@ import {
     PencilSquareIcon,
     TrashIcon,
     ArrowPathIcon,
+    DocumentArrowUpIcon, // Icon mới
+    DocumentArrowDownIcon, // Icon mới
 } from '@heroicons/react/24/outline';
 
 // ── Admin color palette ──────────────────────────────────────────────────────
@@ -30,18 +34,19 @@ const C = {
     textFaint: '#9ab8d4',
 }
 
-// Role badges — each role gets its own identity color from the system
+// Role badges
 const ROLE_BADGE = {
-    ADMIN: { bg: '#f5f4ef', color: '#1c1c18', border: '#d4d4c8' },  // charcoal (admin = system)
-    MANAGER: { bg: '#f5f3ff', color: '#312070', border: '#ddd6fe' },  // violet
-    COORDINATOR: { bg: '#eff6ff', color: '#2563eb', border: '#bfdbfe' },  // blue
-    RESCUE_TEAM: { bg: '#f0f9f4', color: '#0f4c35', border: '#a7f3d0' },  // forest green
-    MEMBER: { bg: '#f0f6ff', color: '#1a3a5c', border: '#c8d8ec' },  // navy (citizen)
-    CITIZEN: { bg: '#f0f6ff', color: '#1a3a5c', border: '#c8d8ec' },  // navy
+    ADMIN: { bg: '#f5f4ef', color: '#1c1c18', border: '#d4d4c8' },
+    MANAGER: { bg: '#f5f3ff', color: '#312070', border: '#ddd6fe' },
+    COORDINATOR: { bg: '#eff6ff', color: '#2563eb', border: '#bfdbfe' },
+    RESCUE_TEAM: { bg: '#f0f9f4', color: '#0f4c35', border: '#a7f3d0' },
+    MEMBER: { bg: '#f0f6ff', color: '#1a3a5c', border: '#c8d8ec' },
+    CITIZEN: { bg: '#f0f6ff', color: '#1a3a5c', border: '#c8d8ec' },
 };
 
 const ITEMS_PER_PAGE = 10;
 
+// ... (Các hàm compareUserId, preserveUserOrder, getDeleteUserErrorMessage giữ nguyên)
 const compareUserId = (a, b) => {
     const na = Number(a), nb = Number(b);
     if (Number.isFinite(na) && Number.isFinite(nb)) return na - nb;
@@ -59,16 +64,10 @@ const preserveUserOrder = (incoming, previous) => {
 
 const getDeleteUserErrorMessage = (error) => {
     const responseData = error?.response?.data;
-    const rawMessage =
-        (typeof responseData === 'string' && responseData) ||
-        responseData?.message || responseData?.error || error?.message || '';
+    const rawMessage = (typeof responseData === 'string' && responseData) || responseData?.message || responseData?.error || error?.message || '';
     const normalized = rawMessage.toLowerCase();
-    if (
-        normalized.includes('violates foreign key constraint') ||
-        normalized.includes('is still referenced from table') ||
-        normalized.includes('rescue_requests')
-    ) {
-        return 'Không thể xóa tài khoản này vì đang có dữ liệu yêu cầu cứu hộ liên kết. Vui lòng vô hiệu hóa tài khoản thay vì xóa.';
+    if (normalized.includes('violates foreign key constraint') || normalized.includes('is still referenced from table')) {
+        return 'Không thể xóa tài khoản này vì đang có dữ liệu liên kết. Vui lòng vô hiệu hóa tài khoản thay vì xóa.';
     }
     return responseData?.message || 'Không thể xóa người dùng. Vui lòng thử lại sau.';
 };
@@ -76,6 +75,7 @@ const getDeleteUserErrorMessage = (error) => {
 export default function UserManagement() {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [importing, setImporting] = useState(false); // Trạng thái đang import
     const [error, setError] = useState('');
     const [showModal, setShowModal] = useState(false);
     const [showDetailModal, setShowDetailModal] = useState(false);
@@ -84,6 +84,8 @@ export default function UserManagement() {
     const [searchTerm, setSearchTerm] = useState('');
     const [roleFilter, setRoleFilter] = useState('ALL');
     const [currentPage, setCurrentPage] = useState(1);
+
+    const userFileRef = useRef(null); // Ref cho input file
 
     useEffect(() => { fetchUsers(); }, []);
 
@@ -98,10 +100,44 @@ export default function UserManagement() {
         } finally { setLoading(false); }
     };
 
+    // ─── XỬ LÝ IMPORT EXCEL ───────────────────────────────────────────────────
+    const handleImportExcel = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setImporting(true);
+        const toastId = toast.loading("Đang xử lý file Excel...");
+        try {
+            await importApi.user.importExcel(file);
+            toast.success("Nhập danh sách người dùng thành công!", { id: toastId });
+            fetchUsers(); // Tải lại danh sách sau khi import
+        } catch (err) {
+            toast.error(err.response?.data || "Lỗi khi import file Excel!", { id: toastId });
+        } finally {
+            setImporting(false);
+            e.target.value = ''; // Reset input
+        }
+    };
+
+    const handleDownloadTemplate = async () => {
+        try {
+            const response = await importApi.user.getTemplate();
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'Mau_Import_Nguoi_Dung.xlsx');
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (err) {
+              toast.error(err.response?.data || 'Lỗi không thể tải file mẫu');
+        }
+    };
+
+    // ─── CRUD HANDLERS ────────────────────────────────────────────────────────
     const handleEdit = (user) => { setEditingUser(user); setShowModal(true); };
     const handleView = (user) => { setSelectedUser(user); setShowDetailModal(true); };
     const openCreateModal = () => { setEditingUser(null); setShowModal(true); };
-
 
     const handleDelete = async (userId) => {
         if (!window.confirm('Bạn có chắc chắn muốn xóa người dùng này? Hành động này không thể hoàn tác.')) return;
@@ -118,7 +154,6 @@ export default function UserManagement() {
         roles: [...new Set(users.map(u => u.roleName))].length,
     }), [users]);
 
-    // Filtered users
     const filteredUsers = useMemo(() => users.filter(user => {
         const matchSearch = user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
             user.email.toLowerCase().includes(searchTerm.toLowerCase());
@@ -126,17 +161,13 @@ export default function UserManagement() {
         return matchSearch && matchRole;
     }), [users, searchTerm, roleFilter]);
 
-    // Get unique roles for filter
     const uniqueRoles = useMemo(() => [...new Set(users.map(u => u.roleName))], [users]);
-
-    // Pagination
     const totalPages = Math.ceil(filteredUsers.length / ITEMS_PER_PAGE);
     const paginatedUsers = useMemo(() => {
         const start = (currentPage - 1) * ITEMS_PER_PAGE;
         return filteredUsers.slice(start, start + ITEMS_PER_PAGE);
     }, [filteredUsers, currentPage]);
 
-    // Role badge color
     const getRoleBadge = (roleName) => ROLE_BADGE[roleName] || ROLE_BADGE.CITIZEN;
 
 
@@ -148,15 +179,40 @@ export default function UserManagement() {
                     <h1 className="text-2xl font-bold" style={{ color: C.textMain }}>Quản lý Người dùng</h1>
                     <p className="text-sm mt-0.5" style={{ color: C.textMuted }}>Quản lý tài khoản và phân quyền hệ thống.</p>
                 </div>
-                <button
-                    onClick={openCreateModal}
-                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white rounded-lg transition-colors"
-                    style={{ background: C.primary }}
-                    onMouseEnter={e => e.currentTarget.style.background = C.primaryHover}
-                    onMouseLeave={e => e.currentTarget.style.background = C.primary}
-                >
-                    <PlusIcon className="h-4 w-4" /> Tạo tài khoản mới
-                </button>
+                
+                <div className="flex items-center gap-2">
+                    {/* Hidden File Input */}
+                    <input type="file" ref={userFileRef} className="hidden" accept=".xlsx, .xls" onChange={handleImportExcel} />
+                    
+                    {/* Import Button Group */}
+                    <div className="flex items-center gap-1 mr-2 bg-white p-1 rounded-lg border border-gray-200">
+                        <button
+                            onClick={() => userFileRef.current.click()}
+                            disabled={importing}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-50 rounded-md transition-colors disabled:opacity-50"
+                        >
+                            <DocumentArrowUpIcon className="h-4 w-4" />
+                            Import Excel
+                        </button>
+                        <button
+                            onClick={handleDownloadTemplate}
+                            className="p-1.5 text-gray-400 hover:text-blue-600 rounded-md transition-colors"
+                            title="Tải file mẫu Excel"
+                        >
+                            <DocumentArrowDownIcon className="h-4 w-4" />
+                        </button>
+                    </div>
+
+                    <button
+                        onClick={openCreateModal}
+                        className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white rounded-lg transition-colors shadow-sm shadow-black/20"
+                        style={{ background: C.primary }}
+                        onMouseEnter={e => e.currentTarget.style.background = C.primaryHover}
+                        onMouseLeave={e => e.currentTarget.style.background = C.primary}
+                    >
+                        <PlusIcon className="h-4 w-4" /> Tạo tài khoản mới
+                    </button>
+                </div>
             </div>
 
             {/* Stat Cards */}
