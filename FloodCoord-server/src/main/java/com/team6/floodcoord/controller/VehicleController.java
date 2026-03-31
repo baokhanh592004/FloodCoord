@@ -68,5 +68,16 @@ public class VehicleController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+    @GetMapping("/template")
+    @Operation(summary = "Tải file Excel mẫu để import phương tiện")
+    public ResponseEntity<byte[]> downloadTemplate() {
+
+        byte[] excel = vehicleService.generateVehicleExcelTemplate();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=vehicle_template.xlsx")
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(excel);
+    }
 
 }
