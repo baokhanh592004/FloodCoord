@@ -1,28 +1,32 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminDashboardApi } from '../../services/adminDashboardApi';
+import { importApi } from '../../services/importApi'; 
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
 import {
   UsersIcon, ArrowPathIcon, ArrowRightIcon, TruckIcon,
   UserGroupIcon, ArrowTrendingUpIcon, ArrowTrendingDownIcon,
-  CalendarIcon
+  CalendarIcon, DocumentArrowUpIcon, DocumentArrowDownIcon
 } from '@heroicons/react/24/outline';
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid
 } from 'recharts';
+import { toast } from 'react-hot-toast';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [importing, setImporting] = useState(false);
+
+  // Ref để kích hoạt input chọn file ẩn
+  const userFileRef = useRef(null);
 
   // --- QUẢN LÝ KHOẢNG NGÀY ---
-  // Kỳ hiện tại: Mặc định từ đầu tháng đến hiện tại
   const [currentRange, setCurrentRange] = useState([startOfMonth(new Date()), new Date()]);
   const [curStart, curEnd] = currentRange;
 
-  // Kỳ so sánh: Mặc định là tháng trước
   const [compareRange, setCompareRange] = useState([
     startOfMonth(subMonths(new Date(), 1)),
     endOfMonth(subMonths(new Date(), 1))
@@ -30,7 +34,6 @@ export default function AdminDashboard() {
   const [compStart, compEnd] = compareRange;
 
   const loadData = useCallback(async () => {
-    // Chỉ gọi API khi đã chọn đủ ngày bắt đầu và ngày kết thúc cho cả 2 kỳ
     if (!curStart || !curEnd || !compStart || !compEnd) return;
 
     setLoading(true);
@@ -54,7 +57,41 @@ export default function AdminDashboard() {
     loadData();
   }, [loadData]);
 
-  // UI tùy chỉnh cho ô nhập ngày (Gọn gàng ở Header)
+  // --- XỬ LÝ IMPORT EXCEL ---
+  const handleImportUser = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setImporting(true);
+    try {
+      await importApi.user.importExcel(file);
+      toast.success("Import danh sách người dùng thành công!");
+      loadData(); // Tải lại số liệu thống kê ngay lập tức
+    } catch (error) {
+      toast.error(error.response?.data || "Lỗi khi import file Excel!");
+    } finally {
+      setImporting(false);
+      e.target.value = null; // Reset input để có thể chọn lại cùng 1 file
+    }
+  };
+
+  const handleDownloadTemplate = async () => {
+    try {
+      const response = await importApi.user.getTemplate();
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', "Mau_Import_Nguoi_Dung.xlsx");
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      toast.success("Đã tải file mẫu");
+    } catch (error) {
+      toast.error("Không thể tải file mẫu!");
+    }
+  };
+
+  // UI tùy chỉnh cho ô nhập ngày
   const CustomDateInput = React.forwardRef(({ value, onClick, label }, ref) => (
     <div 
       className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 rounded-xl text-[13px] font-semibold text-gray-700 hover:border-blue-400 transition-all shadow-sm cursor-pointer min-w-[210px]"
@@ -81,22 +118,49 @@ export default function AdminDashboard() {
   const comparisonData = useMemo(() => {
     if (!stats) return [];
     return [
-      { name: 'User', 'Kỳ trước': stats.newUsers?.lastMonthValue || 0, 'Kỳ này': stats.newUsers?.currentMonthValue || 0 },
-      { name: 'Rescue', 'Kỳ trước': stats.rescueRequests?.lastMonthValue || 0, 'Kỳ này': stats.rescueRequests?.currentMonthValue || 0 }
+      { name: 'Người dùng', 'Kỳ trước': stats.newUsers?.lastMonthValue || 0, 'Kỳ này': stats.newUsers?.currentMonthValue || 0 },
+      { name: 'Cứu hộ', 'Kỳ trước': stats.rescueRequests?.lastMonthValue || 0, 'Kỳ này': stats.rescueRequests?.currentMonthValue || 0 }
     ];
   }, [stats]);
 
   return (
     <div className="p-6 space-y-6 overflow-y-auto h-full bg-gray-50">
       
-      {/* --- HEADER & BỘ LỌC GỌN GÀNG --- */}
+      {/* --- HEADER & BỘ LỌC TÍCH HỢP IMPORT --- */}
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 border-b border-gray-200 pb-5">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Hệ thống Quản trị</h1>
-          <p className="text-[10px] text-gray-400 uppercase tracking-[0.2em] font-black">Phân tích cứu hộ thời gian thực</p>
+          <p className="text-[10px] text-gray-400 uppercase tracking-[0.2em] font-black text-blue-600">Admin Dashboard Control</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 bg-gray-100/60 p-2 rounded-2xl border border-gray-200">
+          
+          {/* Nút Import Users Excel */}
+          <div className="flex items-center gap-1 mr-2 border-r border-gray-300 pr-2">
+            <input 
+              type="file" 
+              ref={userFileRef} 
+              className="hidden" 
+              accept=".xlsx, .xls" 
+              onChange={handleImportUser} 
+            />
+            <button 
+              onClick={() => userFileRef.current.click()}
+              disabled={importing}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white rounded-xl text-[12px] font-bold hover:bg-emerald-700 transition-all shadow-md shadow-emerald-100 disabled:opacity-50"
+            >
+              <DocumentArrowUpIcon className="h-4 w-4" />
+              {importing ? 'Đang xử lý...' : 'Add Users Excel'}
+            </button>
+            <button 
+              onClick={handleDownloadTemplate}
+              className="p-1.5 text-gray-500 hover:bg-white hover:text-blue-600 rounded-lg transition-all"
+              title="Tải file mẫu Excel"
+            >
+              <DocumentArrowDownIcon className="h-4 w-4" />
+            </button>
+          </div>
+
           <DatePicker
             selectsRange={true}
             startDate={curStart}
@@ -106,8 +170,6 @@ export default function AdminDashboard() {
             dateFormat="dd/MM/yy"
           />
           
-          <div className="h-5 w-[1px] bg-gray-300 mx-1 hidden sm:block" />
-
           <DatePicker
             selectsRange={true}
             startDate={compStart}
@@ -120,7 +182,7 @@ export default function AdminDashboard() {
           <button 
             onClick={loadData} 
             disabled={loading}
-            className="ml-1 p-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 active:scale-95 disabled:opacity-50 transition-all shadow-md shadow-blue-100"
+            className="p-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 active:scale-95 disabled:opacity-50 transition-all shadow-md shadow-blue-100"
           >
             <ArrowPathIcon className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
@@ -129,14 +191,14 @@ export default function AdminDashboard() {
 
       {/* --- THẺ THỐNG KÊ --- */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatItem title="Người dùng" value={stats?.newUsers?.currentMonthValue} growth={stats?.newUsers?.growthRate} icon={<UsersIcon className="h-6 w-6 text-blue-600" />} bgColor="bg-blue-50" />
+        <StatItem title="Người dùng mới" value={stats?.newUsers?.currentMonthValue} growth={stats?.newUsers?.growthRate} icon={<UsersIcon className="h-6 w-6 text-blue-600" />} bgColor="bg-blue-50" />
         <StatItem title="Yêu cầu cứu hộ" value={stats?.rescueRequests?.currentMonthValue} growth={stats?.rescueRequests?.growthRate} icon={<UserGroupIcon className="h-6 w-6 text-orange-600" />} bgColor="bg-orange-50" />
         <StatItem title="Xe sẵn sàng" value={stats?.vehicles?.availableCount} total={stats?.vehicles?.totalCount} icon={<TruckIcon className="h-6 w-6 text-teal-600" />} bgColor="bg-teal-50" isVehicle />
       </div>
 
       {/* --- BIỂU ĐỒ --- */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ChartBox title="So sánh hiệu suất" sub="Kỳ hiện tại vs Kỳ so sánh">
+        <ChartBox title="So sánh hiệu suất" sub="Dựa trên 2 khoảng thời gian đã chọn">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={comparisonData}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -150,7 +212,7 @@ export default function AdminDashboard() {
           </ResponsiveContainer>
         </ChartBox>
 
-        <ChartBox title="Trạng thái xe" sub="Phân bổ phương tiện thực tế">
+        <ChartBox title="Trạng thái xe" sub="Phân bổ thực tế của đội xe">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie data={vehiclePieData} innerRadius={70} outerRadius={95} paddingAngle={8} dataKey="value">
@@ -163,7 +225,7 @@ export default function AdminDashboard() {
         </ChartBox>
       </div>
 
-      {/* --- LỐI TẮT --- */}
+      {/* --- LỐI TẮT QUẢN LÝ --- */}
       <div className="bg-white border border-gray-200 rounded-[2.5rem] p-8 shadow-sm">
         <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-6">Quản lý nhanh</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
@@ -218,7 +280,7 @@ function ActionCard({ icon, title, to }) {
       <div className="p-3 bg-white rounded-xl shadow-sm group-hover:scale-110 transition-transform">{icon}</div>
       <div className="flex-1">
         <h4 className="font-bold text-gray-900 text-sm">{title}</h4>
-        <p className="text-[10px] text-gray-500 font-bold uppercase tracking-tight">Quản lý hệ thống</p>
+        <p className="text-[10px] text-gray-500 font-bold uppercase tracking-tight">Cấu hình hệ thống</p>
       </div>
       <ArrowRightIcon className="h-4 w-4 text-gray-300 group-hover:text-blue-500 group-hover:translate-x-1 transition-all" />
     </div>
