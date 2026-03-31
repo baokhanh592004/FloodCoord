@@ -19,10 +19,12 @@ export default function RescueTeamManagement() {
             variant="admin"
             title="Quản lý Đội Cứu Hộ"
             subtitle="Quản lý đội ngũ và thành viên cứu hộ."
+            showSearch
             emptyIcon={<UserGroupIcon className="h-10 w-10" />}
             emptyTitle="Chưa có đội cứu hộ nào"
             emptyDescription="Hãy tạo đội đầu tiên để bắt đầu quản lý."
             adminTheme={C}
         />
+        
     );
 }
