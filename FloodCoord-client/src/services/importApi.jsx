@@ -1,3 +1,4 @@
+
 import axiosClient from "../api/axiosClient";
 
 export const importApi = {
@@ -24,5 +25,17 @@ export const importApi = {
     }
   },
 
+  user: {
+    getTemplate: () =>
+      axiosClient.get('/api/admin/users/template', {
+        responseType: 'blob'
+      }),
 
+    importExcel: (file) => {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      return axiosClient.post('/api/admin/users/import', formData);
+    }
+  }
 };
