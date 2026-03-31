@@ -30,6 +30,7 @@ public class IncidentReport {
     @JoinColumn(name = "reported_by_id", nullable = false)
     private User reportedBy; // Leader của team
 
+    @Column(length = 300)
     private String title;
 
     @Column(columnDefinition = "TEXT")
@@ -52,6 +53,14 @@ public class IncidentReport {
 
     private LocalDateTime createdAt;
     private LocalDateTime resolvedAt;
+
+    /**
+     * true = coordinator xác nhận đội đã xuất phát khi xử lý ABORT
+     * → Đội cũ OFF_DUTY, xe MAINTENANCE, vật tư không hoàn lại kho
+     */
+    @Builder.Default
+    @Column(name = "is_post_departure")
+    private Boolean isPostDeparture = false;
 
     @PrePersist
     protected void onCreate() {

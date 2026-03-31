@@ -32,5 +32,16 @@ export const incidentReportApi = {
             console.error('Resolve incident failed:', error);
             throw error;
         }
+    },
+
+    // Assign new team to incident (after ABORT - Step 2 of resolution)
+    assignTeam: async (incidentId, assignData) => {
+        try {
+            const response = await axiosClient.post(`/api/incidents/${incidentId}/assign-team`, assignData);
+            return response.data; // ResponseEntity<String>
+        } catch (error) {
+            console.error('Assign team to incident failed:', error);
+            throw error;
+        }
     }
 };

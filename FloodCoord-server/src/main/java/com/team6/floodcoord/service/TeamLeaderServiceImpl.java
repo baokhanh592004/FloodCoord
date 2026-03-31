@@ -148,10 +148,10 @@ public class TeamLeaderServiceImpl implements TeamLeaderService {
         validateTransition(request.getStatus(), newStatus);
 
         request.setStatus(newStatus);
-        rescueRequestRepository.save(request);
 
         // Nếu completed thì trả team về available và trả xe
         if (newStatus == RequestStatus.COMPLETED) {
+            request.setCompletedAt(LocalDateTime.now());
             team.setStatus(TeamStatus.AVAILABLE);
             rescueTeamRepository.save(team);
 
@@ -165,6 +165,7 @@ public class TeamLeaderServiceImpl implements TeamLeaderService {
                 }
             }
         }
+        rescueRequestRepository.save(request);
     }
 
     @Override
@@ -420,6 +421,18 @@ public class TeamLeaderServiceImpl implements TeamLeaderService {
                     .toList();
         }
 
+        // 📝 Report
+        ReportDetailDTO reportDto = null;
+        if (r.getReport() != null) {
+            RescueReport report = r.getReport();
+            reportDto = ReportDetailDTO.builder()
+                    .rescuedPeople(report.getRescuedPeople())
+                    .reportNote(report.getReportNote())
+                    .reportedAt(report.getReportedAt())
+                    .leaderName(report.getLeader() != null ? report.getLeader().getFullName() : null)
+                    .build();
+        }
+
         return CompletedRequestDTO.builder()
                 .requestId(r.getRequestId())
                 .trackingCode(r.getTrackingCode())
@@ -446,6 +459,7 @@ public class TeamLeaderServiceImpl implements TeamLeaderService {
                         r.getAssignedTeam() != null && r.getAssignedTeam().getLeader() != null
                                 ? r.getAssignedTeam().getLeader().getPhoneNumber()
                                 : null)
+                .report(reportDto)
                 .build();
     }
 }

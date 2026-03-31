@@ -6,10 +6,14 @@ import {
   Navigation, CheckCircle2, Waves,
   AlertTriangle, Lightbulb, Info
 } from "lucide-react";
-import logo from '../assets/images/logo1.png'
+import heroFloodImg from '../assets/images/logo1.png'
+import beforeFloodImg from '../assets/images/thing-to-do-before-flood.png'
+import afterFloodImg from '../assets/images/things-to-do-after-flood.png'
+import diseaseProtectImg from '../assets/images/disease-protect.png'
 
 const HomePage = () => {
   const [activeFaq, setActiveFaq] = useState(null);
+  const [previewImage, setPreviewImage] = useState(null);
   const navigate = useNavigate(); // Hook để điều hướng
   const safetySectionRef = useRef(null); // Tạo ref để cuộn tới phần cẩm nang
 
@@ -62,7 +66,7 @@ const HomePage = () => {
   return (
     <main>
       {/* HERO */}
-      <section className="pt-8 pb-20 lg:pt-16 lg:pb-32 bg-gradient-to-br from-blue-50 via-sky-50 to-white overflow-hidden">
+      <section className="pt-8 pb-20 lg:pt-16 lg:pb-32 bg-linear-to-br from-blue-50 via-sky-50 to-white overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col lg:flex-row items-center gap-16">
             <div className="lg:w-1/2 space-y-8 animate-in fade-in slide-in-from-left duration-1000">
@@ -97,13 +101,13 @@ const HomePage = () => {
 
             {/* ... Phần ảnh giữ nguyên ... */}
             <div className="lg:w-1/2 relative animate-in fade-in zoom-in duration-1000">
-              <div className="relative z-10 rounded-[3.5rem] overflow-hidden shadow-3xl border-[12px] border-white ring-1 ring-blue-100">
+              <div className="relative z-10 rounded-[3.5rem] overflow-hidden shadow-3xl border-12 border-white ring-1 ring-blue-100">
                 <img
-                  src={logo}
-                  alt="Cộng đồng giúp đỡ nhau trong thiên tai"
-                  className="w-full h-[780px] object-cover hover:scale-105 transition-transform duration-700"
+                  src={heroFloodImg}
+                  alt="Ảnh thực tế khu vực ngập lụt cần hỗ trợ cứu hộ"
+                  className="w-full h-195 object-cover hover:scale-105 transition-transform duration-700"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-blue-900/40 via-transparent to-transparent"></div>
+                <div className="absolute inset-0 bg-linear-to-t from-blue-900/40 via-transparent to-transparent"></div>
                 <div className="absolute bottom-10 left-10 text-white">
                   <div className="bg-blue-600/90 backdrop-blur px-4 py-2 rounded-xl text-sm font-bold mb-2 inline-block">Niềm tin và Hy vọng</div>
                   <h4 className="text-2xl font-bold">Vì một TP.HCM an toàn</h4>
@@ -167,9 +171,101 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* ... Phần FAQ giữ nguyên ... */}
       <section className="py-24 bg-white">
-        {/* Nội dung FAQ */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-3xl mx-auto mb-14">
+            <h2 className="text-4xl lg:text-5xl font-black text-blue-950 mb-4">Cẩm nang trực quan</h2>
+            <p className="text-slate-500 text-lg">Hình ảnh hướng dẫn ngắn gọn để chuẩn bị tốt hơn trước, trong và sau lũ.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-7">
+            {[
+              { src: beforeFloodImg, title: 'Trước bão', desc: 'Chuẩn bị sơ tán, vật dụng thiết yếu và nguồn nước sạch.' },
+              { src: afterFloodImg, title: 'Sau bão', desc: 'Tuân thủ các lưu ý an toàn khi quay lại khu vực ảnh hưởng.' },
+              { src: diseaseProtectImg, title: 'Phòng dịch bệnh', desc: 'Khử khuẩn nguồn nước và vệ sinh môi trường sống đúng cách.' },
+            ].map((item) => (
+              <article key={item.title} className="rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden hover:shadow-lg transition-shadow">
+                <img
+                  src={item.src}
+                  alt={item.title}
+                  onClick={() => setPreviewImage(item)}
+                  className="w-full h-72 object-contain bg-slate-50 p-2 cursor-zoom-in"
+                />
+                <div className="p-5">
+                  <h3 className="text-xl font-black text-blue-900 mb-1">{item.title}</h3>
+                  <p className="text-slate-600 text-sm leading-relaxed">{item.desc}</p>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewImage(item)}
+                    className="mt-3 text-sm font-semibold text-blue-700 hover:text-blue-800"
+                  >
+                    Phóng to ảnh
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {previewImage && (
+        <div
+          className="fixed inset-0 z-80 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setPreviewImage(null)}
+        >
+          <div className="relative max-w-[95vw] max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              onClick={() => setPreviewImage(null)}
+              className="absolute -top-11 right-0 text-white font-bold text-lg"
+            >
+              Đóng
+            </button>
+            <img
+              src={previewImage.src}
+              alt={previewImage.title}
+              className="max-w-[95vw] max-h-[85vh] object-contain rounded-xl bg-white"
+            />
+          </div>
+        </div>
+      )}
+
+      <section className="py-24 bg-white">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl lg:text-5xl font-black text-blue-950 mb-4">Câu hỏi thường gặp</h2>
+            <p className="text-slate-500 text-lg">Một số thắc mắc phổ biến khi sử dụng hệ thống cứu hộ.</p>
+          </div>
+
+          <div className="space-y-4">
+            {faqs.map((item, index) => {
+              const isOpen = activeFaq === index;
+              return (
+                <div
+                  key={item.q}
+                  className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden"
+                >
+                  <button
+                    type="button"
+                    onClick={() => toggleFaq(index)}
+                    className="w-full flex items-center justify-between gap-4 px-6 py-5 text-left hover:bg-slate-50 transition-colors"
+                  >
+                    <span className="text-lg font-semibold text-blue-950">{item.q}</span>
+                    <span className="shrink-0 text-blue-600">
+                      {isOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                    </span>
+                  </button>
+
+                  {isOpen && (
+                    <div className="px-6 pb-5 text-slate-600 leading-relaxed">
+                      {item.a}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </section>
     </main>
   );

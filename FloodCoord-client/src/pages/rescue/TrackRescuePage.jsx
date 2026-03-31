@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { rescueApi } from '../../services/rescueApi';
 import { useSearchParams } from 'react-router-dom';
+import afterFloodImg from '../../assets/images/things-to-do-after-flood.png';
 
 const StarRating = ({ value, onChange, readonly = false }) => {
     const [hovered, setHovered] = useState(0);
@@ -38,7 +39,6 @@ const TrackRescuePage = () => {
     const [feedbackRating, setFeedbackRating] = useState(5);
     const [feedbackLoading, setFeedbackLoading] = useState(false);
     const [feedbackError, setFeedbackError] = useState('');
-    const [feedbackSuccess, setFeedbackSuccess] = useState(false);
 
     const performSearch = useCallback(async (code) => {
         const normalizedCode = code?.trim().toUpperCase();
@@ -54,7 +54,6 @@ const TrackRescuePage = () => {
         setRequestData(null);
         setFeedbackText('');
         setFeedbackRating(5);
-        setFeedbackSuccess(false);
         setFeedbackError('');
 
         try {
@@ -103,7 +102,6 @@ const TrackRescuePage = () => {
                 feedback: feedbackText.trim(),
                 rating: feedbackRating
             });
-            setFeedbackSuccess(true);
             // Cập nhật lại requestData để hiển thị đánh giá đã gửi
             setRequestData(prev => ({
                 ...prev,
@@ -125,6 +123,7 @@ const TrackRescuePage = () => {
             ARRIVED: 'bg-green-100 text-green-800 border-green-300',
             IN_PROGRESS: 'bg-indigo-100 text-indigo-800 border-indigo-300',
             COMPLETED: 'bg-green-100 text-green-800 border-green-300',
+            REPORTED: 'bg-emerald-100 text-emerald-800 border-emerald-300',
             CANCELLED: 'bg-red-100 text-red-800 border-red-300'
         };
         return colors[status] || 'bg-gray-100 text-gray-800 border-gray-300';
@@ -138,10 +137,13 @@ const TrackRescuePage = () => {
             ARRIVED: 'Đã đến hiện trường',
             IN_PROGRESS: 'Đang thực hiện cứu hộ',
             COMPLETED: 'Hoàn thành',
+            REPORTED: 'Đã hoàn thành (đội đã nộp báo cáo)',
             CANCELLED: 'Đã hủy'
         };
         return texts[status] || status;
     };
+
+    const canShowFeedbackSection = requestData?.status === 'COMPLETED' || requestData?.status === 'REPORTED';
 
     return (
         <div className="max-w-3xl mx-auto p-6">
@@ -152,6 +154,17 @@ const TrackRescuePage = () => {
                 <p className="text-center text-gray-600 mb-6">
                     Nhập mã tra cứu để xem tình trạng yêu cầu cứu trợ của bạn
                 </p>
+
+                <div className="mb-6 overflow-hidden rounded-2xl border border-yellow-200 bg-yellow-50/40">
+                    <img
+                        src={afterFloodImg}
+                        alt="Hướng dẫn an toàn sau bão lũ"
+                        className="w-full h-60 object-contain bg-white p-2"
+                    />
+                    <div className="px-4 py-3 text-sm text-yellow-800">
+                        Lưu ý an toàn sau bão: tránh khu vực điện hở, giữ vệ sinh tay và dùng nguồn nước đã xử lý.
+                    </div>
+                </div>
 
                 {/* Form tra cứu */}
                 <form onSubmit={handleSearch} className="mb-6">
@@ -258,8 +271,8 @@ const TrackRescuePage = () => {
                             </div>
                         )}
 
-                        {/* ===== PHẦN ĐÁNH GIÁ (chỉ hiện khi COMPLETED) ===== */}
-                        {requestData.status === 'COMPLETED' && (
+                        {/* ===== PHẦN ĐÁNH GIÁ (hiện khi COMPLETED hoặc REPORTED) ===== */}
+                        {canShowFeedbackSection && (
                             <div className="border-2 border-yellow-300 rounded-lg overflow-hidden">
                                 <div className="bg-yellow-400 px-4 py-3">
                                     <h3 className="font-bold text-lg text-yellow-900">

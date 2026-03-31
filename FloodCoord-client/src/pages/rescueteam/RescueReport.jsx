@@ -35,7 +35,7 @@ useEffect(() => {
 
                 setSupplies(originalSupplies);
             }
-        } catch (e) {
+        } catch {
             toast.error("Lỗi tải dữ liệu");
         }
     };

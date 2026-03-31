@@ -10,4 +10,6 @@ import java.util.Optional;
 public interface SupplyRepository extends JpaRepository<Supply, Long> {
     boolean existsByName(String name);
     Optional<Supply> findByNameIgnoreCase(String name);
+    long countByQuantity(int quantity);
+    long countByQuantityBetween(int minQuantity, int maxQuantity);
 }

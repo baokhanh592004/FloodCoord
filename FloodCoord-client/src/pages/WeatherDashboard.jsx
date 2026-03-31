@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -44,7 +44,7 @@ const SAMPLE_EVERY = 3;
 
 function ChangeView({ center }) {
   const map = useMap();
-  useEffect(() => { map.setView(center, 13); }, [center]);
+  useEffect(() => { map.setView(center, 13); }, [center, map]);
   return null;
 }
 
@@ -374,7 +374,7 @@ export default function WeatherDashboard() {
 
       {/* Location indicator */}
       <div className="flex items-center gap-2 text-sm text-gray-500">
-        <svg className="w-4 h-4 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+        <svg className="w-4 h-4 text-red-500 shrink-0" fill="currentColor" viewBox="0 0 20 20">
           <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd"/>
         </svg>
         <span>
@@ -422,7 +422,7 @@ export default function WeatherDashboard() {
                 {searchResults.map((r, i) => (
                   <button key={i} onClick={() => handleSelectSearchResult(r)}
                     className="w-full text-left px-4 py-3 hover:bg-blue-50 transition border-b border-gray-100 last:border-0 flex items-start gap-2">
-                    <span className="text-blue-500 mt-0.5 flex-shrink-0 text-sm">📍</span>
+                    <span className="text-blue-500 mt-0.5 shrink-0 text-sm">📍</span>
                     <span className="text-sm text-gray-800 leading-snug">{r.display_name}</span>
                   </button>
                 ))}
@@ -443,7 +443,7 @@ export default function WeatherDashboard() {
           </div>
 
           <div className="relative" style={{ height: '440px' }}>
-            <div className="absolute top-3 left-3 z-[1000] bg-white rounded-lg shadow px-3 py-2 text-xs text-gray-600 pointer-events-none">
+            <div className="absolute top-3 left-3 z-1000 bg-white rounded-lg shadow px-3 py-2 text-xs text-gray-600 pointer-events-none">
               Chọn vị trí để xem dự báo thời tiết và cảnh báo lũ lụt tại đó. Bạn có thể tìm kiếm địa điểm hoặc nhấp trực tiếp trên bản đồ.
             </div>
             <MapContainer center={[location.lat, location.lon]} zoom={13}

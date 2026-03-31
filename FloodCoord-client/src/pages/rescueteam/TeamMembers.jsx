@@ -31,89 +31,89 @@ export default function TeamMembers() {
   }, []);
 
   return (
-    <div className="p-6 pb-20">
+    <div className="h-full flex flex-col p-4 gap-3 overflow-hidden">
       {/* Header giống trang nhiệm vụ */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+      <div className="shrink-0 flex flex-col md:flex-row md:items-center justify-between gap-2">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 flex items-center gap-3">
-            <UserGroupIcon className="h-8 w-8 text-blue-600" />
+          <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+            <UserGroupIcon className="h-6 w-6 text-blue-600" />
             Thành viên đội cứu hộ
           </h1>
-          <p className="text-slate-500 font-medium mt-1">Quản lý và liên lạc nội bộ đội ngũ</p>
+          <p className="text-xs text-gray-500">Quản lý và liên lạc nội bộ đội ngũ.</p>
         </div>
         <button 
           onClick={fetchMembers}
-          className="flex items-center justify-center gap-2 bg-slate-900 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg hover:bg-slate-800 transition-all active:scale-95 text-sm"
+          className="inline-flex items-center justify-center gap-1.5 bg-blue-600 text-white px-3 py-1.5 rounded-md text-xs font-medium hover:bg-blue-700 transition-colors"
         >
-          <ArrowPathIcon className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
-          LÀM MỚI
+          <ArrowPathIcon className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          Làm mới
         </button>
       </div>
 
       {/* Table Container */}
-      <div className="bg-white rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/50 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+      <div className="flex-1 min-h-0 bg-white border border-gray-200 rounded-lg flex flex-col overflow-hidden">
+        <div className="flex-1 overflow-x-auto">
+          <table className="w-full text-xs text-left">
             <thead>
-              <tr className="bg-slate-50/50 border-b border-slate-100">
-                <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest">#</th>
-                <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest">Thành viên</th>
-                <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest">Liên hệ</th>
-                <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest text-center">Vai trò</th>
+              <tr className="bg-gray-50 border-b border-gray-200">
+                <th className="px-3 py-2 font-semibold text-gray-600 w-12">#</th>
+                <th className="px-3 py-2 font-semibold text-gray-600 w-80">Thành viên</th>
+                <th className="px-3 py-2 font-semibold text-gray-600 w-72">Liên hệ</th>
+                <th className="px-3 py-2 font-semibold text-gray-600 w-40 text-center">Vai trò</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50">
+            <tbody className="divide-y divide-gray-100">
               {loading ? (
                 <tr>
-                  <td colSpan="4" className="py-20 text-center">
+                  <td colSpan="4" className="py-16 text-center">
                     <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                   </td>
                 </tr>
               ) : members.length === 0 ? (
                 <tr>
-                  <td colSpan="4" className="py-20 text-center text-slate-400 font-medium">
+                  <td colSpan="4" className="py-16 text-center text-gray-400">
                     Chưa có dữ liệu thành viên.
                   </td>
                 </tr>
               ) : (
                 members.map((member, index) => (
-                  <tr key={member.id} className="hover:bg-blue-50/30 transition-colors">
-                    <td className="px-6 py-6 text-sm font-bold text-slate-400">{index + 1}</td>
-                    <td className="px-6 py-6">
-                      <div className="flex items-center gap-4">
-                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-lg font-black shadow-sm ${
+                  <tr key={member.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-3 py-2 text-gray-400 font-mono">{index + 1}</td>
+                    <td className="px-3 py-2">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold ${
                           member.isTeamLeader 
-                            ? "bg-gradient-to-br from-blue-500 to-indigo-600 text-white" 
-                            : "bg-slate-100 text-slate-600"
+                            ? "bg-linear-to-br from-blue-500 to-indigo-600 text-white" 
+                            : "bg-gray-100 text-gray-600"
                         }`}>
                           {member.fullName?.charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <p className="font-black text-slate-900 leading-none mb-1">{member.fullName}</p>
-                          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">ID: #{member.id}</p>
+                          <p className="font-medium text-gray-900 leading-none mb-1">{member.fullName}</p>
+                          <p className="text-xs text-gray-400">ID: #{member.id}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-6 space-y-1.5">
-                      <div className="flex items-center gap-2 text-sm font-bold text-slate-600">
+                    <td className="px-3 py-2 space-y-1">
+                      <div className="flex items-center gap-2 text-gray-600">
                         <PhoneIcon className="h-4 w-4 text-blue-500" />
                         {member.phoneNumber}
                       </div>
-                      <div className="flex items-center gap-2 text-sm font-medium text-slate-400">
+                      <div className="flex items-center gap-2 text-gray-400">
                         <EnvelopeIcon className="h-4 w-4" />
                         {member.email}
                       </div>
                     </td>
-                    <td className="px-6 py-6">
+                    <td className="px-3 py-2">
                       <div className="flex justify-center">
                         {member.isTeamLeader ? (
-                          <span className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 px-4 py-1.5 rounded-full text-xs font-black ring-1 ring-blue-600/20">
+                          <span className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-medium ring-1 ring-blue-600/20">
                             <ShieldCheckIcon className="h-4 w-4" />
-                            ĐỘI TRƯỞNG
+                            Đội trưởng
                           </span>
                         ) : (
-                          <span className="inline-flex items-center bg-slate-50 text-slate-500 px-4 py-1.5 rounded-full text-xs font-bold ring-1 ring-slate-200">
-                            THÀNH VIÊN
+                          <span className="inline-flex items-center bg-gray-50 text-gray-500 px-3 py-1 rounded-full text-xs font-medium ring-1 ring-gray-200">
+                            Thành viên
                           </span>
                         )}
                       </div>

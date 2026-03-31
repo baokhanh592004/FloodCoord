@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { XMarkIcon, ExclamationTriangleIcon, PhotoIcon, XCircleIcon } from '@heroicons/react/24/outline';
 import { coordinatorApi } from '../../services/coordinatorApi';
+import { MODAL_STYLE_MAP } from '../shared/styleMaps';
 import toast from 'react-hot-toast';
 
 /**
@@ -37,6 +38,19 @@ export default function VerifyRequestModal({ request, isOpen, onClose, onSuccess
     const [rejectReasons, setRejectReasons] = useState([]);
     const [rejectNote, setRejectNote] = useState('');
 
+    const loadDetails = useCallback(async () => {
+        if (!request) return;
+        setLoadingDetails(true);
+        try {
+            const data = await coordinatorApi.getRequestDetail(request.requestId);
+            setDetails(data);
+        } catch (error) {
+            console.error('Failed to load request details for verify:', error);
+        } finally {
+            setLoadingDetails(false);
+        }
+    }, [request]);
+
     // Reset form + load chi tiết (bao gồm media) khi mở modal
     useEffect(() => {
         if (isOpen && request) {
@@ -53,20 +67,7 @@ export default function VerifyRequestModal({ request, isOpen, onClose, onSuccess
             setDetails(null);
             loadDetails();
         }
-    }, [isOpen, request]);
-
-    const loadDetails = async () => {
-        if (!request) return;
-        setLoadingDetails(true);
-        try {
-            const data = await coordinatorApi.getRequestDetail(request.requestId || request.id);
-            setDetails(data);
-        } catch (error) {
-            console.error('Failed to load request details for verify:', error);
-        } finally {
-            setLoadingDetails(false);
-        }
-    };
+    }, [isOpen, request, loadDetails]);
 
     if (!isOpen || !request) return null;
 
@@ -85,7 +86,7 @@ export default function VerifyRequestModal({ request, isOpen, onClose, onSuccess
     const handleConfirmVerify = async () => {
         setLoading(true);
         try {
-            await coordinatorApi.verifyRequest(request.requestId || request.id, {
+            await coordinatorApi.verifyRequest(request.requestId, {
                 emergencyLevel: formData.emergencyLevel,
                 note: formData.note,
                 approved: true,
@@ -116,7 +117,7 @@ export default function VerifyRequestModal({ request, isOpen, onClose, onSuccess
             const reasonLabels = rejectReasons.map(
                 (id) => REJECT_REASONS.find((r) => r.id === id)?.label || id
             );
-            await coordinatorApi.verifyRequest(request.requestId || request.id, {
+            await coordinatorApi.verifyRequest(request.requestId, {
                 emergencyLevel: formData.emergencyLevel,
                 note: [reasonLabels.join('; '), rejectNote].filter(Boolean).join(' — '),
                 approved: false,
@@ -150,17 +151,17 @@ export default function VerifyRequestModal({ request, isOpen, onClose, onSuccess
     return (
         <>
             {/* Main Modal */}
-            <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] flex flex-col">
+            <div className={MODAL_STYLE_MAP.overlaySoft}>
+                <div className={`${MODAL_STYLE_MAP.shell} max-w-3xl`}>
                     {/* Header — cố định */}
-                    <div className="flex-shrink-0 flex items-center justify-between p-5 border-b border-gray-200">
+                    <div className={MODAL_STYLE_MAP.header}>
                         <div>
                             <h2 className="text-lg font-semibold text-gray-900">Xác Thực Yêu Cầu</h2>
                             <p className="text-xs text-gray-500 mt-0.5">
                                 Kiểm tra media đính kèm và xác minh yêu cầu trước khi duyệt
                             </p>
                         </div>
-                        <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+                        <button onClick={onClose} className={MODAL_STYLE_MAP.closeButton}>
                             <XMarkIcon className="h-5 w-5" />
                         </button>
                     </div>
@@ -308,11 +309,11 @@ export default function VerifyRequestModal({ request, isOpen, onClose, onSuccess
                     </div>
 
                     {/* Footer — cố định */}
-                    <div className="flex-shrink-0 flex items-center justify-between px-5 py-4 border-t border-gray-200 bg-gray-50">
+                    <div className="shrink-0 flex items-center justify-between px-5 py-4 border-t border-neutral-100 bg-neutral-50">
                         <button
                             onClick={handleClickReject}
                             disabled={loading}
-                            className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 disabled:opacity-50"
+                            className={MODAL_STYLE_MAP.dangerButton}
                         >
                             <XCircleIcon className="h-4 w-4" />
                             Không duyệt
@@ -321,14 +322,14 @@ export default function VerifyRequestModal({ request, isOpen, onClose, onSuccess
                             <button
                                 onClick={onClose}
                                 disabled={loading}
-                                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+                                className={MODAL_STYLE_MAP.secondaryButton}
                             >
                                 Hủy
                             </button>
                             <button
                                 onClick={handleClickVerify}
                                 disabled={loading || !canVerify}
-                                className="px-6 py-2 text-sm font-medium text-white bg-teal-600 rounded-md hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className={MODAL_STYLE_MAP.primaryTeal}
                             >
                                 Duyệt & Xác thực
                             </button>
@@ -339,10 +340,10 @@ export default function VerifyRequestModal({ request, isOpen, onClose, onSuccess
 
             {/* Confirmation Dialog — modal nhỏ xác nhận lần cuối */}
             {showConfirmDialog && (
-                <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-                    <div className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6">
+                <div className={MODAL_STYLE_MAP.overlayStrong}>
+                    <div className={MODAL_STYLE_MAP.shellCompact}>
                         <div className="flex items-center gap-3 mb-4">
-                            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center">
+                            <div className="shrink-0 w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center">
                                 <ExclamationTriangleIcon className="h-5 w-5 text-teal-600" />
                             </div>
                             <div>
@@ -358,14 +359,14 @@ export default function VerifyRequestModal({ request, isOpen, onClose, onSuccess
                             <button
                                 onClick={() => setShowConfirmDialog(false)}
                                 disabled={loading}
-                                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                                className={MODAL_STYLE_MAP.secondaryButton}
                             >
                                 Quay lại
                             </button>
                             <button
                                 onClick={handleConfirmVerify}
                                 disabled={loading}
-                                className="px-6 py-2 text-sm font-medium text-white bg-teal-600 rounded-md hover:bg-teal-700 disabled:opacity-50"
+                                className={MODAL_STYLE_MAP.primaryTeal}
                             >
                                 {loading ? 'Đang xử lý...' : 'Xác nhận duyệt'}
                             </button>
@@ -376,10 +377,10 @@ export default function VerifyRequestModal({ request, isOpen, onClose, onSuccess
 
             {/* Reject Dialog — modal từ chối yêu cầu */}
             {showRejectDialog && (
-                <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-                    <div className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6">
+                <div className={MODAL_STYLE_MAP.overlayStrong}>
+                    <div className={MODAL_STYLE_MAP.shellCompact}>
                         <div className="flex items-center gap-3 mb-4">
-                            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                            <div className="shrink-0 w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
                                 <XCircleIcon className="h-5 w-5 text-red-600" />
                             </div>
                             <div>
@@ -407,14 +408,14 @@ export default function VerifyRequestModal({ request, isOpen, onClose, onSuccess
                             value={rejectNote}
                             onChange={(e) => setRejectNote(e.target.value)}
                             placeholder="Ghi chú thêm (không bắt buộc)..."
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 mb-4"
+                            className="w-full px-3 py-2 border border-neutral-100 rounded-md text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 mb-4"
                         />
 
                         <div className="flex justify-end gap-3">
                             <button
                                 onClick={() => setShowRejectDialog(false)}
                                 disabled={loading}
-                                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                                className={MODAL_STYLE_MAP.secondaryButton}
                             >
                                 Quay lại
                             </button>

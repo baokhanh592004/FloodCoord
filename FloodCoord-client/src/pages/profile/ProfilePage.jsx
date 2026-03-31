@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   UserCircleIcon,
@@ -65,20 +65,10 @@ export default function ProfilePage() {
   const [rescueHistory, setRescueHistory] = useState([])
   const [loadingHistory, setLoadingHistory] = useState(false)
 
-  useEffect(() => {
-    fetchProfile()
-  }, [])
-
-  useEffect(() => {
-    if (activeTab === 'history' && isMember) {
-      fetchRescueHistory()
-    }
-  }, [activeTab])
-
   const isMember = role === 'MEMBER'
   const isRescueTeam = role === 'RESCUE_TEAM' 
 
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
     try {
       setLoading(true)
       const data = await profileApi.getProfile()
@@ -93,9 +83,9 @@ export default function ProfilePage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  const fetchRescueHistory = async () => {
+  const fetchRescueHistory = useCallback(async () => {
     try {
       setLoadingHistory(true)
       const data = await rescueApi.getMyRescueRequests()
@@ -106,7 +96,17 @@ export default function ProfilePage() {
     } finally {
       setLoadingHistory(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    fetchProfile()
+  }, [fetchProfile])
+
+  useEffect(() => {
+    if (activeTab === 'history' && isMember) {
+      fetchRescueHistory()
+    }
+  }, [activeTab, isMember, fetchRescueHistory])
 
   // --- Profile edit handlers ---
   const handleEdit = () => {

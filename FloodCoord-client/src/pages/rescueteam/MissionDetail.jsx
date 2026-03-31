@@ -28,6 +28,11 @@ export default function MissionDetail() {
   // --- State cho báo cáo sự cố trên đường ---
   const [showIncidentModal, setShowIncidentModal] = useState(false);
   const [incidentForm, setIncidentForm] = useState({ title: "", description: "", files: [] });
+  const [submittingIncident, setSubmittingIncident] = useState(false);
+
+  // --- State cho modal xác nhận cập nhật tiến độ ---
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState(null);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -68,22 +73,15 @@ export default function MissionDetail() {
         const hasAttendanceRecord = Array.isArray(attStatus) && attStatus.length > 0;
         const totalMembers = (members || []).length;
 
-        if (totalMembers > 0 && presentCount >= totalMembers) {
+        if (missionData.status === "COMPLETED") {
           setAttendanceDone(true);
           setWaitingCoordinatorDecision(false);
           setLatestIncident(null);
           localStorage.removeItem(waitingStateKey);
-        } else if (hasAttendanceRecord) {
-          setAttendanceDone(false);
-          await checkCoordinatorDecision();
-        } else if (persistedWaitingState) {
-          setAttendanceDone(false);
-          await checkCoordinatorDecision();
         } else {
-          setAttendanceDone(false);
-          setWaitingCoordinatorDecision(false);
-          setLatestIncident(null);
-          localStorage.removeItem(waitingStateKey);
+          const isAttendanceFull = totalMembers > 0 && presentCount >= totalMembers;
+          setAttendanceDone(isAttendanceFull);
+          await checkCoordinatorDecision();
         }
       } else {
         // Nhiệm vụ không thuộc đội này nữa (có thể đã bị ABORT + reassign)
@@ -121,14 +119,12 @@ export default function MissionDetail() {
       if (!incident) {
         const persistedWaitingState = localStorage.getItem(waitingStateKey) === "1";
         setWaitingCoordinatorDecision(persistedWaitingState);
-        setAttendanceDone(false);
         return;
       }
 
       if (incident.status === "PENDING") {
         localStorage.setItem(waitingStateKey, "1");
         setWaitingCoordinatorDecision(true);
-        setAttendanceDone(false);
         return;
       }
 
@@ -149,13 +145,9 @@ export default function MissionDetail() {
 
       localStorage.setItem(waitingStateKey, "1");
       setWaitingCoordinatorDecision(true);
-      setAttendanceDone(false);
     } catch (err) {
       const persistedWaitingState = localStorage.getItem(waitingStateKey) === "1";
       setWaitingCoordinatorDecision(persistedWaitingState);
-      if (persistedWaitingState) {
-        setAttendanceDone(false);
-      }
     }
   };
 
@@ -222,6 +214,7 @@ export default function MissionDetail() {
   };
 
   const submitIncidentReport = async () => {
+    if (submittingIncident) return;
     if (!incidentForm.title.trim()) {
       toast.error("Vui lòng nhập tiêu đề sự cố!");
       return;
@@ -231,6 +224,7 @@ export default function MissionDetail() {
       return;
     }
     try {
+      setSubmittingIncident(true);
       await rescueTeamApi.createIncidentReport({
         rescueRequestId: id,
         title: incidentForm.title.trim(),
@@ -244,6 +238,8 @@ export default function MissionDetail() {
       await checkCoordinatorDecision();
     } catch (err) {
       toast.error("Gửi báo cáo sự cố thất bại!");
+    } finally {
+      setSubmittingIncident(false);
     }
   };
 
@@ -303,6 +299,39 @@ export default function MissionDetail() {
 
   // Khi nhiệm vụ đã bị hủy (ABORT) và giao cho đội khác
   if (!mission && missionAborted && latestIncident) {
+    // Post-departure: đội đang nghỉ trực, liên hệ trực tiếp coordinator
+    if (latestIncident.isPostDeparture) {
+      return (
+        <div className="p-8 max-w-xl mx-auto">
+          <div className="rounded-2xl border-2 border-orange-300 bg-orange-50 p-6 space-y-4">
+            <div className="flex items-start gap-4">
+              <span className="text-4xl">💤</span>
+              <div>
+                <h2 className="text-xl font-black text-orange-900">Đội đang nghỉ trực</h2>
+                <p className="text-sm text-orange-700 mt-1">
+                  Nhiệm vụ đã được giao lại cho đội khác.<br />
+                  Đội bạn đang ở trạng thái <strong>nghỉ trực (OFF_DUTY)</strong>, xe đang được bảo trì.
+                </p>
+                <p className="text-sm text-orange-700 mt-2">
+                  ⚠️ Vật tư đã mang đi <strong>không được hoàn lại kho</strong>.
+                </p>
+                {latestIncident.coordinatorResponse && (
+                  <div className="mt-3 rounded-lg bg-white border border-orange-200 px-4 py-3">
+                    <p className="text-xs font-bold text-gray-500 mb-1">Lý do từ Coordinator:</p>
+                    <p className="text-sm text-gray-800">{latestIncident.coordinatorResponse}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="bg-orange-100 rounded-xl px-4 py-3 text-sm text-orange-900 font-medium">
+              📞 Đội trưởng vui lòng liên hệ trực tiếp Coordinator để báo tình trạng đội/xe và nhận hướng dẫn tiếp theo.
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Pre-departure: đội đã được giải phóng về AVAILABLE
     return (
       <div className="p-8 max-w-xl mx-auto">
         <div className="rounded-2xl border-2 border-red-300 bg-red-50 p-6 space-y-4">
@@ -518,11 +547,38 @@ export default function MissionDetail() {
             type="file"
             multiple
             accept="image/*"
-            onChange={e => setIncidentForm(prev => ({ ...prev, files: Array.from(e.target.files) }))}
+            onChange={e => {
+              const newFiles = Array.from(e.target.files).map(f => Object.assign(f, { preview: URL.createObjectURL(f) }));
+              setIncidentForm(prev => ({ ...prev, files: [...prev.files, ...newFiles] }));
+              e.target.value = '';
+            }}
             className="block w-full text-sm text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-600 hover:file:bg-orange-100 transition-all"
           />
           {incidentForm.files.length > 0 && (
-            <p className="text-xs text-slate-400 mt-1">{incidentForm.files.length} ảnh được chọn</p>
+            <div className="mt-3 grid grid-cols-4 gap-2">
+              {incidentForm.files.map((file, index) => (
+                <div key={index} className="relative aspect-square rounded-lg overflow-hidden border border-slate-200 group bg-slate-100">
+                  <img
+                    src={file.preview || URL.createObjectURL(file)}
+                    alt={`Preview ${index}`}
+                    className="w-full h-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIncidentForm(prev => ({
+                        ...prev,
+                        files: prev.files.filter((_, i) => i !== index)
+                      }));
+                    }}
+                    className="absolute top-1 right-1 bg-black/50 hover:bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-all"
+                    title="Xóa ảnh"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       </div>
@@ -537,10 +593,89 @@ export default function MissionDetail() {
         </button>
         <button
           onClick={submitIncidentReport}
-          className="px-6 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-black text-sm shadow-lg shadow-orange-100 transition-all active:scale-95 flex items-center gap-2"
+          disabled={submittingIncident}
+          className={`px-6 py-2.5 text-white rounded-xl font-black text-sm shadow-lg shadow-orange-100 transition-all flex items-center gap-2 ${
+            submittingIncident
+              ? 'bg-orange-400 cursor-not-allowed opacity-80'
+              : 'bg-orange-500 hover:bg-orange-600 active:scale-95'
+          }`}
         >
-          <AlertTriangle size={16} />
-          GỬI BÁO CÁO
+          {submittingIncident ? (
+            <>
+              <svg className="animate-spin" width={16} height={16} viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+              </svg>
+              Đang gửi...
+            </>
+          ) : (
+            <>
+              <AlertTriangle size={16} />
+              GỬI BÁO CÁO
+            </>
+          )}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+{/* ===== MODAL XÁC NHẬN CẬP NHẬT TIẾN ĐỘ ===== */}
+{showConfirmModal && pendingStatus && (
+  <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-[2px] z-60 flex items-center justify-center p-4 animate-in fade-in duration-200">
+    <div className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl border border-slate-200">
+      {/* Header */}
+      <div className="px-6 py-5 border-b border-slate-100 flex items-center gap-3">
+        <div className="bg-blue-50 p-2.5 rounded-xl text-blue-600">
+          <CheckCircle2 size={22} />
+        </div>
+        <div>
+          <h3 className="text-lg font-black text-slate-800 tracking-tight">Xác nhận cập nhật</h3>
+          <p className="text-xs text-slate-400 font-medium mt-0.5">Vui lòng kiểm tra trước khi xác nhận</p>
+        </div>
+      </div>
+      {/* Body */}
+      <div className="px-6 py-5 space-y-3">
+        <p className="text-sm text-slate-600">
+          Bạn có chắc muốn cập nhật trạng thái sang:
+        </p>
+        <div className={`text-center py-2.5 px-4 rounded-xl font-black text-base ring-1 ${
+          pendingStatus === 'MOVING' ? 'bg-amber-50 text-amber-700 ring-amber-300' :
+          pendingStatus === 'ARRIVED' ? 'bg-indigo-50 text-indigo-700 ring-indigo-300' :
+          pendingStatus === 'RESCUING' ? 'bg-blue-50 text-blue-700 ring-blue-300' :
+          'bg-emerald-50 text-emerald-700 ring-emerald-300'
+        }`}>
+          {{
+            MOVING: '🚗 Đang di chuyển',
+            ARRIVED: '📍 Đã đến nơi',
+            RESCUING: '🛟 Đang cứu hộ',
+            COMPLETED: '✅ Hoàn thành nhiệm vụ',
+          }[pendingStatus]}
+        </div>
+        <p className="text-xs text-slate-400 text-center">Hành động này sẽ được ghi nhận và thông báo đến Điều phối viên.</p>
+      </div>
+      {/* Footer */}
+      <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex gap-3">
+        <button
+          onClick={() => { setShowConfirmModal(false); setPendingStatus(null); }}
+          className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-100 transition-all"
+        >
+          Huỷ
+        </button>
+        <button
+          onClick={async () => {
+            setShowConfirmModal(false);
+            await updateStatus(pendingStatus);
+            setPendingStatus(null);
+          }}
+          className={`flex-1 px-4 py-2.5 text-white rounded-xl font-black text-sm shadow-md transition-all active:scale-95 ${
+            pendingStatus === 'MOVING' ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-100' :
+            pendingStatus === 'ARRIVED' ? 'bg-indigo-500 hover:bg-indigo-600 shadow-indigo-100' :
+            pendingStatus === 'RESCUING' ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-100' :
+            'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-100'
+          }`}
+        >
+          Xác nhận
         </button>
       </div>
     </div>
@@ -660,28 +795,54 @@ export default function MissionDetail() {
 
                   {/* ===== BANNER KHI COORDINATOR ĐÃ HỦY NHIỆM VỤ (ABORT) ===== */}
                   {latestIncident?.status === "RESOLVED" && latestIncident?.coordinatorAction === "ABORT" && (
-                    <div className="w-full rounded-xl border-2 border-red-300 bg-red-50 p-4 space-y-3">
-                      <div className="flex items-start gap-3">
-                        <span className="text-2xl">🚫</span>
-                        <div>
-                          <p className="font-bold text-red-800 text-sm">Nhiệm vụ đã bị hủy bởi Điều phối viên</p>
-                          <p className="text-xs text-red-700 mt-0.5">
-                            Đội bạn đã được giải phóng. Nhiệm vụ này đã được giao lại hoặc đưa vào hàng chờ.
-                          </p>
-                          {latestIncident.coordinatorResponse && (
-                            <p className="mt-2 text-xs text-gray-700 bg-white border border-red-200 rounded-lg px-3 py-2">
-                              <span className="font-semibold">Phản hồi của Coordinator:</span> {latestIncident.coordinatorResponse}
+                    latestIncident?.isPostDeparture ? (
+                      /* POST-DEPARTURE: Đội đang nghỉ trực */
+                      <div className="w-full rounded-xl border-2 border-orange-300 bg-orange-50 p-4 space-y-3">
+                        <div className="flex items-start gap-3">
+                          <span className="text-2xl">💤</span>
+                          <div>
+                            <p className="font-bold text-orange-800 text-sm">Đội đang nghỉ trực (OFF_DUTY)</p>
+                            <p className="text-xs text-orange-700 mt-0.5">
+                              Nhiệm vụ đã được giao lại đội khác. Xe đang bảo trì. Vật tư đã mang đi không hoàn lại kho.
                             </p>
-                          )}
+                            {latestIncident.coordinatorResponse && (
+                              <p className="mt-2 text-xs text-gray-700 bg-white border border-orange-200 rounded-lg px-3 py-2">
+                                <span className="font-semibold">Lý do Coordinator:</span> {latestIncident.coordinatorResponse}
+                              </p>
+                            )}
+                          </div>
                         </div>
+                        {currentUser?.isTeamLeader && (
+                          <div className="w-full rounded-lg bg-orange-100 px-3 py-2.5 text-xs text-orange-900 font-medium">
+                            📞 Đội trưởng liên hệ trực tiếp Coordinator để báo tình trạng đội/xe.
+                          </div>
+                        )}
                       </div>
-                      <button
-                        onClick={() => navigate("/rescue-team/missions")}
-                        className="w-full bg-red-600 hover:bg-red-700 text-white text-sm font-bold px-4 py-2.5 rounded-lg shadow-sm transition-all active:scale-95"
-                      >
-                        Quay về danh sách nhiệm vụ
-                      </button>
-                    </div>
+                    ) : (
+                      /* PRE-DEPARTURE: Đội đã được giải phóng */
+                      <div className="w-full rounded-xl border-2 border-red-300 bg-red-50 p-4 space-y-3">
+                        <div className="flex items-start gap-3">
+                          <span className="text-2xl">🚫</span>
+                          <div>
+                            <p className="font-bold text-red-800 text-sm">Nhiệm vụ đã bị hủy bởi Điều phối viên</p>
+                            <p className="text-xs text-red-700 mt-0.5">
+                              Đội bạn đã được giải phóng. Nhiệm vụ này đã được giao lại hoặc đưa vào hàng chờ.
+                            </p>
+                            {latestIncident.coordinatorResponse && (
+                              <p className="mt-2 text-xs text-gray-700 bg-white border border-red-200 rounded-lg px-3 py-2">
+                                <span className="font-semibold">Phản hồi của Coordinator:</span> {latestIncident.coordinatorResponse}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => navigate("/rescue-team/missions")}
+                          className="w-full bg-red-600 hover:bg-red-700 text-white text-sm font-bold px-4 py-2.5 rounded-lg shadow-sm transition-all active:scale-95"
+                        >
+                          Quay về danh sách nhiệm vụ
+                        </button>
+                      </div>
+                    )
                   )}
 
                   {/* ===== BANNER KHI ĐANG CHỜ QUYẾT ĐỊNH COORDINATOR ===== */}
@@ -709,16 +870,16 @@ export default function MissionDetail() {
                   {attendanceDone && !waitingCoordinatorDecision && (
                     <>
                       {mission.status === "IN_PROGRESS" && (
-                        <button onClick={() => updateStatus("MOVING")} className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg font-semibold shadow-sm">Đang di chuyển</button>
+                        <button onClick={() => { setPendingStatus("MOVING"); setShowConfirmModal(true); }} className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg font-semibold shadow-sm">Đang di chuyển</button>
                       )}
                       {mission.status === "MOVING" && (
-                        <button onClick={() => updateStatus("ARRIVED")} className="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold shadow-sm">Đã đến nơi</button>
+                        <button onClick={() => { setPendingStatus("ARRIVED"); setShowConfirmModal(true); }} className="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold shadow-sm">Đã đến nơi</button>
                       )}
                       {mission.status === "ARRIVED" && (
-                        <button onClick={() => updateStatus("RESCUING")} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold shadow-sm">Đang cứu hộ</button>
+                        <button onClick={() => { setPendingStatus("RESCUING"); setShowConfirmModal(true); }} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold shadow-sm">Đang cứu hộ</button>
                       )}
                       {mission.status === "RESCUING" && (
-                        <button onClick={() => updateStatus("COMPLETED")} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-bold shadow-md transition-all active:scale-95">Hoàn thành nhiệm vụ</button>
+                        <button onClick={() => { setPendingStatus("COMPLETED"); setShowConfirmModal(true); }} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-bold shadow-md transition-all active:scale-95">Hoàn thành nhiệm vụ</button>
                       )}
 
                       {/* NÚT BÁO CÁO SỰ CỐ TRÊN ĐƯỜNG — hiện ở mọi trạng thái sau điểm danh (trừ COMPLETED) */}

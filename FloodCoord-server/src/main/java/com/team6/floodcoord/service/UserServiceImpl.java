@@ -10,10 +10,16 @@ import com.team6.floodcoord.repository.jpa.UserRepository;
 import com.team6.floodcoord.utils.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -132,6 +138,109 @@ public class UserServiceImpl implements UserService {
                 .stream()
                 .map(UserMapper::toUserResponse)
                 .toList();
+    }
+
+    @Override
+    public byte[] generateExcelTemplate() {
+        try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Sheet sheet = workbook.createSheet("User_Import_Template");
+
+            // Tạo header
+            Row headerRow = sheet.createRow(0);
+            String[] columns = {"Họ và tên", "Email", "Số điện thoại", "Mật khẩu", "Mã vai trò (ADMIN, MANAGER, COORDINATOR, RESCUE_TEAM, CITIZEN)"};
+
+            CellStyle headerStyle = workbook.createCellStyle();
+            Font headerFont = workbook.createFont();
+            headerFont.setBold(true);
+            headerStyle.setFont(headerFont);
+
+            for (int i = 0; i < columns.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(columns[i]);
+                cell.setCellStyle(headerStyle);
+                sheet.setColumnWidth(i, 6000); // Căn rộng cột
+            }
+
+            // Dữ liệu mẫu
+            Row dataRow = sheet.createRow(1);
+            dataRow.createCell(0).setCellValue("Nguyễn Văn Mẫu");
+            dataRow.createCell(1).setCellValue("mau.nguyen@example.com");
+            dataRow.createCell(2).setCellValue("0909123456");
+            dataRow.createCell(3).setCellValue("Password123!");
+            dataRow.createCell(4).setCellValue("COORDINATOR");
+
+            workbook.write(out);
+            return out.toByteArray();
+        } catch (Exception e) {
+            log.error("Error generating User Excel template: ", e);
+            throw new RuntimeException("Lỗi khi tạo file Excel mẫu");
+        }
+    }
+
+    @Override
+    @Transactional
+    public void importUsersFromExcel(MultipartFile file) {
+        try (InputStream is = file.getInputStream(); Workbook workbook = new XSSFWorkbook(is)) {
+            Sheet sheet = workbook.getSheetAt(0);
+            List<User> usersToSave = new ArrayList<>();
+
+            // Bỏ qua dòng header (i = 1)
+            for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+                Row row = sheet.getRow(i);
+                if (row == null) continue;
+
+                // Đọc dữ liệu (ép kiểu an toàn tránh NullPointerException)
+                String fullName = getCellValueAsString(row.getCell(0));
+                String email = getCellValueAsString(row.getCell(1));
+                String phone = getCellValueAsString(row.getCell(2));
+                String password = getCellValueAsString(row.getCell(3));
+                String roleCode = getCellValueAsString(row.getCell(4));
+
+                // Bỏ qua dòng trống
+                if (email.isEmpty() || password.isEmpty() || roleCode.isEmpty()) continue;
+
+                // Validate trùng lặp email
+                if (userRepository.existsByEmail(email)) {
+                    log.warn("Bỏ qua user do email đã tồn tại: {}", email);
+                    continue;
+                }
+
+                int currentRow = i + 1;
+
+                // Lấy Role từ DB
+                Role role = roleRepository.findByRoleCode(roleCode.toUpperCase())
+                        .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy vai trò: " + roleCode + " ở dòng " + currentRow));
+
+                User newUser = User.builder()
+                        .fullName(fullName)
+                        .email(email)
+                        .phoneNumber(phone)
+                        .password(passwordEncoder.encode(password))
+                        .status(true)
+                        .role(role)
+                        .build();
+
+                usersToSave.add(newUser);
+            }
+
+            if (!usersToSave.isEmpty()) {
+                userRepository.saveAll(usersToSave);
+                log.info("Đã import thành công {} người dùng từ Excel", usersToSave.size());
+            }
+
+        } catch (Exception e) {
+            log.error("Lỗi khi import file Excel: ", e);
+            throw new RuntimeException("Lỗi khi đọc file Excel: " + e.getMessage());
+        }
+    }
+
+    private String getCellValueAsString(Cell cell) {
+        if (cell == null) return "";
+        switch (cell.getCellType()) {
+            case STRING: return cell.getStringCellValue().trim();
+            case NUMERIC: return String.valueOf((long) cell.getNumericCellValue());
+            default: return "";
+        }
     }
 
 

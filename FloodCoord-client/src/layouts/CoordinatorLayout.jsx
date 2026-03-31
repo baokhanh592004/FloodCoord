@@ -23,6 +23,7 @@ export default function CoordinatorLayout() {
 
   const navItems = [
     { name: 'Tổng quan', href: '/coordinator/dashboard', icon: HomeIcon },
+    { name: 'Phân tích', href: '/coordinator/analytics', icon: ChartBarIcon },
     { name: 'Danh sách yêu cầu', href: '/coordinator/requests', icon: ClipboardDocumentListIcon },
     { name: 'Giám sát hoạt động', href: '/coordinator/operations', icon: MapIcon },
     { name: 'Báo cáo sự cố', href: '/coordinator/incident-reports', icon: ExclamationTriangleIcon },
@@ -47,7 +48,7 @@ export default function CoordinatorLayout() {
 
         {/* User Info */}
         <Link to="/profile" className="px-6 py-4 border-b border-gray-200 flex items-center gap-3 hover:bg-blue-50 transition-colors group">
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold shrink-0">
+          <div className="w-10 h-10 bg-linear-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold shrink-0">
             {user?.email?.charAt(0).toUpperCase() || 'C'}
           </div>
           <div className="flex-1 min-w-0">
