@@ -3,7 +3,6 @@ import { AlertCircle } from 'lucide-react';
 import StatCard from '../../coordinator/StatCard';
 import TeamFormModal from '../../admin/TeamFormModal';
 import TeamDetailModal from '../../admin/TeamDetailModal';
-import TeamSearchBar from './TeamSearchBar';
 import TeamGridSection from './TeamGridSection';
 import SectionHeader from '../layout/SectionHeader';
 import { useRescueTeamManagement } from '../../../hooks/useRescueTeamManagement';
@@ -74,7 +73,7 @@ export default function TeamManagementPage({
   );
 
   return (
-    <div className="p-6 space-y-6 overflow-y-auto h-full">
+    <div className={variant === 'manager' ? 'h-full flex flex-col p-4 gap-3 overflow-hidden' : 'p-6 space-y-6 overflow-y-auto h-full'}>
       <SectionHeader
         variant={variant}
         title={title}
@@ -82,25 +81,18 @@ export default function TeamManagementPage({
         actions={headerActions}
         adminTheme={adminTheme}
         containerClass="flex items-start justify-between"
-        managerTitleClass="text-2xl font-bold text-gray-900"
+        managerTitleClass="text-xl font-bold text-gray-900"
         adminTitleClass="text-2xl font-bold"
-        managerSubtitleClass="text-sm text-gray-500"
+        managerSubtitleClass="text-xs text-gray-500"
         adminSubtitleClass="text-sm mt-0.5"
       />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className={variant === 'manager' ? 'shrink-0 grid grid-cols-2 lg:grid-cols-4 gap-3' : 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4'}>
         <StatCard icon={<UserGroupIcon className="h-6 w-6" />} count={stats.total} label="Tổng số đội" color="blue" />
         <StatCard icon={<CheckCircleIcon className="h-6 w-6" />} count={stats.available} label="Đội sẵn sàng" color="green" />
         <StatCard icon={<ShieldCheckIcon className="h-6 w-6" />} count={stats.inMission} label="Đang nhiệm vụ" color="yellow" />
         <StatCard icon={<UserGroupIcon className="h-6 w-6" />} count={stats.totalMembers} label="Tổng thành viên" color="rose" />
       </div>
-
-      {showSearch && (
-        <TeamSearchBar
-          searchTerm={searchTerm}
-          setSearchTerm={setSearchTerm}
-        />
-      )}
 
       {error && (
         <div
@@ -119,6 +111,9 @@ export default function TeamManagementPage({
         onEdit={handleEdit}
         onDelete={handleDelete}
         onViewDetails={handleViewDetails}
+        showSearch={showSearch}
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
         emptyIcon={emptyIcon}
         emptyTitle={emptyTitle}
         emptyDescription={emptyDescription}
