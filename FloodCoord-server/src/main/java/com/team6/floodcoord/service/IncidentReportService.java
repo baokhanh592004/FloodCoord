@@ -5,6 +5,8 @@ import com.team6.floodcoord.dto.request.CreateIncidentRequest;
 import com.team6.floodcoord.dto.request.ResolveIncidentRequest;
 import com.team6.floodcoord.dto.response.IncidentReportResponse;
 import com.team6.floodcoord.model.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.UUID;
 
@@ -15,6 +17,6 @@ public interface IncidentReportService {
     void resolveIncident(Long incidentId, ResolveIncidentRequest resolveRequest, User coordinator);
     void assignTeamToIncident(Long incidentId, AssignTeamRequest request, User coordinator);
     List<IncidentReportResponse> getPendingIncidents();
-    List<IncidentReportResponse> getAllIncidents();
+    Page<IncidentReportResponse> getAllIncidents(Pageable pageable);
     IncidentReportResponse getLatestIncidentByRequest(UUID requestId, User requester);
 }
