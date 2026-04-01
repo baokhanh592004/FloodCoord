@@ -36,7 +36,7 @@ public interface RescueRequestRepository
     List<RescueRequest> findByCitizen_Id(Long citizenId);
 
     Optional<RescueRequest> findByTrackingCodeAndContactPhoneAndCitizenIsNull(String trackingCode, String contactPhone);
-    List<RescueRequest> findByStatus(RequestStatus status);
+    Page<RescueRequest> findByStatus(RequestStatus status, Pageable pageable);
     long countByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
     long countByStatusAndCompletedAtBetween(RequestStatus status, LocalDateTime start, LocalDateTime end);
 
