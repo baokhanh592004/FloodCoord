@@ -2,9 +2,11 @@ import axiosClient from "../api/axiosClient";
 
 export const supplyApi = {
     // Get all supplies
-    getAllSupplies: async () => {
+    getAllSupplies: async (page = 0, size = 10, params = {}) => {
         try {
-            const response = await axiosClient.get('/api/manager/supplies');
+            const response = await axiosClient.get('/api/manager/supplies', {
+                params: { page, size, ...params }
+            });
             return response.data;
         } catch (error) {
             console.error("Get all supplies failed:", error);
@@ -13,12 +15,12 @@ export const supplyApi = {
     },
 
     // Get available supplies (quantity > 0)
-    getAvailableSupplies: async () => {
+    getAvailableSupplies: async (page = 0, size = 100) => {
         try {
             const response = await axiosClient.get('/api/manager/supplies', {
-                params: { available: true }
+                params: { page, size, available: true }
             });
-            return response.data;
+            return response.data?.content ?? [];
         } catch (error) {
             console.error("Get available supplies failed:", error);
             throw error;

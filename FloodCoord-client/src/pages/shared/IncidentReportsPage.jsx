@@ -75,7 +75,7 @@ export default function IncidentReportsPage() {
         setErrorMessage('');
         try {
             const response = await incidentReportApi.getAllIncidents();
-            setIncidents(Array.isArray(response) ? response : []);
+            setIncidents(Array.isArray(response) ? response : (response?.content || []));
         } catch (error) {
             setErrorMessage(
                 error?.response?.data?.message ||
@@ -115,7 +115,8 @@ export default function IncidentReportsPage() {
             );
 
             const now = new Date();
-            const validSupplies = (Array.isArray(supplies) ? supplies : []).filter(
+            const supplyListData = Array.isArray(supplies) ? supplies : (supplies?.content || []);
+            const validSupplies = supplyListData.filter(
                 (s) => (s?.quantity ?? 0) > 0 && (!s?.expiryDate || new Date(s.expiryDate) > now)
             );
 

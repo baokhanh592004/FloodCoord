@@ -26,9 +26,9 @@ export default function AssignTeams() {
             ]);
 
             setRequests(reqData || []);
-            setTeams(teamData || []);
-            setVehicles(vehicleData || []);
-            setSupplies(supplyData || []);
+            setTeams(Array.isArray(teamData) ? teamData : (teamData?.content || []));
+            setVehicles(Array.isArray(vehicleData) ? vehicleData : (vehicleData?.content || []));
+            setSupplies(Array.isArray(supplyData) ? supplyData : (supplyData?.content || []));
         } catch (error) {
             console.error('Failed to load assign teams data:', error);
         }

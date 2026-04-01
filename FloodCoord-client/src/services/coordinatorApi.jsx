@@ -13,11 +13,13 @@ export const coordinatorApi = {
     },
 
     // Get all rescue requests with filters
-    getAllRequests: async (params = {}) => {
+    getAllRequests: async (page = 0, size = 10, params = {}) => {
         console.log('📡 coordinatorApi.getAllRequests() called');
-        console.log('Params:', params);
+        console.log('Params:', { page, size, ...params });
         try {
-            const response = await axiosClient.get('/api/coordinator/requests/rescue-requests', { params });
+            const response = await axiosClient.get('/api/coordinator/requests/rescue-requests', {
+                params: { page, size, ...params }
+            });
             console.log('✅ getAllRequests response:', response.data);
             return response.data;
         } catch (error) {
@@ -70,10 +72,10 @@ export const coordinatorApi = {
     },
 
     // Get requests by status
-    getRequestsByStatus: async (status) => {
+    getRequestsByStatus: async (status, page = 0, size = 10) => {
         try {
             const response = await axiosClient.get('/api/coordinator/requests/rescue-requests', {
-                params: { status }
+                params: { status, page, size }
             });
             return response.data;
         } catch (error) {
@@ -107,6 +109,18 @@ export const coordinatorApi = {
             return response.data;
         } catch (error) {
             console.error("Reject request failed:", error);
+            throw error;
+        }
+    },
+
+    getReportedRequests: async (page = 0, size = 10) => {
+        try {
+            const response = await axiosClient.get('/api/coordinator/requests/reported', {
+                params: { page, size }
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Get reported requests failed:', error);
             throw error;
         }
     }

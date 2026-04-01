@@ -22,7 +22,7 @@ export function useRescueTeamManagement() {
     try {
       setLoading(true);
       const data = await adminTeamApi.getAllTeams();
-      setTeams(data);
+      setTeams(Array.isArray(data) ? data : (data?.content || []));
       setError('');
     } catch {
       setError('Không thể tải danh sách đội cứu hộ');

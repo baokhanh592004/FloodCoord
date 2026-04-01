@@ -60,9 +60,9 @@ export default function AssignTaskModal({ request, isOpen, onClose, onSuccess })
                 vehicleApi.getAllVehicles(),
                 supplyApi.getAllSupplies(),
             ]);
-            setTeams(teamData || []);
-            setVehicles(vehicleData || []);
-            setSupplies(supplyData || []);
+            setTeams(Array.isArray(teamData) ? teamData : (teamData?.content || []));
+            setVehicles(Array.isArray(vehicleData) ? vehicleData : (vehicleData?.content || []));
+            setSupplies(Array.isArray(supplyData) ? supplyData : (supplyData?.content || []));
         } catch (error) {
             console.error('Failed to load resources:', error);
         }

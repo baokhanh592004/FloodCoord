@@ -35,7 +35,7 @@ export function useSupplyManagement() {
     try {
       setLoading(true);
       const data = await supplyApi.getAllSupplies();
-      setSupplies(data);
+      setSupplies(Array.isArray(data) ? data : (data?.content || []));
       setError('');
     } catch {
       setError('Không thể tải danh sách vật tư');

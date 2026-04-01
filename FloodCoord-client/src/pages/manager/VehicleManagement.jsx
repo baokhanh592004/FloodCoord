@@ -104,7 +104,7 @@ export default function VehicleManagement() {
         try {
             setLoading(true);
             const data = await vehicleApi.getAllVehicles();
-            setVehicles(data || []);
+            setVehicles(Array.isArray(data) ? data : (data?.content || []));
             setError('');
         } catch (err) {
             setError('Không thể tải danh sách phương tiện. Vui lòng kiểm tra kết nối với server.');

@@ -79,7 +79,8 @@ export default function AdminVehicleManagement() {
     const fetchVehicles = useCallback(async () => {
         try {
             setLoading(true);
-            setVehicles(await vehicleApi.getAllVehicles() || []);
+            const data = await vehicleApi.getAllVehicles();
+            setVehicles(Array.isArray(data) ? data : (data?.content || []));
             setError('');
         } catch {
             setError('Không thể tải danh sách phương tiện.');

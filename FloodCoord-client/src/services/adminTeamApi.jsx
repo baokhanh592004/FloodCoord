@@ -2,9 +2,11 @@ import axiosClient from "../api/axiosClient";
 
 export const adminTeamApi = {
     // Get all rescue teams
-    getAllTeams: async () => {
+    getAllTeams: async (page = 0, size = 10) => {
         try {
-            const response = await axiosClient.get('/api/admin/rescue-teams');
+            const response = await axiosClient.get('/api/admin/rescue-teams', {
+                params: { page, size }
+            });
             return response.data;
         } catch (error) {
             console.error("Get all teams failed:", error);

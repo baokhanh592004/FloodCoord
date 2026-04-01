@@ -2,9 +2,11 @@ import axiosClient from "../api/axiosClient";
 
 export const teamApi = {
     // Get all rescue teams
-    getAllTeams: async () => {
+    getAllTeams: async (page = 0, size = 10) => {
         try {
-            const response = await axiosClient.get('/api/admin/rescue-teams');
+            const response = await axiosClient.get('/api/admin/rescue-teams', {
+                params: { page, size }
+            });
             return response.data;
         } catch (error) {
             console.error("Get all teams failed:", error);
@@ -13,12 +15,12 @@ export const teamApi = {
     },
 
     // Get available teams (status = AVAILABLE)
-    getAvailableTeams: async () => {
+    getAvailableTeams: async (page = 0, size = 100) => {
         try {
             const response = await axiosClient.get('/api/admin/rescue-teams', {
-                params: { status: 'AVAILABLE' }
+                params: { page, size, status: 'AVAILABLE' }
             });
-            return response.data;
+            return response.data?.content ?? [];
         } catch (error) {
             console.error("Get available teams failed:", error);
             throw error;

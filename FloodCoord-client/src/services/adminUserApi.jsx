@@ -2,9 +2,11 @@ import axiosClient from "../api/axiosClient";
 
 export const adminUserApi = {
     // Get all users
-    getAllUsers: async () => {
+    getAllUsers: async (page = 0, size = 10) => {
         try {
-            const response = await axiosClient.get('/api/admin/users');
+            const response = await axiosClient.get('/api/admin/users', {
+                params: { page, size }
+            });
             return response.data;
         } catch (error) {
             console.error("Get all users failed:", error);

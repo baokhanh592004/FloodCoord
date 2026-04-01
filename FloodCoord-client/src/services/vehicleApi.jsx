@@ -2,9 +2,11 @@ import axiosClient from "../api/axiosClient";
 
 export const vehicleApi = {
     // Get all vehicles
-    getAllVehicles: async () => {
+    getAllVehicles: async (page = 0, size = 10, params = {}) => {
         try {
-            const response = await axiosClient.get('/api/manager/vehicles');
+            const response = await axiosClient.get('/api/manager/vehicles', {
+                params: { page, size, ...params }
+            });
             return response.data;
         } catch (error) {
             console.error("Get all vehicles failed:", error);
@@ -13,12 +15,12 @@ export const vehicleApi = {
     },
 
     // Get available vehicles (status = AVAILABLE)
-    getAvailableVehicles: async () => {
+    getAvailableVehicles: async (page = 0, size = 100) => {
         try {
             const response = await axiosClient.get('/api/manager/vehicles', {
-                params: { status: 'AVAILABLE' }
+                params: { page, size, status: 'AVAILABLE' }
             });
-            return response.data;
+            return response.data?.content ?? [];
         } catch (error) {
             console.error("Get available vehicles failed:", error);
             throw error;

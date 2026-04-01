@@ -2,9 +2,11 @@ import axiosClient from '../api/axiosClient';
 
 export const incidentReportApi = {
     // Lấy toàn bộ lịch sử báo cáo sự cố (dành cho trang danh sách chung)
-    getAllIncidents: async () => {
+    getAllIncidents: async (page = 0, size = 10) => {
         try {
-            const response = await axiosClient.get('/api/incidents');
+            const response = await axiosClient.get('/api/incidents', {
+                params: { page, size }
+            });
             return response.data;
         } catch (error) {
             console.error('Get all incidents failed:', error);

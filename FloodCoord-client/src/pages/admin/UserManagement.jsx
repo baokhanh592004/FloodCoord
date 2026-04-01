@@ -93,7 +93,8 @@ export default function UserManagement() {
         try {
             setLoading(true);
             const data = await adminUserApi.getAllUsers();
-            setUsers(prev => preserveUserOrder(data, prev));
+            const usersData = Array.isArray(data) ? data : (data?.content || []);
+            setUsers(prev => preserveUserOrder(usersData, prev));
             setError('');
         } catch {
             setError('Không thể tải danh sách người dùng. Vui lòng kiểm tra kết nối với server.');

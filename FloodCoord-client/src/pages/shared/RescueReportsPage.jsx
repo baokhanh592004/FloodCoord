@@ -32,7 +32,7 @@ export default function RescueReportsPage() {
 
         try {
             const response = await rescueReportApi.getReportedRequests();
-            setReports(Array.isArray(response) ? response : []);
+            setReports(Array.isArray(response) ? response : (response?.content || []));
         } catch (error) {
             setErrorMessage(
                 error?.response?.data?.message ||
