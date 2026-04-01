@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -31,8 +32,10 @@ public class AdminController {
     private final RescueRequestService rescueRequestService;
 
     @GetMapping
-    public List<UserResponse> getAllUsers() {
-        return userService.getAllUsers();
+    public ResponseEntity<Page<UserResponse>> getAllUsers(
+            @PageableDefault(page = 0, size = 10) Pageable pageable
+    ) {
+        return ResponseEntity.ok(userService.getAllUsers(pageable));
     }
 
     @GetMapping("/{id}")

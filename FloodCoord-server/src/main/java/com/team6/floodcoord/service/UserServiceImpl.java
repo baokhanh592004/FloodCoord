@@ -12,6 +12,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -91,10 +93,9 @@ public class UserServiceImpl implements UserService {
         return response;
     }
     @Override
-    public List<UserResponse> getAllUsers() {
-        return userRepository.findAll().stream()
-                .map(this::mapToDTO)
-                .toList();
+    public Page<UserResponse> getAllUsers(Pageable pageable) {
+        return userRepository.findAll(pageable)
+                .map(UserMapper::toUserResponse);
     }
     @Override
     public UserResponse getUserById(Long id) {

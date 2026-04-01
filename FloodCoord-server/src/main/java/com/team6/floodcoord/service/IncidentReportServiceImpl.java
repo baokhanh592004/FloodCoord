@@ -9,6 +9,8 @@ import com.team6.floodcoord.model.enums.*;
 import com.team6.floodcoord.repository.jpa.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -325,10 +327,9 @@ public class IncidentReportServiceImpl implements IncidentReportService {
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public List<IncidentReportResponse> getAllIncidents() {
-        return incidentRepo.findAllByOrderByCreatedAtDesc()
-                .stream().map(this::mapToResponse).toList();
+    public Page<IncidentReportResponse> getAllIncidents(Pageable pageable) {
+        return incidentRepo.findAll(pageable)
+                .map(this::mapToResponse);
     }
 
     @Override

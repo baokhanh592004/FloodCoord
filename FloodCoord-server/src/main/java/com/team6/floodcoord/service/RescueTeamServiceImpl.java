@@ -7,6 +7,8 @@ import com.team6.floodcoord.repository.jpa.*;
 import com.team6.floodcoord.utils.RescueTeamMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -96,10 +98,9 @@ public class RescueTeamServiceImpl implements RescueTeamService{
     }
 
     @Override
-    public List<RescueTeamResponse> getAllTeams() {
-        return teamRepo.findAll().stream()
-                .map(RescueTeamMapper::mapToResponse) // SỬ DỤNG METHOD REFERENCE
-                .collect(Collectors.toList());
+    public Page<RescueTeamResponse> getAllTeams(Pageable pageable) {
+        return teamRepo.findAll(pageable)
+                .map(RescueTeamMapper::mapToResponse);
     }
 
     @Override

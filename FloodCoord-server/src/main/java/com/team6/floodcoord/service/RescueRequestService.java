@@ -18,14 +18,14 @@ public interface RescueRequestService {
     void updateProgress(UUID requestId, UpdateProgressDTO dto, User currentUser);
     void confirmCompletion(UUID requestId, CitizenConfirmRequest dto, User currentUser);
     RescueRequestResponse trackRequest(String trackingCode);
-    List<RescueRequestSummaryResponse> getAllRescueRequests();
+    Page<RescueRequestSummaryResponse> getAllRescueRequests(Pageable pageable);
     RescueRequestDetailResponse getRequestDetail(UUID requestId);
     Page<RescueRequestSummaryResponse> getAllRequestsForAdmin(RequestStatus status, Pageable pageable);
     List<RescueRequestLeaderDTO> getMyAssignedRescueRequests();
     void claimGuestRequests(List<String> trackingCodes, User currentUser);
     List<RescueRequestSummaryResponse> getMyRescueRequests(User currentUser);
     void claimRequestManually(String trackingCode, String phoneNumber, User currentUser);
-    List<CompletedRequestDTO> getReportedRequests();
+    Page<CompletedRequestDTO> getReportedRequests(Pageable pageable);
 
     ReportDetailDTO getReportDetail(UUID requestId);
 }
