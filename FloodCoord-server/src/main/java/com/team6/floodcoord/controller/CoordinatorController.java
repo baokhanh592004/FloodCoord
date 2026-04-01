@@ -10,6 +10,9 @@ import com.team6.floodcoord.service.RescueRequestServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -28,9 +31,12 @@ public class CoordinatorController {
 
     // GET ALL rescue requests
     @GetMapping("/rescue-requests")
-    public List<RescueRequestSummaryResponse> getAllRescueRequests() {
-        return requestService.getAllRescueRequests();
+    public ResponseEntity<Page<RescueRequestSummaryResponse>> getAllRescueRequests(
+            @PageableDefault(page = 0, size = 10) Pageable pageable
+    ) {
+        return ResponseEntity.ok(requestService.getAllRescueRequests(pageable));
     }
+
     @GetMapping("/rescue-requests/{id}")
     public RescueRequestDetailResponse getRescueRequestDetail(
             @PathVariable UUID id
@@ -61,13 +67,12 @@ public class CoordinatorController {
     }
     @GetMapping("/reported")
     @Operation(summary = "lấy tất cả rescue request đã được reported")
-
-    public ResponseEntity<List<CompletedRequestDTO>> getReportedRequests() {
-
+    public ResponseEntity<Page<CompletedRequestDTO>> getReportedRequests(
+            @PageableDefault(page = 0, size = 10) Pageable pageable
+    ) {
         return ResponseEntity.ok(
-                requestService.getReportedRequests()
+                requestService.getReportedRequests(pageable)
         );
-
     }
 
     @GetMapping("/{requestId}/report")
