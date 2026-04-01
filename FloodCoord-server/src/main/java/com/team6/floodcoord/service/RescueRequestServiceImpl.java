@@ -390,10 +390,9 @@ public class RescueRequestServiceImpl implements RescueRequestService {
     }
 
     @Override
-    public List<RescueRequestSummaryResponse> getAllRescueRequests() {
-        return requestRepo.findAll().stream()
-                .map(this::mapToSummary)
-                .toList();
+    public Page<RescueRequestSummaryResponse> getAllRescueRequests(Pageable pageable) {
+        return requestRepo.findAll(pageable)
+                .map(requestMapper::toSummaryResponse);
     }
 
     @Override
@@ -638,11 +637,9 @@ public class RescueRequestServiceImpl implements RescueRequestService {
     }
 
     @Override
-    public List<CompletedRequestDTO> getReportedRequests() {
-        return requestRepo.findByStatus(RequestStatus.REPORTED)
-                .stream()
-                .map(rescueRequestMapper::toCompletedDTO)
-                .toList();
+    public Page<CompletedRequestDTO> getReportedRequests(Pageable pageable) {
+        return requestRepo.findByStatus(RequestStatus.REPORTED, pageable)
+                .map(rescueRequestMapper::toCompletedDTO);
     }
 
     @Override
