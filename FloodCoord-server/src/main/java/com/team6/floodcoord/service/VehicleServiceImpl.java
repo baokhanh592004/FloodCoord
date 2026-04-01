@@ -9,6 +9,8 @@ import com.team6.floodcoord.utils.VehicleMapper;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -96,10 +98,9 @@ public class VehicleServiceImpl implements  VehicleService{
     }
 
     @Override
-    public List<VehicleResponse> getAllVehicles() {
-        return vehicleRepo.findAll().stream()
-                .map(VehicleMapper::mapToResponse)
-                .collect(Collectors.toList());
+    public Page<VehicleResponse> getAllVehicles(Pageable pageable) {
+        return vehicleRepo.findAll(pageable)
+                .map(VehicleMapper::mapToResponse);
     }
 
     @Override
