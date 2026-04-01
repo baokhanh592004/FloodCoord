@@ -9,6 +9,8 @@ import com.team6.floodcoord.utils.SupplyMapper;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -81,11 +83,11 @@ public class SupplyServiceImpl implements  SupplyService{
     }
 
     @Override
-    public List<SupplyResponse> getAllSupplies() {
-        return supplyRepo.findAll().stream()
-                .map(SupplyMapper::mapToResponse)
-                .collect(Collectors.toList());
+    public Page<SupplyResponse> getAllSupplies(Pageable pageable) {
+        return supplyRepo.findAll(pageable)
+                .map(SupplyMapper::mapToResponse);
     }
+
 
     @Override
     public SupplyResponse getSupplyById(Long id) {
