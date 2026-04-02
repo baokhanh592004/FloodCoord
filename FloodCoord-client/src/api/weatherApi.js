@@ -7,7 +7,7 @@ import axios from 'axios';
  * Usage: import weatherApi from '@/api/weatherApi'
  */
 const weatherApi = axios.create({
-  baseURL: `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8083'}/api`,
+  baseURL: `${import.meta.env.VITE_API_ROOT_URL}/api`,
   withCredentials: true,
   timeout: 15000,
   headers: {

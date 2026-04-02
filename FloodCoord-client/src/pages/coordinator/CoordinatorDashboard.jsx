@@ -169,8 +169,8 @@ export default function CoordinatorDashboard() {
   const [chartsError, setChartsError] = useState('');
   const [mapLoading, setMapLoading] = useState(false);
   const [mapError, setMapError] = useState('');
-  const [currentWeather, setCurrentWeather] = useState(null);
-  const [floodRisk, setFloodRisk] = useState(null);
+  //const [currentWeather, setCurrentWeather] = useState(null);
+  //const [floodRisk, setFloodRisk] = useState(null);
   const [activeAlerts, setActiveAlerts] = useState([]);
   const [lineTimeRange, setLineTimeRange] = useState('day');
   const [lastRefresh, setLastRefresh] = useState(null);
@@ -207,63 +207,63 @@ export default function CoordinatorDashboard() {
     }
   }, []);
 
-  const loadWeatherData = useCallback(async () => {
-    setAlertsLoading(true);
-    setAlertsError('');
+  // const loadWeatherData = useCallback(async () => {
+  //   setAlertsLoading(true);
+  //   setAlertsError('');
 
-    const [currentResult, riskResult, alertsResult] = await Promise.allSettled([
-      getCurrentWeather(WEATHER_LOCATION.lat, WEATHER_LOCATION.lon),
-      getFloodRisk(WEATHER_LOCATION.lat, WEATHER_LOCATION.lon),
-      getActiveAlerts(24),
-    ]);
+  //   const [currentResult, riskResult, alertsResult] = await Promise.allSettled([
+  //     getCurrentWeather(WEATHER_LOCATION.lat, WEATHER_LOCATION.lon),
+  //     getFloodRisk(WEATHER_LOCATION.lat, WEATHER_LOCATION.lon),
+  //     getActiveAlerts(24),
+  //   ]);
 
-    if (currentResult.status === 'fulfilled') {
-      setCurrentWeather(currentResult.value);
-    } else {
-      console.error('Failed to load current weather:', currentResult.reason);
-    }
+  //   if (currentResult.status === 'fulfilled') {
+  //     setCurrentWeather(currentResult.value);
+  //   } else {
+  //     console.error('Failed to load current weather:', currentResult.reason);
+  //   }
 
-    if (riskResult.status === 'fulfilled') {
-      setFloodRisk(riskResult.value);
-    } else {
-      console.error('Failed to load flood risk:', riskResult.reason);
-    }
+  //   if (riskResult.status === 'fulfilled') {
+  //     setFloodRisk(riskResult.value);
+  //   } else {
+  //     console.error('Failed to load flood risk:', riskResult.reason);
+  //   }
 
-    if (alertsResult.status === 'fulfilled') {
-      setActiveAlerts(alertsResult.value || []);
-    } else {
-      console.error('Failed to load active alerts:', alertsResult.reason);
-      setActiveAlerts([]);
-    }
+  //   if (alertsResult.status === 'fulfilled') {
+  //     setActiveAlerts(alertsResult.value || []);
+  //   } else {
+  //     console.error('Failed to load active alerts:', alertsResult.reason);
+  //     setActiveAlerts([]);
+  //   }
 
-    if (
-      currentResult.status === 'rejected'
-      && riskResult.status === 'rejected'
-      && alertsResult.status === 'rejected'
-    ) {
-      setAlertsError('Không thể tải dữ liệu cảnh báo và thời tiết. Vui lòng thử lại sau.');
-    }
+  //   if (
+  //     currentResult.status === 'rejected'
+  //     && riskResult.status === 'rejected'
+  //     && alertsResult.status === 'rejected'
+  //   ) {
+  //     setAlertsError('Không thể tải dữ liệu cảnh báo và thời tiết. Vui lòng thử lại sau.');
+  //   }
 
-    setAlertsLoading(false);
-  }, []);
+  //   setAlertsLoading(false);
+  // }, []);
 
   useEffect(() => {
     loadRequests();
-    loadWeatherData();
+    //loadWeatherData();
 
     const requestInterval = setInterval(loadRequests, 30000);
-    const weatherInterval = setInterval(loadWeatherData, 10 * 60 * 1000);
+    //const weatherInterval = setInterval(loadWeatherData, 10 * 60 * 1000);
     const heartbeat = setInterval(() => setClockTick(Date.now()), 10000);
 
     return () => {
       clearInterval(requestInterval);
-      clearInterval(weatherInterval);
+      //clearInterval(weatherInterval);
       clearInterval(heartbeat);
     };
-  }, [loadRequests, loadWeatherData]);
+  }, [loadRequests, ]);
 
   const handleRefresh = async () => {
-    await Promise.all([loadRequests(), loadWeatherData()]);
+    await Promise.all([loadRequests(), ]);
   };
 
   const handleOpenVerify = (event, req) => {
@@ -428,14 +428,14 @@ export default function CoordinatorDashboard() {
       .slice(-20);
   }, [requests, lineTimeRange]);
 
-  const lastRefreshSeconds = lastRefresh
-    ? Math.floor((clockTick - lastRefresh.getTime()) / 1000)
-    : null;
-  const isLiveStale = lastRefreshSeconds != null && lastRefreshSeconds > 75;
+  // const lastRefreshSeconds = lastRefresh
+  //   ? Math.floor((clockTick - lastRefresh.getTime()) / 1000)
+  //   : null;
+  // const isLiveStale = lastRefreshSeconds != null && lastRefreshSeconds > 75;
 
-  const current = currentWeather?.current;
-  const rainValue = current?.precipitation ?? current?.rain;
-  const floodRiskLabel = floodRisk?.riskLevel || (activeAlerts.length > 0 ? 'CAO' : 'THẤP');
+  //const current = currentWeather?.current;
+  //const rainValue = current?.precipitation ?? current?.rain;
+  //const floodRiskLabel = floodRisk?.riskLevel || (activeAlerts.length > 0 ? 'CAO' : 'THẤP');
 
   return (
     <div className="h-full overflow-auto bg-neutral-50 p-4 sm:p-5">
@@ -448,7 +448,7 @@ export default function CoordinatorDashboard() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <span
+            {/* <span
               className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold ${
                 isLiveStale
                   ? 'border-warning-100 bg-warning-50 text-warning-dark'
@@ -458,7 +458,7 @@ export default function CoordinatorDashboard() {
               <span className={`h-1.5 w-1.5 rounded-full ${isLiveStale ? 'bg-warning' : 'bg-success animate-pulse'}`} />
               {isLiveStale ? 'Live chậm' : 'Live'}
               {lastRefreshSeconds != null && ` • ${lastRefreshSeconds}s`}
-            </span>
+            </span> */}
 
             <button
               onClick={handleRefresh}
@@ -492,7 +492,7 @@ export default function CoordinatorDashboard() {
             </div>
           </div>
 
-          <div className="rounded-xl border border-warning-100 bg-warning-50 px-4 py-3 text-sm text-warning-900">
+          {/* <div className="rounded-xl border border-warning-100 bg-warning-50 px-4 py-3 text-sm text-warning-900">
             <p>
               <span className="font-semibold">Cảnh báo lũ mức {floodRiskLabel}</span>
               {' · '}
@@ -502,9 +502,9 @@ export default function CoordinatorDashboard() {
               {' · '}
               {rainValue != null ? `${Number(rainValue).toFixed(1)}mm` : '--'}
             </p>
-          </div>
+          </div> */}
 
-          {alertsLoading && (
+          {/* {alertsLoading && (
             <div className="rounded-md border border-info-100 bg-info-50 px-3 py-2 text-xs text-info-dark">
               Đang cập nhật dữ liệu cảnh báo và thời tiết...
             </div>
@@ -514,7 +514,7 @@ export default function CoordinatorDashboard() {
             <div className="rounded-md border border-danger-100 bg-danger-50 px-3 py-2 text-xs text-danger-dark">
               {alertsError}
             </div>
-          )}
+          )} */}
         </section>
 
         <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
@@ -736,7 +736,7 @@ export default function CoordinatorDashboard() {
             ) : realMapPoints.length === 0 ? (
               <div className="relative h-72 overflow-hidden rounded-xl border border-info-100 bg-linear-to-br from-info-50 via-success-50 to-neutral-50">
                 <div className="pointer-events-none absolute inset-0 opacity-35">
-                  <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(148,163,184,0.16)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.16)_1px,transparent_1px)] bg-[size:38px_38px]" />
+                  <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(148,163,184,0.16)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.16)_1px,transparent_1px)] bg-size-[38px_38px]" />
                 </div>
 
                 <div className="absolute left-2 top-2 z-10 rounded-md border border-info-100 bg-white/90 px-2 py-1 text-[10px] font-medium text-info-dark">
@@ -848,10 +848,9 @@ export default function CoordinatorDashboard() {
 
         <section className="rounded-xl border border-coordinator-100 bg-linear-to-r from-coordinator-50 via-info-50 to-manager-50 px-4 py-3">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-3 md:gap-4">
+            {/* <div className="flex min-w-0 flex-1 flex-wrap items-center gap-3 md:gap-4">
               <div className="min-w-0">
                 <h3 className="text-sm font-semibold text-neutral-900">Xem phân tích chi tiết</h3>
-                <p className="text-xs text-neutral-600">Dashboard tập trung điều phối thời gian thực.</p>
               </div>
               <Link
                 to="/coordinator/analytics"
@@ -860,9 +859,9 @@ export default function CoordinatorDashboard() {
                 <ChartBarIcon className="h-4 w-4" />
                 Watch Details Analytics
               </Link>
-            </div>
+            </div> */}
 
-            <div className="h-px w-full bg-coordinator-100 md:hidden" />
+            {/* <div className="h-px w-full bg-coordinator-100 md:hidden" /> */}
 
             <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-coordinator-100 text-xs text-neutral-600 md:ml-4 md:border-l md:pl-4">
               <span className="inline-flex items-center gap-1">
@@ -872,9 +871,9 @@ export default function CoordinatorDashboard() {
               <span>
                 Cảnh báo hoạt động: <strong>{activeAlerts.length}</strong>
               </span>
-              <span>
+              {/* <span>
                 Thời tiết: {current?.weatherCode != null ? getWeatherLabel(current.weatherCode) : 'Chưa có dữ liệu'}
-              </span>
+              </span> */}
             </div>
           </div>
         </section>
