@@ -278,7 +278,7 @@ const RequestRescuePage = () => {
                             {/* Mã tra cứu */}
                             <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
                                 <p className="text-xs font-semibold text-amber-600 uppercase tracking-wide mb-2 text-center">
-                                    🔑 Mã tra cứu của bạn
+                                    🔑 Mã tra cứu của bạn:
                                 </p>
                                 <p className="text-3xl font-bold text-gray-900 tracking-widest text-center break-all">
                                     {successData.trackingCode}
