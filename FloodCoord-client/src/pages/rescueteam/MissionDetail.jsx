@@ -146,6 +146,7 @@ export default function MissionDetail() {
       localStorage.setItem(waitingStateKey, "1");
       setWaitingCoordinatorDecision(true);
     } catch (err) {
+      console.error(err);
       const persistedWaitingState = localStorage.getItem(waitingStateKey) === "1";
       setWaitingCoordinatorDecision(persistedWaitingState);
     }
@@ -159,6 +160,7 @@ export default function MissionDetail() {
       setAttendanceList(members.map(m => ({ memberId: m.id, status: "PRESENT", fullName: m.fullName })));
       setShowAttendanceModal(true);
     } catch (err) {
+      console.error(err);
       toast.error("Không lấy được danh sách đội!");
     }
   };
@@ -203,6 +205,7 @@ export default function MissionDetail() {
         toast.success("Điểm danh đủ quân số. Có thể tiếp tục nhiệm vụ!");
       }
     } catch (err) {
+      console.error(err);
       toast.error("Điểm danh thất bại!");
     }
   };
@@ -237,6 +240,7 @@ export default function MissionDetail() {
       toast("Đã gửi báo cáo sự cố. Đang chờ quyết định từ Coordinator.", { icon: "⚠️" });
       await checkCoordinatorDecision();
     } catch (err) {
+      console.error(err);
       toast.error("Gửi báo cáo sự cố thất bại!");
     } finally {
       setSubmittingIncident(false);
