@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'; // Đã thêm useRef
 import * as XLSX from 'xlsx';
 import { vehicleApi } from '../../services/vehicleApi';
-import { Ship, Truck, Plane, Activity, Bus, AlertCircle, Plus, FileDown } from 'lucide-react';
+import { importApi } from '../../services/importApi'; // Đã thêm importApi
+import { Ship, Truck, Plane, Activity, Bus, AlertCircle, Plus, FileDown, FileUp, Download } from 'lucide-react'; // Đã thêm icon FileUp, Download
 import toast from 'react-hot-toast';
 import StatCard from '../../components/coordinator/StatCard';
 import TableActionCell from '../../components/shared/table/TableActionCell';
@@ -28,9 +29,9 @@ import {
 const ITEMS_PER_PAGE = 10;
 
 const STATUS_FILTER_TABS = [
-    { key: 'ALL',         label: 'Tất cả' },
-    { key: 'AVAILABLE',   label: 'Sẵn sàng' },
-    { key: 'IN_USE',      label: 'Đang hoạt động' },
+    { key: 'ALL', label: 'Tất cả' },
+    { key: 'AVAILABLE', label: 'Sẵn sàng' },
+    { key: 'IN_USE', label: 'Đang hoạt động' },
     { key: 'MAINTENANCE', label: 'Bảo trì' },
     { key: 'UNAVAILABLE', label: 'Không khả dụng' },
 ];
@@ -38,35 +39,80 @@ const STATUS_FILTER_TABS = [
 function TypeIcon({ type, size = 16 }) {
     const props = { size, strokeWidth: 1.5 };
     switch (type) {
-        case 'BOAT':       return <Ship {...props} className="text-blue-600" />;
-        case 'TRUCK':      return <Truck {...props} className="text-slate-600" />;
+        case 'BOAT': return <Ship {...props} className="text-blue-600" />;
+        case 'TRUCK': return <Truck {...props} className="text-slate-600" />;
         case 'HELICOPTER': return <Plane {...props} className="text-orange-600" />;
-        case 'AMBULANCE':  return <Activity {...props} className="text-red-600" />;
+        case 'AMBULANCE': return <Activity {...props} className="text-red-600" />;
         case 'RESCUE_VAN': return <Bus {...props} className="text-teal-600" />;
-        default:           return <Truck {...props} />;
+        default: return <Truck {...props} />;
     }
 }
 
 export default function VehicleManagement() {
-    const [vehicles, setVehicles]             = useState([]);
-    const [loading, setLoading]               = useState(true);
-    const [error, setError]                   = useState('');
-    const [showModal, setShowModal]           = useState(false);
+    const [vehicles, setVehicles] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    const [showModal, setShowModal] = useState(false);
     const [editingVehicle, setEditingVehicle] = useState(null);
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [selectedVehicle, setSelectedVehicle] = useState(null);
-    const [searchTerm, setSearchTerm]         = useState('');
-    const [statusFilter, setStatusFilter]     = useState('ALL');
-    const [currentPage, setCurrentPage]       = useState(1);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [statusFilter, setStatusFilter] = useState('ALL');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPagesMeta, setTotalPagesMeta] = useState(0);
+    const [totalElements, setTotalElements] = useState(0);
     const [formData, setFormData] = useState({
         name: '', type: 'BOAT', licensePlate: '', capacity: '', status: 'AVAILABLE',
     });
 
-    const fetchVehicles = useCallback(async () => {
+    // --- LOGIC IMPORT EXCEL (THÊM MỚI) ---
+    const [importing, setImporting] = useState(false);
+    const fileInputRef = useRef(null);
+
+    const handleImportExcel = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setImporting(true);
+        const loadingToast = toast.loading("Đang xử lý file Excel...");
+        try {
+            await importApi.vehicle.importExcel(file);
+            toast.success("Nhập dữ liệu phương tiện thành công!", { id: loadingToast });
+            fetchVehicles(); // Tải lại danh sách sau khi import
+        } catch (err) {
+            toast.error(err.response?.data || "Lỗi khi nhập file!", { id: loadingToast });
+        } finally {
+            setImporting(false);
+            e.target.value = ''; // Reset input
+        }
+    };
+
+    const handleDownloadTemplate = async () => {
+        try {
+            const response = await importApi.vehicle.getTemplate();
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'Mau_Import_Phuong_Tien.xlsx');
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (err) {
+      toast.error(err.response?.data || 'Lỗi không thể tải file mẫu');
+        }
+    };
+    // --------------------------------------
+
+    const fetchVehicles = useCallback(async (page = currentPage) => {
         try {
             setLoading(true);
-            const data = await vehicleApi.getAllVehicles();
-            setVehicles(data || []);
+            const data = await vehicleApi.getAllVehicles(page - 1, ITEMS_PER_PAGE);
+            const vehicleList = Array.isArray(data) ? data : (data?.content || []);
+            setVehicles(vehicleList);
+            setTotalPagesMeta(Number.isInteger(data?.totalPages) ? data.totalPages : (vehicleList.length > 0 ? 1 : 0));
+            setTotalElements(Number.isInteger(data?.totalElements) ? data.totalElements : vehicleList.length);
+            if (Number.isInteger(data?.number)) {
+                setCurrentPage(data.number + 1);
+            }
             setError('');
         } catch (err) {
             setError('Không thể tải danh sách phương tiện. Vui lòng kiểm tra kết nối với server.');
@@ -74,23 +120,23 @@ export default function VehicleManagement() {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [currentPage]);
 
-    useEffect(() => { fetchVehicles(); }, [fetchVehicles]);
+    useEffect(() => { fetchVehicles(currentPage); }, [currentPage, fetchVehicles]);
     useEffect(() => { setCurrentPage(1); }, [statusFilter, searchTerm]);
 
     // ─── Stats ────────────────────────────────────────────────────────────────
     const stats = useMemo(() => ({
-        total:       vehicles.length,
-        available:   vehicles.filter(v => v.status === 'AVAILABLE').length,
-        inUse:       vehicles.filter(v => v.status === 'IN_USE').length,
+        total: vehicles.length,
+        available: vehicles.filter(v => v.status === 'AVAILABLE').length,
+        inUse: vehicles.filter(v => v.status === 'IN_USE').length,
         maintenance: vehicles.filter(v => ['MAINTENANCE', 'UNAVAILABLE'].includes(v.status)).length,
     }), [vehicles]);
 
     const statusCounts = useMemo(() => ({
-        ALL:         vehicles.length,
-        AVAILABLE:   vehicles.filter(v => v.status === 'AVAILABLE').length,
-        IN_USE:      vehicles.filter(v => v.status === 'IN_USE').length,
+        ALL: vehicles.length,
+        AVAILABLE: vehicles.filter(v => v.status === 'AVAILABLE').length,
+        IN_USE: vehicles.filter(v => v.status === 'IN_USE').length,
         MAINTENANCE: vehicles.filter(v => v.status === 'MAINTENANCE').length,
         UNAVAILABLE: vehicles.filter(v => v.status === 'UNAVAILABLE').length,
     }), [vehicles]);
@@ -106,11 +152,8 @@ export default function VehicleManagement() {
         return matchStatus && matchSearch;
     }), [vehicles, statusFilter, searchTerm]);
 
-    const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
-    const paginated  = filtered.slice(
-        (currentPage - 1) * ITEMS_PER_PAGE,
-        currentPage * ITEMS_PER_PAGE,
-    );
+    const totalPages = Math.max(totalPagesMeta, 1);
+    const paginated = filtered;
 
     // ─── CRUD ─────────────────────────────────────────────────────────────────
     const handleInputChange = (e) => {
@@ -191,20 +234,9 @@ export default function VehicleManagement() {
         }));
 
         const worksheet = XLSX.utils.json_to_sheet(exportData);
-
-        worksheet['!cols'] = [
-            { wch: 5 },
-            { wch: 28 },
-            { wch: 16 },
-            { wch: 16 },
-            { wch: 18 },
-            { wch: 20 },
-            { wch: 28 },
-        ];
-
+        worksheet['!cols'] = [{ wch: 5 }, { wch: 28 }, { wch: 16 }, { wch: 16 }, { wch: 18 }, { wch: 20 }, { wch: 28 }];
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, 'Phương tiện');
-
         const today = new Date().toLocaleDateString('vi-VN').replace(/\//g, '-');
         XLSX.writeFile(workbook, `Danh_sach_phuong_tien_${today}.xlsx`);
     };
@@ -214,10 +246,12 @@ export default function VehicleManagement() {
             {/* ── Header ── */}
             <div className="shrink-0 flex items-center justify-between">
                 <div>
-                    <h1 className="text-xl font-bold text-gray-900">Quản lý Phương tiện</h1>
+                    <h1 className="text-xl font-bold text-gray-900">Quản lý Phương tiện.</h1>
                     <p className="text-xs text-gray-500">Quản lý và điều phối phương tiện cứu hộ trong hệ thống.</p>
                 </div>
                 <div className="flex items-center gap-2">
+                    {/* Input file ẩn */}
+                    <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx, .xls" onChange={handleImportExcel} />
                     <button
                         onClick={fetchVehicles}
                         disabled={loading}
@@ -226,6 +260,16 @@ export default function VehicleManagement() {
                         <ArrowPathIcon className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
                         Làm mới
                     </button>
+                    {/* NÚT IMPORT VÀ TẢI MẪU (THÊM MỚI) */}
+                    <div className="flex items-center gap-1">
+                        <button onClick={() => fileInputRef.current.click()} disabled={importing} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-emerald-600 text-emerald-700 text-xs font-semibold rounded-md hover:bg-emerald-50 transition-colors">
+                            <FileUp size={13} /> {importing ? 'Đang xử lý...' : 'Nhập Excel'}
+                        </button>
+                        <button onClick={handleDownloadTemplate} title="Tải mẫu" className="p-1.5 bg-white border border-gray-200 text-gray-500 rounded-md hover:text-blue-600">
+                            <Download size={14} />
+                        </button>
+                    </div>
+
                     <button
                         onClick={exportToExcel}
                         disabled={vehicles.length === 0}
@@ -244,10 +288,10 @@ export default function VehicleManagement() {
 
             {/* ── Stat Cards ── */}
             <div className="shrink-0 grid grid-cols-2 lg:grid-cols-4 gap-3">
-                <StatCard icon={<TruckIcon className="h-6 w-6" />}             count={stats.total}       label="Tổng phương tiện" color="blue" />
-                <StatCard icon={<CheckCircleIcon className="h-6 w-6" />}       count={stats.available}   label="Sẵn sàng"         color="green" />
-                <StatCard icon={<ClockIcon className="h-6 w-6" />}             count={stats.inUse}       label="Đang hoạt động"   color="yellow" />
-                <StatCard icon={<WrenchScrewdriverIcon className="h-6 w-6" />} count={stats.maintenance} label="Bảo trì / Hỏng"   color="red" />
+                <StatCard icon={<TruckIcon className="h-6 w-6" />} count={stats.total} label="Tổng phương tiện" color="blue" />
+                <StatCard icon={<CheckCircleIcon className="h-6 w-6" />} count={stats.available} label="Sẵn sàng" color="green" />
+                <StatCard icon={<ClockIcon className="h-6 w-6" />} count={stats.inUse} label="Đang hoạt động" color="yellow" />
+                <StatCard icon={<WrenchScrewdriverIcon className="h-6 w-6" />} count={stats.maintenance} label="Bảo trì / Hỏng" color="red" />
             </div>
 
             {/* ── Filter & Search ── */}
@@ -272,11 +316,10 @@ export default function VehicleManagement() {
                         <button
                             key={tab.key}
                             onClick={() => setStatusFilter(tab.key)}
-                            className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
-                                statusFilter === tab.key
+                            className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${statusFilter === tab.key
                                     ? 'bg-white text-blue-700 shadow-sm'
                                     : 'text-gray-500 hover:text-gray-700'
-                            }`}
+                                }`}
                         >
                             {tab.label}
                             <span className="ml-1 text-gray-400">({statusCounts[tab.key]})</span>
@@ -407,7 +450,7 @@ export default function VehicleManagement() {
                 {filtered.length > 0 && (
                     <div className="shrink-0 px-3 py-2 bg-gray-50 border-t border-gray-200 text-xs text-gray-500 flex items-center justify-between">
                         <span>
-                            Hiển thị {(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, filtered.length)} / {filtered.length} phương tiện
+                            Hiển thị {(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min((currentPage - 1) * ITEMS_PER_PAGE + paginated.length, totalElements)} / {totalElements} phương tiện
                         </span>
                         {totalPages > 1 && (
                             <div className="flex items-center gap-1">
@@ -422,11 +465,10 @@ export default function VehicleManagement() {
                                     <button
                                         key={page}
                                         onClick={() => setCurrentPage(page)}
-                                        className={`px-2 py-1 rounded border ${
-                                            currentPage === page
+                                        className={`px-2 py-1 rounded border ${currentPage === page
                                                 ? 'bg-blue-600 text-white border-blue-600'
                                                 : 'border-gray-300 hover:bg-white'
-                                        }`}
+                                            }`}
                                     >
                                         {page}
                                     </button>
@@ -440,7 +482,7 @@ export default function VehicleManagement() {
                                 </button>
                             </div>
                         )}
-                        <span>{filtered.length} kết quả</span>
+                        <span>{totalElements} kết quả</span>
                     </div>
                 )}
             </div>
