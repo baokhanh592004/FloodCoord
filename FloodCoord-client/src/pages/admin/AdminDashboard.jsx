@@ -54,7 +54,7 @@ export default function AdminDashboard() {
   // UI tùy chỉnh cho ô nhập ngày
   const CustomDateInput = React.forwardRef(({ value, onClick, label }, ref) => (
     <div 
-      className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 rounded-xl text-[13px] font-semibold text-gray-700 hover:border-blue-400 transition-all shadow-sm cursor-pointer min-w-[210px]"
+      className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 rounded-xl text-[13px] font-semibold text-gray-700 hover:border-blue-400 transition-all shadow-sm cursor-pointer min-w-[52.5"
       onClick={onClick}
       ref={ref}
     >
@@ -196,7 +196,7 @@ function StatItem({ title, value, icon, growth, bgColor, total, isVehicle }) {
 
 function ChartBox({ title, sub, children }) {
   return (
-    <div className="bg-white border border-gray-100 rounded-[2.5rem] p-8 shadow-sm flex flex-col min-h-[420px]">
+    <div className="bg-white border border-gray-100 rounded-[2.5rem] p-8 shadow-sm flex flex-col min-h-105">
       <div className="mb-8">
         <h2 className="text-lg font-bold text-gray-900">{title}</h2>
         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{sub}</p>
