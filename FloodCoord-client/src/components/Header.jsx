@@ -335,7 +335,7 @@ export default function Header({ hideLoginEntry = false }) {
               <Link
                 to="/login"
                 onClick={() => setMobileMenuOpen(false)}
-                className="block rounded-lg px-3 py-2 text-sm font-semibold text-coordinator hover:bg-coordinator-50"
+                className="block rounded-lg px-2 py-2 text-sm font-semibold text-coordinator hover:bg-coordinator-50"
               >
                 Đăng nhập
               </Link>
