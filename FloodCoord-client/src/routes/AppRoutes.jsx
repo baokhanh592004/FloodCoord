@@ -137,7 +137,7 @@ export default function AppRoutes() {
       >
         <Route path="" element={<CoordinatorDashboard />} />
         <Route path="dashboard" element={<CoordinatorDashboard />} />
-        <Route path="analytics" element={<AnalyticsPage />} />
+        {/* <Route path="analytics" element={<AnalyticsPage />} /> */}
         <Route path="requests" element={<RequestQueue />} />
         <Route path="operations" element={<Operations />} />
           <Route path="teams" element={<ViewTeams />} />

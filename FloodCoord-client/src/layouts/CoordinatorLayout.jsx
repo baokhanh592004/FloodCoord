@@ -25,7 +25,7 @@ export default function CoordinatorLayout() {
 
   const navItems = [
     { name: 'Tổng quan', href: '/coordinator/dashboard', icon: HomeIcon },
-    { name: 'Phân tích', href: '/coordinator/analytics', icon: ChartBarIcon },
+    // { name: 'Phân tích', href: '/coordinator/analytics', icon: ChartBarIcon },
     { name: 'Danh sách yêu cầu', href: '/coordinator/requests', icon: ClipboardDocumentListIcon },
     { name: 'Giám sát hoạt động', href: '/coordinator/operations', icon: MapIcon },
     { name: 'Đội cứu hộ', href: '/coordinator/teams', icon: ShieldCheckIcon },
