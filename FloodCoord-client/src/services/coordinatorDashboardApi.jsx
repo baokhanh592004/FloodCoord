@@ -129,10 +129,21 @@ export const coordinatorDashboardApi = {
     return unwrapResponse(response);
   },
 
+  getRequestsPage: async (page = 0, size = 10, params = {}) => {
+    const response = await axiosClient.get('/api/coordinator/requests/rescue-requests', {
+      params: { page, size, ...params },
+    });
+    const payload = coercePagePayload(unwrapResponse(response));
+    return {
+      ...payload,
+      content: payload.content.map(normalizeRequest),
+    };
+  },
+
   // Read model for dashboard/analytics request data.
   getRequests: async (params = {}) => {
-    const response = await axiosClient.get('/api/coordinator/requests/rescue-requests', { params });
-    return coerceRequestList(unwrapResponse(response)).map(normalizeRequest);
+    const payload = await coordinatorDashboardApi.getRequestsPage(0, 10, params);
+    return payload.content;
   },
 
   getRequestDetail: async (requestId) => {
@@ -154,5 +165,25 @@ export const coordinatorDashboardApi = {
       const detail = detailResults[index]?.status === 'fulfilled' ? detailResults[index].value : null;
       return mergeRequestData(req, detail);
     });
+  },
+
+  getRequestsPageWithDetails: async (page = 0, size = 10, params = {}) => {
+    const pagePayload = await coordinatorDashboardApi.getRequestsPage(page, size, params);
+
+    if (!pagePayload.content.length) {
+      return pagePayload;
+    }
+
+    const detailResults = await Promise.allSettled(
+      pagePayload.content.map((req) => coordinatorDashboardApi.getRequestDetail(req.requestId || req.id))
+    );
+
+    return {
+      ...pagePayload,
+      content: pagePayload.content.map((req, index) => {
+        const detail = detailResults[index]?.status === 'fulfilled' ? detailResults[index].value : null;
+        return mergeRequestData(req, detail);
+      }),
+    };
   },
 };

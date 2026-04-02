@@ -38,27 +38,50 @@ export default function RequestQueue() {
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [lastRefresh, setLastRefresh] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
+    const [pagination, setPagination] = useState({
+        number: 0,
+        totalPages: 0,
+        totalElements: 0,
+        size: ITEMS_PER_PAGE,
+        first: true,
+        last: true,
+    });
 
     // Hàm load dữ liệu, dùng useCallback để tránh tạo lại mỗi render
-    const loadRequests = useCallback(async () => {
-        setLoading(true);
+    const loadRequests = useCallback(async (page = currentPage, silent = false) => {
+        if (!silent) setLoading(true);
         try {
-            const list = await coordinatorDashboardApi.getRequestsWithDetails();
-            setRequests(list || []);
+            const pageData = await coordinatorDashboardApi.getRequestsPageWithDetails(page - 1, ITEMS_PER_PAGE, {
+                sort: 'createdAt,desc',
+            });
+
+            setRequests(pageData?.content || []);
+            setPagination({
+                number: pageData?.number ?? 0,
+                totalPages: pageData?.totalPages ?? 0,
+                totalElements: pageData?.totalElements ?? 0,
+                size: pageData?.size ?? ITEMS_PER_PAGE,
+                first: pageData?.first ?? true,
+                last: pageData?.last ?? true,
+            });
+
+            if ((pageData?.number ?? 0) + 1 !== page) {
+                setCurrentPage((pageData?.number ?? 0) + 1);
+            }
             setLastRefresh(new Date());
         } catch (error) {
             console.error('Failed to load requests:', error);
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
         }
-    }, []);
+    }, [currentPage]);
 
     // Load lần đầu + auto-refresh mỗi 30 giây
     useEffect(() => {
-        loadRequests();
-        const interval = setInterval(loadRequests, 30000);
+        loadRequests(currentPage);
+        const interval = setInterval(() => loadRequests(currentPage, true), 30000);
         return () => clearInterval(interval); // Dọn dẹp khi unmount
-    }, [loadRequests]);
+    }, [currentPage, loadRequests]);
 
     // Reset về trang 1 khi thay đổi filter hoặc tìm kiếm
     useEffect(() => { setCurrentPage(1); }, [statusFilter, searchTerm]);
@@ -109,26 +132,23 @@ export default function RequestQueue() {
     }, [requests, searchTerm, statusFilter]);
 
     // Pagination
-    const totalPages = Math.ceil(filteredRequests.length / ITEMS_PER_PAGE);
-    const paginatedRequests = filteredRequests.slice(
-        (currentPage - 1) * ITEMS_PER_PAGE,
-        currentPage * ITEMS_PER_PAGE
-    );
+    const totalPages = Math.max(pagination.totalPages || 0, 1);
+    const paginatedRequests = filteredRequests;
 
     // Đếm số yêu cầu theo trạng thái
     const statusCounts = useMemo(() => ({
-        ALL: requests.length,
+        ALL: pagination.totalElements || requests.length,
         PENDING: requests.filter((r) => r.status === 'PENDING').length,
         VERIFIED: requests.filter((r) => r.status === 'VERIFIED' || r.status === 'VALIDATED').length,
         IN_PROGRESS: requests.filter((r) => ['IN_PROGRESS', 'MOVING', 'ARRIVED', 'RESCUING'].includes(r.status)).length,
         COMPLETED: requests.filter((r) => r.status === 'COMPLETED').length,
         REJECTED: requests.filter((r) => r.status === 'REJECTED').length,
-    }), [requests]);
+    }), [pagination.totalElements, requests]);
 
     return (
         <div className="h-full flex flex-col p-4 gap-3">
             {/* Header — compact */}
-            <div className="flex-shrink-0 flex items-center justify-between">
+            <div className="shrink-0 flex items-center justify-between">
                 <div>
                     <h1 className="text-xl font-bold text-neutral-900">Danh sách yêu cầu</h1>
                     <p className="text-xs text-neutral-400">
@@ -142,7 +162,7 @@ export default function RequestQueue() {
                         </span>
                     )}
                     <button
-                        onClick={loadRequests}
+                        onClick={() => loadRequests(currentPage)}
                         disabled={loading}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-coordinator text-white text-xs font-medium rounded-md hover:bg-coordinator-dark disabled:opacity-60 transition-colors"
                     >
@@ -153,7 +173,7 @@ export default function RequestQueue() {
             </div>
 
             {/* Filters: search + status tabs — compact */}
-            <div className="flex-shrink-0 flex flex-col sm:flex-row gap-2 items-start sm:items-center">
+            <div className="shrink-0 flex flex-col sm:flex-row gap-2 items-start sm:items-center">
                 <div className="relative flex-1 max-w-sm">
                     <MagnifyingGlassIcon className="absolute left-2.5 top-2 h-3.5 w-3.5 text-neutral-400" />
                     <input
@@ -332,15 +352,15 @@ export default function RequestQueue() {
 
                 {/* Footer: phân trang */}
                 {filteredRequests.length > 0 && (
-                    <div className="flex-shrink-0 px-3 py-2 bg-neutral-50 border-t border-neutral-100 text-xs text-neutral-400 flex items-center justify-between">
+                    <div className="shrink-0 px-3 py-2 bg-neutral-50 border-t border-neutral-100 text-xs text-neutral-400 flex items-center justify-between">
                         <span>
-                            Hiển thị {(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, filteredRequests.length)} / {filteredRequests.length} yêu cầu
+                            Hiển thị {(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min((currentPage - 1) * ITEMS_PER_PAGE + paginatedRequests.length, pagination.totalElements || paginatedRequests.length)} / {pagination.totalElements || paginatedRequests.length} yêu cầu
                         </span>
                         {totalPages > 1 && (
                             <div className="flex items-center gap-1">
                                 <button
                                     onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                                    disabled={currentPage === 1}
+                                    disabled={currentPage === 1 || pagination.first}
                                     className="px-2 py-1 rounded border border-neutral-200 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed"
                                 >
                                     ‹
@@ -360,7 +380,7 @@ export default function RequestQueue() {
                                 ))}
                                 <button
                                     onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                                    disabled={currentPage === totalPages}
+                                    disabled={currentPage === totalPages || pagination.last}
                                     className="px-2 py-1 rounded border border-neutral-200 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed"
                                 >
                                     ›
