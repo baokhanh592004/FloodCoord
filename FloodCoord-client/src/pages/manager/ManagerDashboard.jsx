@@ -1,20 +1,13 @@
-
-import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { managerDashboardApi } from '../../services/managerDashboardApi';
-import { importApi } from '../../services/importApi'; 
 import StatCard from '../../components/coordinator/StatCard';
 import {
   TruckIcon,
   UserGroupIcon,
   ArchiveBoxIcon,
-  CheckCircleIcon,
-  WrenchScrewdriverIcon,
   ArrowPathIcon,
   ArrowRightIcon,
-  ExclamationTriangleIcon,
-  DocumentArrowUpIcon,
-  DocumentArrowDownIcon,
 } from '@heroicons/react/24/outline';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell
@@ -25,8 +18,6 @@ export default function ManagerDashboard() {
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [importing, setImporting] = useState(false);
-  const supplyFileRef = useRef(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -79,37 +70,6 @@ export default function ManagerDashboard() {
     ];
   }, [stats]);
 
-  const handleImport = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setImporting(true);
-    try {
-      await importApi.supply.importExcel(file);
-      toast.success("Import vật tư thành công!");
-      loadData();
-    } catch (error) {
-      toast.error(error.response?.data || "Lỗi import file");
-    } finally {
-      setImporting(false);
-      e.target.value = null;
-    }
-  };
-
-  const handleDownloadTemplate = async () => {
-    try {
-      const response = await importApi.supply.getTemplate();
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', "Mau_Import_Vat_Tu.xlsx");
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-    } catch (error) {
-      toast.error(error.response?.data ||"Không thể tải file mẫu!");
-    }
-  };
-
   if (!stats && loading) {
     return (
       <div className="flex flex-col items-center justify-center h-full space-y-4">
@@ -120,90 +80,59 @@ export default function ManagerDashboard() {
   }
 
   return (
-    <div className="p-6 space-y-10 overflow-y-auto h-full bg-gray-50">
+    <div className="p-6 space-y-6 overflow-y-auto h-full bg-gray-50">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Tổng quan Quản trị</h1>
-          <p className="text-sm text-gray-500">Giám sát nguồn lực và điều phối cứu hộ thời gian thực.</p>
+          <p className="text-sm text-gray-500">Theo dõi nguồn lực và điều phối cứu hộ thời gian thực.</p>
         </div>
-        <div className="flex items-center gap-2">
-          <input type="file" ref={supplyFileRef} className="hidden" accept=".xlsx, .xls" onChange={handleImport} />
-          <button 
-            onClick={() => supplyFileRef.current.click()} 
-            disabled={importing}
-            className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-md text-xs font-semibold hover:bg-emerald-100 transition-colors"
-          >
-            <DocumentArrowUpIcon className="h-4 w-4" /> Add file Excel
-          </button>
-          <button onClick={handleDownloadTemplate} className="p-2 text-gray-500 hover:bg-gray-100 rounded-md border border-gray-200">
-            <DocumentArrowDownIcon className="h-4 w-4" />
-          </button>
-          <button onClick={loadData} disabled={loading} className="p-2 bg-blue-600 text-white rounded-md shadow-sm">
-            <ArrowPathIcon className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
-          </button>
-        </div>
+        <button 
+          onClick={loadData} 
+          disabled={loading} 
+          className="p-2 bg-blue-600 text-white rounded-md shadow-sm hover:bg-blue-700 transition-colors"
+        >
+          <ArrowPathIcon className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
+        </button>
       </div>
 
-      {/* 1. STAT CARDS SECTION */}
-      <div className="space-y-8">
-        {/* Phương tiện */}
-        <section>
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-            <TruckIcon className="h-4 w-4" /> Tình hình Phương tiện
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard icon={<TruckIcon className="h-6 w-6" />} count={stats?.vehicleFleet?.totalVehicles || 0} label="Tổng phương tiện" color="blue" />
-            <StatCard icon={<CheckCircleIcon className="h-6 w-6" />} count={stats?.vehicleFleet?.availableCount || 0} label="Sẵn sàng" color="green" />
-            <StatCard icon={<ArrowRightIcon className="h-6 w-6" />} count={stats?.vehicleFleet?.inUseCount || 0} label="Đang hoạt động" color="yellow" />
-            <StatCard icon={<WrenchScrewdriverIcon className="h-6 w-6" />} count={stats?.vehicleFleet?.maintenanceCount || 0} label="Đang bảo trì" color="red" />
-          </div>
-        </section>
-
-        {/* Đội cứu hộ */}
-        <section>
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-            <UserGroupIcon className="h-4 w-4" /> Trạng thái Đội cứu hộ
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard icon={<UserGroupIcon className="h-6 w-6" />} count={stats?.teamReadiness?.totalTeams || 0} label="Tổng số đội" color="blue" />
-            <StatCard icon={<CheckCircleIcon className="h-6 w-6" />} count={stats?.teamReadiness?.availableCount || 0} label="Đội sẵn sàng" color="green" />
-            <StatCard icon={<ArrowRightIcon className="h-6 w-6" />} count={stats?.teamReadiness?.busyCount || 0} label="Đang nhiệm vụ" color="yellow" />
-            <StatCard icon={<ExclamationTriangleIcon className="h-6 w-6" />} count={stats?.teamReadiness?.offDutyCount || 0} label="Đội đang nghỉ" color="red" />
-          </div>
-        </section>
-
-        {/* Vật tư */}
-        <section>
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-            <ArchiveBoxIcon className="h-4 w-4" /> Tình trạng Vật tư cứu trợ
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard icon={<ArchiveBoxIcon className="h-6 w-6" />} count={stats?.supplyHealth?.totalSupplyTypes || 0} label="Tổng loại vật tư" color="blue" />
-            <StatCard icon={<ExclamationTriangleIcon className="h-6 w-6" />} count={stats?.supplyHealth?.lowStockCount || 0} label="Sắp hết hàng" color="yellow" />
-            <StatCard icon={<ExclamationTriangleIcon className="h-6 w-6" />} count={stats?.supplyHealth?.outOfStockCount || 0} label="Đã hết hàng" color="red" />
-            <StatCard icon={<CheckCircleIcon className="h-6 w-6" />} 
-              count={(stats?.supplyHealth?.totalSupplyTypes || 0) - (stats?.supplyHealth?.lowStockCount || 0) - (stats?.supplyHealth?.outOfStockCount || 0)} 
-              label="Tồn kho an toàn" color="green" />
-          </div>
-        </section>
+      {/* 1. THẺ THỐNG KÊ TỔNG QUÁT (CHỈ HIỆN TỔNG) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <StatCard 
+          icon={<TruckIcon className="h-6 w-6" />} 
+          count={stats?.vehicleFleet?.totalVehicles || 0} 
+          label="Tổng phương tiện" 
+          color="blue" 
+        />
+        <StatCard 
+          icon={<UserGroupIcon className="h-6 w-6" />} 
+          count={stats?.teamReadiness?.totalTeams || 0} 
+          label="Tổng số đội" 
+          color="teal" 
+        />
+        <StatCard 
+          icon={<ArchiveBoxIcon className="h-6 w-6" />} 
+          count={stats?.supplyHealth?.totalSupplyTypes || 0} 
+          label="Tổng loại vật tư" 
+          color="emerald" 
+        />
       </div>
 
-      {/* 2. BIỂU ĐỒ CỘT (BAR CHARTS) SECTION */}
+      {/* 2. BIỂU ĐỒ CỘT CHI TIẾT */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <BarChartContainer title="Biểu đồ Phương tiện" data={vehicleBarData} />
-        <BarChartContainer title="Biểu đồ Đội cứu hộ" data={teamBarData} />
-        <BarChartContainer title="Biểu đồ Vật tư" data={supplyBarData} />
+        <BarChartContainer title="Trạng thái Phương tiện" data={vehicleBarData} />
+        <BarChartContainer title="Trạng thái Đội cứu hộ" data={teamBarData} />
+        <BarChartContainer title="Sức khỏe Vật tư" data={supplyBarData} />
       </div>
 
-      {/* 3. LỐI TẮT QUẢN LÝ (QUICK NAV) SECTION */}
-      <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+      {/* 3. LỐI TẮT QUẢN LÝ */}
+      <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
         <h2 className="text-lg font-bold text-gray-900 mb-4">Lối tắt quản lý</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <ActionCard
             icon={<TruckIcon className="h-6 w-6 text-blue-600" />}
             title="Quản lý phương tiện"
-            description="Cập nhật trạng thái và danh sách xe"
+            description="Xem danh sách và điều phối xe"
             badge={`${stats?.vehicleFleet?.availableCount || 0} sẵn sàng`}
             badgeColor="green"
             onClick={() => navigate('/manager/vehicles')}
@@ -211,7 +140,7 @@ export default function ManagerDashboard() {
           <ActionCard
             icon={<UserGroupIcon className="h-6 w-6 text-teal-600" />}
             title="Quản lý đội cứu hộ"
-            description="Điều phối nhân lực và phân công đội"
+            description="Điều phối nhân lực thời gian thực"
             badge={`${stats?.teamReadiness?.availableCount || 0} sẵn sàng`}
             badgeColor="teal"
             onClick={() => navigate('/manager/rescue-teams')}
@@ -219,7 +148,7 @@ export default function ManagerDashboard() {
           <ActionCard
             icon={<ArchiveBoxIcon className="h-6 w-6 text-emerald-600" />}
             title="Quản lý vật tư"
-            description="Theo dõi kho hàng và nhập file Excel"
+            description="Theo dõi kho hàng cứu trợ"
             badge={`${stats?.supplyHealth?.totalSupplyTypes || 0} loại`}
             badgeColor="emerald"
             onClick={() => navigate('/manager/supplies')}
@@ -235,14 +164,14 @@ function BarChartContainer({ title, data }) {
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
       <h3 className="text-xs font-bold text-gray-400 mb-4 uppercase tracking-widest">{title}</h3>
-      <div className="h-64">
+      <div className="h-56">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-            <XAxis dataKey="label" tick={{fontSize: 11}} axisLine={false} tickLine={false} />
-            <YAxis allowDecimals={false} axisLine={false} tickLine={false} />
+            <XAxis dataKey="label" tick={{fontSize: 10}} axisLine={false} tickLine={false} />
+            <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{fontSize: 10}} />
             <Tooltip cursor={{fill: '#f3f4f6'}} />
-            <Bar dataKey="count" radius={[4, 4, 0, 0]} barSize={35}>
+            <Bar dataKey="count" radius={[4, 4, 0, 0]} barSize={30}>
               {data.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={entry.color} />
               ))}
