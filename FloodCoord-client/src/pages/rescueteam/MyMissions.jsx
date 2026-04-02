@@ -66,13 +66,15 @@ export default function MyMissions() {
         (m.location?.addressText || m.address || "").toLowerCase().includes(term);
 
       let matchesStatus = true;
-      if (statusFilter === 'COMPLETED') {
-        matchesStatus = m.status === 'COMPLETED' || m.status === 'REPORTED';
+
+      if (statusFilter === 'NOT_REPORTED') {
+        // Chỉ hiện nhiệm vụ có trạng thái là COMPLETED
+        matchesStatus = m.status === 'COMPLETED';
       } else if (statusFilter === 'REPORTED') {
-        matchesStatus = m.isReported === true;
-      } else if (statusFilter === 'NOT_REPORTED') {
-        matchesStatus = m.status !== 'COMPLETED' && m.status !== 'REPORTED';
+        // Chỉ hiện nhiệm vụ có trạng thái là REPORTED
+        matchesStatus = m.status === 'REPORTED';
       }
+      // Nếu statusFilter === 'ALL', matchesStatus mặc định là true (hiện hết)
 
       return matchesSearch && matchesStatus;
     });
@@ -129,12 +131,11 @@ export default function MyMissions() {
             { key: 'ALL', label: 'Tất cả' },
             { key: 'NOT_REPORTED', label: 'Chưa báo cáo' },
             { key: 'REPORTED', label: 'Đã báo cáo' },
-            { key: 'COMPLETED', label: 'Đã xong' }
           ].map((tab) => (
             <button
               key={tab.key}
               onClick={() => { setStatusFilter(tab.key); setCurrentPage(1); }}
-              className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-xl transition-all ${statusFilter === tab.key
+              className={`px-6 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-xl transition-all ${statusFilter === tab.key
                   ? 'bg-white text-blue-600 shadow-sm scale-105'
                   : 'text-slate-500 hover:text-slate-700'
                 }`}
@@ -143,9 +144,8 @@ export default function MyMissions() {
               <span className="ml-1 opacity-40 font-bold">
                 ({
                   tab.key === 'ALL' ? missions.length :
-                    tab.key === 'REPORTED' ? missions.filter(m => m.isReported).length :
-                      tab.key === 'NOT_REPORTED' ? missions.filter(m => !m.isReported).length :
-                        missions.filter(m => m.status === 'COMPLETED' || m.status === 'REPORTED').length
+                    tab.key === 'NOT_REPORTED' ? missions.filter(m => m.status === 'COMPLETED').length :
+                      missions.filter(m => m.status === 'REPORTED').length
                 })
               </span>
             </button>
