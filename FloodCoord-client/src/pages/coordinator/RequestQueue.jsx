@@ -128,7 +128,7 @@ export default function RequestQueue() {
     return (
         <div className="h-full flex flex-col p-4 gap-3">
             {/* Header — compact */}
-            <div className="flex-shrink-0 flex items-center justify-between">
+            <div className="shrink-0 flex items-center justify-between">
                 <div>
                     <h1 className="text-xl font-bold text-neutral-900">Danh sách yêu cầu</h1>
                     <p className="text-xs text-neutral-400">
@@ -153,7 +153,7 @@ export default function RequestQueue() {
             </div>
 
             {/* Filters: search + status tabs — compact */}
-            <div className="flex-shrink-0 flex flex-col sm:flex-row gap-2 items-start sm:items-center">
+            <div className="shrink-0 flex flex-col sm:flex-row gap-2 items-start sm:items-center">
                 <div className="relative flex-1 max-w-sm">
                     <MagnifyingGlassIcon className="absolute left-2.5 top-2 h-3.5 w-3.5 text-neutral-400" />
                     <input
@@ -332,7 +332,7 @@ export default function RequestQueue() {
 
                 {/* Footer: phân trang */}
                 {filteredRequests.length > 0 && (
-                    <div className="flex-shrink-0 px-3 py-2 bg-neutral-50 border-t border-neutral-100 text-xs text-neutral-400 flex items-center justify-between">
+                    <div className="shrink-0 px-3 py-2 bg-neutral-50 border-t border-neutral-100 text-xs text-neutral-400 flex items-center justify-between">
                         <span>
                             Hiển thị {(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, filteredRequests.length)} / {filteredRequests.length} yêu cầu
                         </span>
