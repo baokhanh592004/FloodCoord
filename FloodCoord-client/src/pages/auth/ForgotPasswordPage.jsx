@@ -54,11 +54,11 @@ export default function ForgotPasswordPage() {
                 <div className="hq-fp-step"><span className="hq-fp-num off">02</span><div className="hq-fp-stxt">Kiểm tra hộp thư nhận mã xác nhận</div></div>
                 <div className="hq-fp-step"><span className="hq-fp-num off">03</span><div className="hq-fp-stxt">Tạo mật khẩu mới và đăng nhập</div></div>
               </div>
-              <div className="hq-fp-strip">
+              {/* <div className="hq-fp-strip">
                 <div className="hq-fp-si"><div className="hq-fp-sn">2 phút</div><div className="hq-fp-sl">Thời gian gửi</div></div>
                 <div className="hq-fp-si"><div className="hq-fp-sn">24h</div><div className="hq-fp-sl">Hiệu lực link</div></div>
                 <div className="hq-fp-si"><div className="hq-fp-sn">100%</div><div className="hq-fp-sl">Bảo mật</div></div>
-              </div>
+              </div> */}
             </div>
           </>
         )}

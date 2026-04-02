@@ -129,12 +129,12 @@ export default function LoginPage() {
                 nhanh chóng và hiệu quả hơn.
               </div>
             </div>
-            <div className="hq-stats">
+            {/* <div className="hq-stats">
               <div className="hq-stat"><div className="hq-stat-n">142</div><div className="hq-stat-l">Ca cứu hộ</div></div>
               <div className="hq-stat"><div className="hq-stat-n">38</div><div className="hq-stat-l">Vùng hoạt động</div></div>
               <div className="hq-stat"><div className="hq-stat-n">2.4k</div><div className="hq-stat-l">Người được hỗ trợ</div></div>
               <div className="hq-stat"><div className="hq-stat-n">96%</div><div className="hq-stat-l">Tỷ lệ phản hồi</div></div>
-            </div>
+            </div> */}
           </>
         )}
         rightContent={(

@@ -103,7 +103,7 @@ export default function RegisterPage() {
           <>
             <div>
               <div className="hq-reg-badge"><div className="hq-reg-dot" />THAM GIA MẠNG LƯỚI</div>
-              <div className="hq-reg-hero">Đăng Ký<br />Đơn Vị<br /><em>Cứu Hộ</em></div>
+              <div className="hq-reg-hero">Đăng Ký<br />Để Được<br /><em>Hỗ Trợ Cứu Hộ</em></div>
               <div className="hq-reg-sub">
                 Kết nối với các đội cứu hộ<br />
                 trên toàn bộ vùng bị ảnh hưởng
