@@ -11,6 +11,19 @@ function coerceRequestList(payload) {
   return [];
 }
 
+function coercePagePayload(payload) {
+  const content = coerceRequestList(payload);
+  return {
+    content,
+    number: Number.isInteger(payload?.number) ? payload.number : 0,
+    totalPages: Number.isInteger(payload?.totalPages) ? payload.totalPages : (content.length > 0 ? 1 : 0),
+    totalElements: Number.isInteger(payload?.totalElements) ? payload.totalElements : content.length,
+    size: Number.isInteger(payload?.size) ? payload.size : content.length,
+    first: typeof payload?.first === 'boolean' ? payload.first : true,
+    last: typeof payload?.last === 'boolean' ? payload.last : true,
+  };
+}
+
 function parseCoordinate(value) {
   if (value == null) return null;
   if (typeof value === 'string') {
