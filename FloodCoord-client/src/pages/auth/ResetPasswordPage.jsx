@@ -80,7 +80,7 @@ export default function ResetPasswordPage() {
             <div>
               <div className="hq-rp-badge"><div className="hq-rp-dot" />BƯỚC CUỐI CÙNG</div>
               <div className="hq-rp-hero">Đặt Lại<br />Mật<br /><em>Khẩu</em></div>
-              <div className="hq-rp-sub">Bạn sắp hoàn tất. Tạo mật khẩu mới<br />để trở lại nhiệm vụ cứu hộ.</div>
+              <div className="hq-rp-sub">Bạn sắp hoàn tất</div>
             </div>
             <div>
               <div className="hq-rp-steps">
@@ -88,11 +88,11 @@ export default function ResetPasswordPage() {
                 <div className="hq-rp-step"><span className="hq-rp-num done">✓ 02</span><div className="hq-rp-stxt">Mã xác nhận đã được kiểm tra</div></div>
                 <div className="hq-rp-step"><span className="hq-rp-num active">03</span><div className="hq-rp-stxt">Tạo mật khẩu mới</div></div>
               </div>
-              <div className="hq-rp-strip">
+              {/* <div className="hq-rp-strip">
                 <div className="hq-rp-si"><div className="hq-rp-sn">2 phút</div><div className="hq-rp-sl">Thời gian gửi</div></div>
                 <div className="hq-rp-si"><div className="hq-rp-sn">24h</div><div className="hq-rp-sl">Hiệu lực link</div></div>
                 <div className="hq-rp-si"><div className="hq-rp-sn">100%</div><div className="hq-rp-sl">Bảo mật</div></div>
-              </div>
+              </div> */}
             </div>
           </>
         )}
