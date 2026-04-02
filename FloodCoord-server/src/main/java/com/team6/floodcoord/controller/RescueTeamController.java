@@ -39,7 +39,7 @@ public class RescueTeamController {
     public ResponseEntity<Page<RescueTeamResponse>> getAllTeams(
             @PageableDefault(page = 0, size = 10) Pageable pageable
     ) {
-        return ResponseEntity.ok(rescueTeamService.(pageable));
+        return ResponseEntity.ok(rescueTeamService.getAllTeams(pageable));
     }
 
     @GetMapping("/{id}")
