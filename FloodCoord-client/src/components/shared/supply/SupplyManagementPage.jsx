@@ -38,6 +38,7 @@ export default function SupplyManagementPage({
     filteredSupplies,
     paginatedSupplies,
     totalPages,
+    totalElements,
     itemsPerPage,
     setFilterType,
     setSearchTerm,
@@ -216,6 +217,7 @@ export default function SupplyManagementPage({
         currentPage={currentPage}
         setCurrentPage={setCurrentPage}
         totalPages={totalPages}
+        totalElements={totalElements}
         itemsPerPage={itemsPerPage}
         isExpired={isExpired}
         isExpiringSoon={isExpiringSoon}

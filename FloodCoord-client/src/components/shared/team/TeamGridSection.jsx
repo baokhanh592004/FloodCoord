@@ -47,17 +47,29 @@ export default function TeamGridSection({
   emptyDescription,
   adminTheme,
   readOnly = false,
+  pagination,
 }) {
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [currentPage, setCurrentPage] = useState(1);
+
+  const useServerPagination = Boolean(pagination?.enabled);
+  const serverCurrentPage = Number.isInteger(pagination?.currentPage) ? pagination.currentPage : 0;
+  const serverTotalPages = Math.max(1, Number(pagination?.totalPages) || 1);
+  const serverTotalElements = Number(pagination?.totalElements) || teams.length;
+  const activePage = useServerPagination ? serverCurrentPage + 1 : currentPage;
 
   const managerTeams = useMemo(() => teams.filter((team) => {
     if (statusFilter === 'ALL') return true;
     return normalizeTeamStatus(team?.status) === statusFilter;
   }), [teams, statusFilter]);
 
-  const totalPages = Math.ceil(managerTeams.length / ITEMS_PER_PAGE);
-  const paginatedTeams = managerTeams.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  const totalPages = useServerPagination
+    ? serverTotalPages
+    : Math.ceil(managerTeams.length / ITEMS_PER_PAGE);
+
+  const paginatedTeams = useServerPagination
+    ? managerTeams
+    : managerTeams.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
   const statusCounts = useMemo(() => ({
     ALL: teams.length,
@@ -68,8 +80,11 @@ export default function TeamGridSection({
   }), [teams]);
 
   useEffect(() => {
+    if (useServerPagination) {
+      return;
+    }
     setCurrentPage(1);
-  }, [statusFilter, teams.length]);
+  }, [statusFilter, teams.length, useServerPagination]);
 
   if (loading) {
     if (variant === 'admin') {
@@ -200,7 +215,7 @@ export default function TeamGridSection({
                   return (
                     <tr key={team.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-3 py-2 text-gray-400 font-mono">
-                        {(currentPage - 1) * ITEMS_PER_PAGE + index + 1}
+                        {(activePage - 1) * ITEMS_PER_PAGE + index + 1}
                       </td>
                       <td className="px-3 py-2 min-w-60">
                         <div>
@@ -269,18 +284,53 @@ export default function TeamGridSection({
         {managerTeams.length > 0 && (
           <div className="shrink-0 px-3 py-2 bg-gray-50 border-t border-gray-200 text-xs text-gray-500 flex items-center justify-between">
             <span>
-              Hiển thị {(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, managerTeams.length)} / {managerTeams.length} đội
+              Hiển thị {(activePage - 1) * ITEMS_PER_PAGE + 1}–
+              {Math.min((activePage - 1) * ITEMS_PER_PAGE + paginatedTeams.length, useServerPagination ? serverTotalElements : managerTeams.length)} / {useServerPagination ? serverTotalElements : managerTeams.length} đội
             </span>
             {totalPages > 1 && (
               <div className="flex items-center gap-1">
-                <PaginationBtn onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1}>‹</PaginationBtn>
+                <PaginationBtn
+                  onClick={() => {
+                    if (useServerPagination) {
+                      pagination?.onPageChange?.(Math.max(0, serverCurrentPage - 1));
+                      return;
+                    }
+                    setCurrentPage((p) => Math.max(1, p - 1));
+                  }}
+                  disabled={activePage === 1}
+                >
+                  ‹
+                </PaginationBtn>
                 {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                  <PaginationBtn key={page} onClick={() => setCurrentPage(page)} active={currentPage === page}>{page}</PaginationBtn>
+                  <PaginationBtn
+                    key={page}
+                    onClick={() => {
+                      if (useServerPagination) {
+                        pagination?.onPageChange?.(page - 1);
+                        return;
+                      }
+                      setCurrentPage(page);
+                    }}
+                    active={activePage === page}
+                  >
+                    {page}
+                  </PaginationBtn>
                 ))}
-                <PaginationBtn onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>›</PaginationBtn>
+                <PaginationBtn
+                  onClick={() => {
+                    if (useServerPagination) {
+                      pagination?.onPageChange?.(Math.min(totalPages - 1, serverCurrentPage + 1));
+                      return;
+                    }
+                    setCurrentPage((p) => Math.min(totalPages, p + 1));
+                  }}
+                  disabled={activePage === totalPages}
+                >
+                  ›
+                </PaginationBtn>
               </div>
             )}
-            <span>{managerTeams.length} kết quả</span>
+            <span>{useServerPagination ? serverTotalElements : managerTeams.length} kết quả</span>
           </div>
         )}
       </div>

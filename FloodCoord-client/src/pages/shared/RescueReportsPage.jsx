@@ -16,6 +16,8 @@ const PRIORITY_META = {
     LOW: 'bg-blue-100 text-blue-700 border border-blue-200'
 };
 
+const ITEMS_PER_PAGE = 10;
+
 export default function RescueReportsPage() {
     const [reports, setReports] = useState([]);
     const [levelFilter, setLevelFilter] = useState('ALL');
@@ -25,14 +27,23 @@ export default function RescueReportsPage() {
     const [detailLoading, setDetailLoading] = useState(false);
     const [loading, setLoading] = useState(true);
     const [errorMessage, setErrorMessage] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPagesMeta, setTotalPagesMeta] = useState(0);
+    const [totalElements, setTotalElements] = useState(0);
 
-    const loadReports = useCallback(async () => {
+    const loadReports = useCallback(async (page = currentPage) => {
         setLoading(true);
         setErrorMessage('');
 
         try {
-            const response = await rescueReportApi.getReportedRequests();
-            setReports(Array.isArray(response) ? response : (response?.content || []));
+            const response = await rescueReportApi.getReportedRequests(page - 1, ITEMS_PER_PAGE);
+            const reportList = Array.isArray(response) ? response : (response?.content || []);
+            setReports(reportList);
+            setTotalPagesMeta(Number.isInteger(response?.totalPages) ? response.totalPages : (reportList.length > 0 ? 1 : 0));
+            setTotalElements(Number.isInteger(response?.totalElements) ? response.totalElements : reportList.length);
+            if (Number.isInteger(response?.number)) {
+                setCurrentPage(response.number + 1);
+            }
         } catch (error) {
             setErrorMessage(
                 error?.response?.data?.message ||
@@ -41,11 +52,15 @@ export default function RescueReportsPage() {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [currentPage]);
 
     useEffect(() => {
-        loadReports();
-    }, [loadReports]);
+        loadReports(currentPage);
+    }, [currentPage, loadReports]);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [levelFilter, keyword]);
 
     const handleOpenDetail = async (item) => {
         setSelectedItem(item);
@@ -108,12 +123,15 @@ export default function RescueReportsPage() {
         const highCount = reports.filter((item) => item.emergencyLevel === 'HIGH').length;
         const totalRescued = reports.reduce((sum, item) => sum + (item.report?.rescuedPeople || 0), 0);
         return {
-            total: reports.length,
+            total: totalElements,
             critical: criticalCount,
             high: highCount,
             rescued: totalRescued
         };
-    }, [reports]);
+    }, [reports, totalElements]);
+
+    const totalPages = Math.max(totalPagesMeta, 1);
+    const paginatedReports = filteredReports;
 
     const formatDateTime = (value) => {
         if (!value) return '—';
@@ -205,14 +223,14 @@ export default function RescueReportsPage() {
                                         Đang tải dữ liệu...
                                     </td>
                                 </tr>
-                            ) : filteredReports.length === 0 ? (
+                            ) : paginatedReports.length === 0 ? (
                                 <tr>
                                     <td colSpan={5} className="px-3 py-8 text-center text-gray-500">
                                         Không có báo cáo phù hợp.
                                     </td>
                                 </tr>
                             ) : (
-                                filteredReports.map((item) => {
+                                paginatedReports.map((item) => {
                                     return (
                                         <tr key={item.requestId} className="border-t border-gray-100 align-top">
                                             <td className="px-3 py-3">
@@ -259,6 +277,46 @@ export default function RescueReportsPage() {
                         </tbody>
                     </table>
                 </div>
+
+                {paginatedReports.length > 0 && (
+                    <div className="shrink-0 px-3 py-2 bg-gray-50 border-t border-gray-200 text-xs text-gray-500 flex items-center justify-between rounded-b-lg">
+                        <span>
+                            Hiển thị {(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min((currentPage - 1) * ITEMS_PER_PAGE + paginatedReports.length, totalElements)} / {totalElements} báo cáo
+                        </span>
+                        {totalPages > 1 && (
+                            <div className="flex items-center gap-1">
+                                <button
+                                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                                    disabled={currentPage === 1}
+                                    className="px-2 py-1 rounded border border-gray-300 bg-white hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                                >
+                                    ‹
+                                </button>
+                                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                                    <button
+                                        key={page}
+                                        onClick={() => setCurrentPage(page)}
+                                        className={`px-2 py-1 rounded border ${
+                                            currentPage === page
+                                                ? 'bg-blue-600 text-white border-blue-600'
+                                                : 'border-gray-300 bg-white hover:bg-gray-100'
+                                        }`}
+                                    >
+                                        {page}
+                                    </button>
+                                ))}
+                                <button
+                                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                                    disabled={currentPage === totalPages}
+                                    className="px-2 py-1 rounded border border-gray-300 bg-white hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                                >
+                                    ›
+                                </button>
+                            </div>
+                        )}
+                        <span>{totalElements} kết quả</span>
+                    </div>
+                )}
             </div>
 
             {selectedItem ? (

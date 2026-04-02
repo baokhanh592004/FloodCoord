@@ -36,6 +36,8 @@ export default function IncidentReportsPage() {
     const [loading, setLoading] = useState(true);
     const [errorMessage, setErrorMessage] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
+    const [totalPagesMeta, setTotalPagesMeta] = useState(0);
+    const [totalElements, setTotalElements] = useState(0);
 
     // --- MODAL STATE: Step flow DETAIL → ABORT → ASSIGN ---
     const [modalStep, setModalStep] = useState('DETAIL'); // 'DETAIL' | 'ABORT' | 'ASSIGN'
@@ -70,12 +72,18 @@ export default function IncidentReportsPage() {
     // Data loading
     // ============================================================
 
-    const loadIncidents = useCallback(async () => {
+    const loadIncidents = useCallback(async (page = currentPage) => {
         setLoading(true);
         setErrorMessage('');
         try {
-            const response = await incidentReportApi.getAllIncidents();
-            setIncidents(Array.isArray(response) ? response : (response?.content || []));
+            const response = await incidentReportApi.getAllIncidents(page - 1, ITEMS_PER_PAGE);
+            const incidentList = Array.isArray(response) ? response : (response?.content || []);
+            setIncidents(incidentList);
+            setTotalPagesMeta(Number.isInteger(response?.totalPages) ? response.totalPages : (incidentList.length > 0 ? 1 : 0));
+            setTotalElements(Number.isInteger(response?.totalElements) ? response.totalElements : incidentList.length);
+            if (Number.isInteger(response?.number)) {
+                setCurrentPage(response.number + 1);
+            }
         } catch (error) {
             setErrorMessage(
                 error?.response?.data?.message ||
@@ -84,11 +92,11 @@ export default function IncidentReportsPage() {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [currentPage]);
 
     useEffect(() => {
-        loadIncidents();
-    }, [loadIncidents]);
+        loadIncidents(currentPage);
+    }, [currentPage, loadIncidents]);
 
     // Load tài nguyên cho step giao đội
     const loadAssignResources = async () => {
@@ -99,7 +107,7 @@ export default function IncidentReportsPage() {
             const [teams, vehicles, supplies] = await Promise.all([
                 rescueTeamApi.getAvailableTeams(),
                 vehicleApi.getAvailableVehicles(),
-                supplyApi.getAllSupplies(),
+                supplyApi.getAllSupplies(0, 200),
             ]);
 
             const validTeams = (Array.isArray(teams) ? teams : [])
@@ -320,11 +328,8 @@ export default function IncidentReportsPage() {
         setCurrentPage(1);
     }, [keyword, statusFilter]);
 
-    const totalPages = Math.ceil(filteredIncidents.length / ITEMS_PER_PAGE);
-    const paginatedIncidents = filteredIncidents.slice(
-        (currentPage - 1) * ITEMS_PER_PAGE,
-        currentPage * ITEMS_PER_PAGE
-    );
+    const totalPages = Math.max(totalPagesMeta, 1);
+    const paginatedIncidents = filteredIncidents;
 
     const stats = useMemo(() => ({
         total: incidents.length,
@@ -490,7 +495,7 @@ export default function IncidentReportsPage() {
                 {filteredIncidents.length > 0 && (
                     <div className="shrink-0 px-3 py-2 bg-gray-50 border-t border-gray-200 text-xs text-gray-500 flex items-center justify-between rounded-b-lg">
                         <span>
-                            Hiển thị {(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, filteredIncidents.length)} / {filteredIncidents.length} sự cố
+                            Hiển thị {(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min((currentPage - 1) * ITEMS_PER_PAGE + paginatedIncidents.length, totalElements)} / {totalElements} sự cố
                         </span>
                         {totalPages > 1 && (
                             <div className="flex items-center gap-1">
@@ -523,7 +528,7 @@ export default function IncidentReportsPage() {
                                 </button>
                             </div>
                         )}
-                        <span>{filteredIncidents.length} kết quả</span>
+                        <span>{totalElements} kết quả</span>
                     </div>
                 )}
             </div>

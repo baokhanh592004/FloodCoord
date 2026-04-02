@@ -84,22 +84,29 @@ export default function UserManagement() {
     const [searchTerm, setSearchTerm] = useState('');
     const [roleFilter, setRoleFilter] = useState('ALL');
     const [currentPage, setCurrentPage] = useState(1);
+    const [totalPagesMeta, setTotalPagesMeta] = useState(0);
+    const [totalElements, setTotalElements] = useState(0);
 
     const userFileRef = useRef(null); // Ref cho input file
 
-    useEffect(() => { fetchUsers(); }, []);
-
-    const fetchUsers = async () => {
+    const fetchUsers = async (page = currentPage) => {
         try {
             setLoading(true);
-            const data = await adminUserApi.getAllUsers();
+            const data = await adminUserApi.getAllUsers(page - 1, ITEMS_PER_PAGE);
             const usersData = Array.isArray(data) ? data : (data?.content || []);
             setUsers(prev => preserveUserOrder(usersData, prev));
+            setTotalPagesMeta(Number.isInteger(data?.totalPages) ? data.totalPages : (usersData.length > 0 ? 1 : 0));
+            setTotalElements(Number.isInteger(data?.totalElements) ? data.totalElements : usersData.length);
+            if (Number.isInteger(data?.number)) {
+                setCurrentPage(data.number + 1);
+            }
             setError('');
         } catch {
             setError('Không thể tải danh sách người dùng. Vui lòng kiểm tra kết nối với server.');
         } finally { setLoading(false); }
     };
+
+    useEffect(() => { fetchUsers(currentPage); }, [currentPage]);
 
     // ─── XỬ LÝ IMPORT EXCEL ───────────────────────────────────────────────────
     const handleImportExcel = async (e) => {
@@ -163,11 +170,8 @@ export default function UserManagement() {
     }), [users, searchTerm, roleFilter]);
 
     const uniqueRoles = useMemo(() => [...new Set(users.map(u => u.roleName))], [users]);
-    const totalPages = Math.ceil(filteredUsers.length / ITEMS_PER_PAGE);
-    const paginatedUsers = useMemo(() => {
-        const start = (currentPage - 1) * ITEMS_PER_PAGE;
-        return filteredUsers.slice(start, start + ITEMS_PER_PAGE);
-    }, [filteredUsers, currentPage]);
+    const totalPages = Math.max(totalPagesMeta, 1);
+    const paginatedUsers = filteredUsers;
 
     const getRoleBadge = (roleName) => ROLE_BADGE[roleName] || ROLE_BADGE.CITIZEN;
 
@@ -354,7 +358,7 @@ export default function UserManagement() {
                     <div className="shrink-0 px-3 py-2 border-t text-xs flex items-center justify-between"
                         style={{ background: '#f4f6fa', borderColor: C.border, color: C.textMuted }}>
                         <span>
-                            Hiển thị {Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, filteredUsers.length)}–{Math.min(currentPage * ITEMS_PER_PAGE, filteredUsers.length)} / {filteredUsers.length} người dùng
+                            Hiển thị {Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, totalElements)}–{Math.min((currentPage - 1) * ITEMS_PER_PAGE + paginatedUsers.length, totalElements)} / {totalElements} người dùng
                         </span>
                         {totalPages > 1 && (
                             <div className="flex items-center gap-1">
@@ -365,7 +369,7 @@ export default function UserManagement() {
                                 <PaginationBtn onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>›</PaginationBtn>
                             </div>
                         )}
-                        <span>{users.length} tổng số tài khoản</span>
+                        <span>{totalElements} tổng số tài khoản</span>
                     </div>
                 )}
             </div>

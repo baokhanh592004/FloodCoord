@@ -56,9 +56,9 @@ export default function AssignTaskModal({ request, isOpen, onClose, onSuccess })
     const loadResources = async () => {
         try {
             const [teamData, vehicleData, supplyData] = await Promise.all([
-                teamApi.getAllTeams(),
-                vehicleApi.getAllVehicles(),
-                supplyApi.getAllSupplies(),
+                teamApi.getAllTeams(0, 200),
+                vehicleApi.getAllVehicles(0, 200),
+                supplyApi.getAllSupplies(0, 200),
             ]);
             setTeams(Array.isArray(teamData) ? teamData : (teamData?.content || []));
             setVehicles(Array.isArray(vehicleData) ? vehicleData : (vehicleData?.content || []));

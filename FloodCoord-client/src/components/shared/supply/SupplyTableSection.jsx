@@ -73,6 +73,7 @@ export default function SupplyTableSection({
   currentPage,
   setCurrentPage,
   totalPages,
+  totalElements,
   itemsPerPage,
   isExpired,
   isExpiringSoon,
@@ -83,6 +84,7 @@ export default function SupplyTableSection({
   readOnly = false,
 }) {
   const isAdmin = variant === 'admin';
+  const totalResultCount = totalElements || filteredSupplies.length;
 
   return (
     <div
@@ -250,7 +252,7 @@ export default function SupplyTableSection({
           style={isAdmin ? { background: '#f4f6fa', borderColor: theme.border, color: theme.textMuted } : undefined}
         >
           <span>
-            Hiển thị {(currentPage - 1) * itemsPerPage + 1}–{Math.min(currentPage * itemsPerPage, filteredSupplies.length)} / {filteredSupplies.length} lô hàng
+            Hiển thị {(currentPage - 1) * itemsPerPage + 1}–{Math.min((currentPage - 1) * itemsPerPage + paginatedSupplies.length, totalResultCount)} / {totalResultCount} lô hàng
           </span>
 
           {totalPages > 1 && (
@@ -284,7 +286,7 @@ export default function SupplyTableSection({
             </div>
           )}
 
-          <span>{filteredSupplies.length} kết quả</span>
+          <span>{totalResultCount} kết quả</span>
         </div>
       )}
     </div>
