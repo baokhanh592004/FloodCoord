@@ -39,7 +39,7 @@ export default function TeamMembers() {
             <UserGroupIcon className="h-6 w-6 text-blue-600" />
             Thành viên đội cứu hộ
           </h1>
-          <p className="text-xs text-gray-500">Quản lý và liên lạc nội bộ đội ngũ.</p>
+          <p className="text-xs text-gray-500">Quản lý và liên lạc nội bộ đội ngũ:</p>
         </div>
         <button 
           onClick={fetchMembers}
