@@ -7,6 +7,8 @@ import { supplyApi } from '../../services/supplyApi';
 import { MODAL_STYLE_MAP } from '../shared/styleMaps';
 import toast from 'react-hot-toast';
 
+const RESOURCE_PAGE_SIZE = 20;
+
 /**
  * AssignTaskModal — Modal phân công đội cứu hộ cho yêu cầu đã xác thực
  *
@@ -28,6 +30,21 @@ export default function AssignTaskModal({ request, isOpen, onClose, onSuccess })
     const [useVehicle, setUseVehicle] = useState(false);
     const [useSupplies, setUseSupplies] = useState(false);
     const [expandedGroups, setExpandedGroups] = useState({});
+    const [teamQuery, setTeamQuery] = useState('');
+    const [vehicleQuery, setVehicleQuery] = useState('');
+    const [supplyQuery, setSupplyQuery] = useState('');
+
+    const [teamPage, setTeamPage] = useState(0);
+    const [vehiclePage, setVehiclePage] = useState(0);
+    const [supplyPage, setSupplyPage] = useState(0);
+
+    const [hasMoreTeams, setHasMoreTeams] = useState(false);
+    const [hasMoreVehicles, setHasMoreVehicles] = useState(false);
+    const [hasMoreSupplies, setHasMoreSupplies] = useState(false);
+
+    const [loadingMoreTeams, setLoadingMoreTeams] = useState(false);
+    const [loadingMoreVehicles, setLoadingMoreVehicles] = useState(false);
+    const [loadingMoreSupplies, setLoadingMoreSupplies] = useState(false);
 
     const [formData, setFormData] = useState({
         rescueTeamId: '',
@@ -50,21 +67,107 @@ export default function AssignTaskModal({ request, isOpen, onClose, onSuccess })
             setUseVehicle(false);
             setUseSupplies(false);
             setShowConfirmDialog(false);
+            setExpandedGroups({});
+            setTeamQuery('');
+            setVehicleQuery('');
+            setSupplyQuery('');
         }
     }, [isOpen, request]);
+
+    const getPageMeta = (data) => {
+        const content = Array.isArray(data) ? data : (data?.content || []);
+        const number = Number.isInteger(data?.number) ? data.number : 0;
+        const last = typeof data?.last === 'boolean'
+            ? data.last
+            : (Number.isInteger(data?.totalPages) ? number >= data.totalPages - 1 : true);
+        return { content, number, last };
+    };
+
+    const mergeById = (oldList, newList) => {
+        const existedIds = new Set(oldList.map((item) => item.id));
+        const nextItems = newList.filter((item) => !existedIds.has(item.id));
+        return [...oldList, ...nextItems];
+    };
 
     const loadResources = async () => {
         try {
             const [teamData, vehicleData, supplyData] = await Promise.all([
-                teamApi.getAllTeams(),
-                vehicleApi.getAllVehicles(),
-                supplyApi.getAllSupplies(),
+                teamApi.getAllTeams(0, RESOURCE_PAGE_SIZE),
+                vehicleApi.getAllVehicles(0, RESOURCE_PAGE_SIZE),
+                supplyApi.getAllSupplies(0, RESOURCE_PAGE_SIZE),
             ]);
-            setTeams(Array.isArray(teamData) ? teamData : (teamData?.content || []));
-            setVehicles(Array.isArray(vehicleData) ? vehicleData : (vehicleData?.content || []));
-            setSupplies(Array.isArray(supplyData) ? supplyData : (supplyData?.content || []));
+            const teamMeta = getPageMeta(teamData);
+            const vehicleMeta = getPageMeta(vehicleData);
+            const supplyMeta = getPageMeta(supplyData);
+
+            setTeams(teamMeta.content);
+            setVehicles(vehicleMeta.content);
+            setSupplies(supplyMeta.content);
+
+            setTeamPage(teamMeta.number);
+            setVehiclePage(vehicleMeta.number);
+            setSupplyPage(supplyMeta.number);
+
+            setHasMoreTeams(!teamMeta.last);
+            setHasMoreVehicles(!vehicleMeta.last);
+            setHasMoreSupplies(!supplyMeta.last);
         } catch (error) {
             console.error('Failed to load resources:', error);
+            toast.error('Không thể tải dữ liệu đội/xe/vật tư');
+        }
+    };
+
+    const loadMoreTeams = async () => {
+        if (!hasMoreTeams || loadingMoreTeams) return;
+        try {
+            setLoadingMoreTeams(true);
+            const nextPage = teamPage + 1;
+            const response = await teamApi.getAllTeams(nextPage, RESOURCE_PAGE_SIZE);
+            const meta = getPageMeta(response);
+            setTeams((prev) => mergeById(prev, meta.content));
+            setTeamPage(meta.number);
+            setHasMoreTeams(!meta.last);
+        } catch (error) {
+            console.error('Load more teams failed:', error);
+            toast.error('Không thể tải thêm đội cứu hộ');
+        } finally {
+            setLoadingMoreTeams(false);
+        }
+    };
+
+    const loadMoreVehicles = async () => {
+        if (!hasMoreVehicles || loadingMoreVehicles) return;
+        try {
+            setLoadingMoreVehicles(true);
+            const nextPage = vehiclePage + 1;
+            const response = await vehicleApi.getAllVehicles(nextPage, RESOURCE_PAGE_SIZE);
+            const meta = getPageMeta(response);
+            setVehicles((prev) => mergeById(prev, meta.content));
+            setVehiclePage(meta.number);
+            setHasMoreVehicles(!meta.last);
+        } catch (error) {
+            console.error('Load more vehicles failed:', error);
+            toast.error('Không thể tải thêm phương tiện');
+        } finally {
+            setLoadingMoreVehicles(false);
+        }
+    };
+
+    const loadMoreSupplies = async () => {
+        if (!hasMoreSupplies || loadingMoreSupplies) return;
+        try {
+            setLoadingMoreSupplies(true);
+            const nextPage = supplyPage + 1;
+            const response = await supplyApi.getAllSupplies(nextPage, RESOURCE_PAGE_SIZE);
+            const meta = getPageMeta(response);
+            setSupplies((prev) => mergeById(prev, meta.content));
+            setSupplyPage(meta.number);
+            setHasMoreSupplies(!meta.last);
+        } catch (error) {
+            console.error('Load more supplies failed:', error);
+            toast.error('Không thể tải thêm vật tư');
+        } finally {
+            setLoadingMoreSupplies(false);
         }
     };
 
@@ -132,7 +235,14 @@ export default function AssignTaskModal({ request, isOpen, onClose, onSuccess })
     const validSupplies = supplies.filter(
         (s) => (s.quantity ?? 0) > 0 && (!s.expiryDate || new Date(s.expiryDate) > new Date())
     );
-    const groupedSupplies = validSupplies.reduce((acc, s) => {
+    const filteredValidSupplies = validSupplies.filter((s) => {
+        const keyword = supplyQuery.trim().toLowerCase();
+        if (!keyword) return true;
+        return [s.name, s.type, s.unit].some((value) =>
+            String(value || '').toLowerCase().includes(keyword)
+        );
+    });
+    const groupedSupplies = filteredValidSupplies.reduce((acc, s) => {
         const type = s.type || 'Khác';
         if (!acc[type]) acc[type] = [];
         acc[type].push(s);
@@ -150,7 +260,22 @@ export default function AssignTaskModal({ request, isOpen, onClose, onSuccess })
         return (b.experienceYears || 0) - (a.experienceYears || 0);
     });
 
+    const filteredTeams = sortedTeams.filter((team) => {
+        const keyword = teamQuery.trim().toLowerCase();
+        if (!keyword) return true;
+        return [team.name, team.specialization, team.leaderName].some((value) =>
+            String(value || '').toLowerCase().includes(keyword)
+        );
+    });
+
     const availableVehicles = vehicles.filter((v) => v.status === 'AVAILABLE');
+    const filteredVehicles = availableVehicles.filter((vehicle) => {
+        const keyword = vehicleQuery.trim().toLowerCase();
+        if (!keyword) return true;
+        return [vehicle.name, vehicle.licensePlate, vehicle.type].some((value) =>
+            String(value || '').toLowerCase().includes(keyword)
+        );
+    });
     const selectedTeam = sortedTeams.find((t) => String(t.id) === String(formData.rescueTeamId));
 
     return (
@@ -191,13 +316,20 @@ export default function AssignTaskModal({ request, isOpen, onClose, onSuccess })
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                 Đội cứu hộ <span className="text-red-500">*</span>
                             </label>
+                            <input
+                                type="text"
+                                value={teamQuery}
+                                onChange={(e) => setTeamQuery(e.target.value)}
+                                placeholder="Tìm đội theo tên/chuyên môn..."
+                                className="w-full mb-2 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500"
+                            />
                             <select
                                 value={formData.rescueTeamId}
                                 onChange={(e) => setFormData({ ...formData, rescueTeamId: e.target.value })}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500"
                             >
                                 <option value="">— Chọn đội cứu hộ —</option>
-                                {sortedTeams.map((team) => (
+                                {filteredTeams.map((team) => (
                                     <option key={team.id} value={team.id} disabled={team.status === 'BUSY'}>
                                         {team.name} — {team.members?.length || 0} thành viên
                                         {team.experienceYears ? ` — ${team.experienceYears} năm kinh nghiệm` : ''}
@@ -206,6 +338,16 @@ export default function AssignTaskModal({ request, isOpen, onClose, onSuccess })
                                     </option>
                                 ))}
                             </select>
+                            {hasMoreTeams && (
+                                <button
+                                    type="button"
+                                    onClick={loadMoreTeams}
+                                    disabled={loadingMoreTeams}
+                                    className="mt-2 text-xs text-teal-700 hover:text-teal-800 disabled:opacity-50"
+                                >
+                                    {loadingMoreTeams ? 'Đang tải thêm đội...' : 'Tải thêm đội cứu hộ'}
+                                </button>
+                            )}
                             {selectedTeam && (
                                 <div className="mt-2 p-3 bg-teal-50 border border-teal-200 rounded-md text-xs text-teal-800">
                                     <strong>{selectedTeam.name}</strong>
@@ -242,11 +384,19 @@ export default function AssignTaskModal({ request, isOpen, onClose, onSuccess })
                             </p>
 
                             {useVehicle && (
+                                <>
+                                <input
+                                    type="text"
+                                    value={vehicleQuery}
+                                    onChange={(e) => setVehicleQuery(e.target.value)}
+                                    placeholder="Tìm xe theo tên, biển số, loại..."
+                                    className="w-full mb-2 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500"
+                                />
                                 <div className="border border-gray-200 rounded-md max-h-48 overflow-y-auto">
-                                    {availableVehicles.length === 0 ? (
+                                    {filteredVehicles.length === 0 ? (
                                         <p className="text-sm text-gray-400 text-center py-4">Không có phương tiện khả dụng</p>
                                     ) : (
-                                        availableVehicles.map((v) => {
+                                        filteredVehicles.map((v) => {
                                             const checked = formData.vehicleId === String(v.id);
                                             return (
                                                 <label
@@ -272,6 +422,17 @@ export default function AssignTaskModal({ request, isOpen, onClose, onSuccess })
                                         })
                                     )}
                                 </div>
+                                {hasMoreVehicles && (
+                                    <button
+                                        type="button"
+                                        onClick={loadMoreVehicles}
+                                        disabled={loadingMoreVehicles}
+                                        className="mt-2 text-xs text-teal-700 hover:text-teal-800 disabled:opacity-50"
+                                    >
+                                        {loadingMoreVehicles ? 'Đang tải thêm xe...' : 'Tải thêm phương tiện'}
+                                    </button>
+                                )}
+                                </>
                             )}
                         </div>
 
@@ -301,6 +462,14 @@ export default function AssignTaskModal({ request, isOpen, onClose, onSuccess })
                             </p>
 
                             {useSupplies && (
+                                <>
+                                <input
+                                    type="text"
+                                    value={supplyQuery}
+                                    onChange={(e) => setSupplyQuery(e.target.value)}
+                                    placeholder="Tìm vật tư theo tên/loại..."
+                                    className="w-full mb-2 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500"
+                                />
                                 <div className="border border-gray-200 rounded-md max-h-64 overflow-y-auto">
                                     {Object.keys(groupedSupplies).length === 0 ? (
                                         <p className="text-sm text-gray-400 text-center py-4">Không có hàng cứu trợ</p>
@@ -391,6 +560,17 @@ export default function AssignTaskModal({ request, isOpen, onClose, onSuccess })
                                         ))
                                     )}
                                 </div>
+                                {hasMoreSupplies && (
+                                    <button
+                                        type="button"
+                                        onClick={loadMoreSupplies}
+                                        disabled={loadingMoreSupplies}
+                                        className="mt-2 text-xs text-teal-700 hover:text-teal-800 disabled:opacity-50"
+                                    >
+                                        {loadingMoreSupplies ? 'Đang tải thêm vật tư...' : 'Tải thêm vật tư'}
+                                    </button>
+                                )}
+                                </>
                             )}
                         </div>
 

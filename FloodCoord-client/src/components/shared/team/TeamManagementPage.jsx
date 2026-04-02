@@ -34,9 +34,13 @@ export default function TeamManagementPage({
     selectedTeam,
     searchTerm,
     formData,
+    currentPage,
+    totalPages,
+    totalElements,
     filteredTeams,
     stats,
     setSearchTerm,
+    setCurrentPage,
     handleInputChange,
     handleSubmit,
     handleEdit,
@@ -122,7 +126,14 @@ export default function TeamManagementPage({
         emptyIcon={emptyIcon}
         emptyTitle={emptyTitle}
         emptyDescription={emptyDescription}
-          readOnly={readOnly}
+        readOnly={readOnly}
+        pagination={{
+          enabled: true,
+          currentPage,
+          totalPages,
+          totalElements,
+          onPageChange: setCurrentPage,
+        }}
         adminTheme={adminTheme}
       />
 

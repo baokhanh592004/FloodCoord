@@ -29,24 +29,32 @@ export function useSupplyManagement() {
   const [filterType, setFilterType] = useState('ALL');
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPagesMeta, setTotalPagesMeta] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
   const [formData, setFormData] = useState(EMPTY_FORM);
 
-  const fetchSupplies = useCallback(async () => {
+  const fetchSupplies = useCallback(async (page = currentPage) => {
     try {
       setLoading(true);
-      const data = await supplyApi.getAllSupplies();
-      setSupplies(Array.isArray(data) ? data : (data?.content || []));
+      const data = await supplyApi.getAllSupplies(page - 1, ITEMS_PER_PAGE);
+      const supplyList = Array.isArray(data) ? data : (data?.content || []);
+      setSupplies(supplyList);
+      setTotalPagesMeta(Number.isInteger(data?.totalPages) ? data.totalPages : (supplyList.length > 0 ? 1 : 0));
+      setTotalElements(Number.isInteger(data?.totalElements) ? data.totalElements : supplyList.length);
+      if (Number.isInteger(data?.number)) {
+        setCurrentPage(data.number + 1);
+      }
       setError('');
     } catch {
       setError('Không thể tải danh sách vật tư');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentPage]);
 
   useEffect(() => {
-    fetchSupplies();
-  }, [fetchSupplies]);
+    fetchSupplies(currentPage);
+  }, [currentPage, fetchSupplies]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -94,11 +102,11 @@ export function useSupplyManagement() {
 
       setShowModal(false);
       resetForm();
-      await fetchSupplies();
+      await fetchSupplies(currentPage);
     } catch {
       setError(editingSupply ? 'Không thể cập nhật vật tư' : 'Không thể tạo vật tư');
     }
-  }, [editingSupply, fetchSupplies, formData, resetForm]);
+  }, [currentPage, editingSupply, fetchSupplies, formData, resetForm]);
 
   const handleEdit = useCallback((supply) => {
     setEditingSupply(supply);
@@ -122,11 +130,11 @@ export function useSupplyManagement() {
 
     try {
       await supplyApi.deleteSupply(supplyId);
-      await fetchSupplies();
+      await fetchSupplies(currentPage);
     } catch {
       setError('Không thể xóa vật tư');
     }
-  }, [fetchSupplies]);
+  }, [currentPage, fetchSupplies]);
 
   const handleViewDetail = useCallback((supply) => {
     setSelectedSupply(supply);
@@ -181,12 +189,9 @@ export function useSupplyManagement() {
     return matchType && matchSearch;
   }), [filterType, searchTerm, supplies]);
 
-  const totalPages = useMemo(() => Math.ceil(filteredSupplies.length / ITEMS_PER_PAGE), [filteredSupplies.length]);
+  const totalPages = useMemo(() => Math.max(totalPagesMeta, 1), [totalPagesMeta]);
 
-  const paginatedSupplies = useMemo(() => filteredSupplies.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE,
-  ), [currentPage, filteredSupplies]);
+  const paginatedSupplies = useMemo(() => filteredSupplies, [filteredSupplies]);
 
   const exportToExcel = useCallback(() => {
     const typeMap = {
@@ -249,6 +254,7 @@ export function useSupplyManagement() {
     filteredSupplies,
     paginatedSupplies,
     totalPages,
+    totalElements,
     setFilterType,
     setSearchTerm,
     setCurrentPage,
@@ -264,5 +270,6 @@ export function useSupplyManagement() {
     isExpired,
     isExpiringSoon,
     exportToExcel,
+    refreshData: () => fetchSupplies(currentPage),
   };
 }

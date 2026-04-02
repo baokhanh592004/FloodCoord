@@ -20,9 +20,9 @@ export default function AssignTeams() {
         try {
             const [reqData, teamData, vehicleData, supplyData] = await Promise.all([
                 coordinatorDashboardApi.getRequests(),
-                teamApi.getAllTeams(),
-                vehicleApi.getAllVehicles(),
-                supplyApi.getAllSupplies(),
+                teamApi.getAllTeams(0, 200),
+                vehicleApi.getAllVehicles(0, 200),
+                supplyApi.getAllSupplies(0, 200),
             ]);
 
             setRequests(reqData || []);

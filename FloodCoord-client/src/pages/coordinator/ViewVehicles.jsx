@@ -50,12 +50,20 @@ export default function ViewVehicles() {
     const [searchTerm, setSearchTerm]           = useState('');
     const [statusFilter, setStatusFilter]       = useState('ALL');
     const [currentPage, setCurrentPage]         = useState(1);
+    const [totalPagesMeta, setTotalPagesMeta]   = useState(0);
+    const [totalElements, setTotalElements]     = useState(0);
 
-    const fetchVehicles = useCallback(async () => {
+    const fetchVehicles = useCallback(async (page = currentPage) => {
         try {
             setLoading(true);
-            const data = await vehicleApi.getAllVehicles();
-            setVehicles(Array.isArray(data) ? data : (data?.content || []));
+            const data = await vehicleApi.getAllVehicles(page - 1, ITEMS_PER_PAGE);
+            const vehicleList = Array.isArray(data) ? data : (data?.content || []);
+            setVehicles(vehicleList);
+            setTotalPagesMeta(Number.isInteger(data?.totalPages) ? data.totalPages : (vehicleList.length > 0 ? 1 : 0));
+            setTotalElements(Number.isInteger(data?.totalElements) ? data.totalElements : vehicleList.length);
+            if (Number.isInteger(data?.number)) {
+                setCurrentPage(data.number + 1);
+            }
             setError('');
         } catch (err) {
             setError('Không thể tải danh sách phương tiện. Vui lòng kiểm tra kết nối với server.');
@@ -63,9 +71,9 @@ export default function ViewVehicles() {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [currentPage]);
 
-    useEffect(() => { fetchVehicles(); }, [fetchVehicles]);
+    useEffect(() => { fetchVehicles(currentPage); }, [currentPage, fetchVehicles]);
     useEffect(() => { setCurrentPage(1); }, [statusFilter, searchTerm]);
 
     const stats = useMemo(() => ({
@@ -93,11 +101,8 @@ export default function ViewVehicles() {
         return matchStatus && matchSearch;
     }), [vehicles, statusFilter, searchTerm]);
 
-    const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
-    const paginated  = filtered.slice(
-        (currentPage - 1) * ITEMS_PER_PAGE,
-        currentPage * ITEMS_PER_PAGE,
-    );
+    const totalPages = Math.max(totalPagesMeta, 1);
+    const paginated  = filtered;
 
     const exportToExcel = () => {
         const exportData = vehicles.map((v, idx) => ({
@@ -306,7 +311,7 @@ export default function ViewVehicles() {
                 {filtered.length > 0 && (
                     <div className="shrink-0 px-3 py-2 bg-gray-50 border-t border-gray-200 text-xs text-gray-500 flex items-center justify-between">
                         <span>
-                            Hiển thị {(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, filtered.length)} / {filtered.length} phương tiện
+                            Hiển thị {(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min((currentPage - 1) * ITEMS_PER_PAGE + paginated.length, totalElements)} / {totalElements} phương tiện
                         </span>
                         {totalPages > 1 && (
                             <div className="flex items-center gap-1">
@@ -339,7 +344,7 @@ export default function ViewVehicles() {
                                 </button>
                             </div>
                         )}
-                        <span>{filtered.length} kết quả</span>
+                        <span>{totalElements} kết quả</span>
                     </div>
                 )}
             </div>

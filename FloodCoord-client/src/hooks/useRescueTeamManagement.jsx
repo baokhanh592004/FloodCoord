@@ -7,6 +7,8 @@ const EMPTY_FORM = {
   status: 'AVAILABLE',
 };
 
+const PAGE_SIZE = 10;
+
 export function useRescueTeamManagement() {
   const [teams, setTeams] = useState([]);
   const [availableUsers, setAvailableUsers] = useState([]);
@@ -17,19 +19,34 @@ export function useRescueTeamManagement() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [formData, setFormData] = useState(EMPTY_FORM);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
 
-  const fetchTeams = useCallback(async () => {
+  const fetchTeams = useCallback(async (page = currentPage) => {
     try {
       setLoading(true);
-      const data = await adminTeamApi.getAllTeams();
-      setTeams(Array.isArray(data) ? data : (data?.content || []));
+      const data = await adminTeamApi.getAllTeams(page, PAGE_SIZE);
+      const content = Array.isArray(data) ? data : (data?.content || []);
+      const serverPage = Number.isInteger(data?.number) ? data.number : page;
+      const serverTotalPages = Number.isInteger(data?.totalPages)
+        ? data.totalPages
+        : Math.ceil(content.length / PAGE_SIZE);
+      const serverTotalElements = Number.isInteger(data?.totalElements)
+        ? data.totalElements
+        : content.length;
+
+      setTeams(content);
+      setCurrentPage(serverPage);
+      setTotalPages(serverTotalPages);
+      setTotalElements(serverTotalElements);
       setError('');
     } catch {
       setError('Không thể tải danh sách đội cứu hộ');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentPage]);
 
   const fetchAvailableUsers = useCallback(async () => {
     try {
@@ -41,9 +58,12 @@ export function useRescueTeamManagement() {
   }, []);
 
   useEffect(() => {
-    fetchTeams();
     fetchAvailableUsers();
-  }, [fetchAvailableUsers, fetchTeams]);
+  }, [fetchAvailableUsers]);
+
+  useEffect(() => {
+    fetchTeams(currentPage);
+  }, [currentPage, fetchTeams]);
 
   const handleInputChange = useCallback((e) => {
     const { name, value } = e.target;
@@ -87,12 +107,12 @@ export function useRescueTeamManagement() {
 
       setShowModal(false);
       resetForm();
-      await fetchTeams();
+      await fetchTeams(currentPage);
       await fetchAvailableUsers();
     } catch {
       setError(editingTeam ? 'Không thể cập nhật đội' : 'Không thể tạo đội');
     }
-  }, [editingTeam, fetchAvailableUsers, fetchTeams, resetForm]);
+  }, [currentPage, editingTeam, fetchAvailableUsers, fetchTeams, resetForm]);
 
   const handleEdit = useCallback((team) => {
     setEditingTeam(team);
@@ -111,12 +131,12 @@ export function useRescueTeamManagement() {
 
     try {
       await adminTeamApi.deleteTeam(teamId);
-      await fetchTeams();
+      await fetchTeams(currentPage);
       await fetchAvailableUsers();
     } catch {
       setError('Không thể xóa đội');
     }
-  }, [fetchAvailableUsers, fetchTeams]);
+  }, [currentPage, fetchAvailableUsers, fetchTeams]);
 
   const handleViewDetails = useCallback(async (team) => {
     try {
@@ -132,12 +152,12 @@ export function useRescueTeamManagement() {
       await adminTeamApi.removeMember(teamId, userId);
       const detailData = await adminTeamApi.getTeamById(teamId);
       setSelectedTeam(detailData);
-      await fetchTeams();
+      await fetchTeams(currentPage);
       await fetchAvailableUsers();
     } catch {
       setError('Không thể loại bỏ thành viên');
     }
-  }, [fetchAvailableUsers, fetchTeams]);
+  }, [currentPage, fetchAvailableUsers, fetchTeams]);
 
   const filteredTeams = useMemo(() => {
     const normalized = searchTerm.toLowerCase();
@@ -166,9 +186,14 @@ export function useRescueTeamManagement() {
     selectedTeam,
     searchTerm,
     formData,
+    currentPage,
+    totalPages,
+    totalElements,
+    pageSize: PAGE_SIZE,
     filteredTeams,
     stats,
     setSearchTerm,
+    setCurrentPage,
     handleInputChange,
     handleSubmit,
     handleEdit,
