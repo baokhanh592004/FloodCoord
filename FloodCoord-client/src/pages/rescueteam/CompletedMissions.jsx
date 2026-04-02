@@ -177,7 +177,7 @@ function DetailModal({ mission, onClose }) {
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50 flex justify-end">
+        <div className="px-5 py-4 border-t border-gray-100 bg-gray-50/50 flex justify-end">
           <button
             onClick={onClose}
             className="px-6 py-2.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-bold rounded-xl transition-all shadow-sm active:scale-95"

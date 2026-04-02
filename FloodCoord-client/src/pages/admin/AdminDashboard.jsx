@@ -90,7 +90,7 @@ export default function AdminDashboard() {
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 border-b border-gray-200 pb-5">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Hệ thống Quản trị</h1>
-          <p className="text-[10px] text-gray-400 uppercase tracking-[0.2em] font-black text-blue-600">Admin Dashboard Control</p>
+          <p className="text-[10px] text-gray-400 uppercase tracking-[0.2em] font-black text-blue-600">Admin Dashboard</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 bg-gray-100/60 p-2 rounded-2xl border border-gray-200">

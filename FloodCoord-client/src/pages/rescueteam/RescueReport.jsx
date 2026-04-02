@@ -101,7 +101,7 @@ const handleFileChange = (e) => {
   return (
     <div className="h-screen bg-[#F8FAFC] flex flex-col font-sans text-slate-900 overflow-hidden">
       {/* Header */}
-      <div className="bg-white border-b border-slate-200 px-8 py-4 flex justify-between items-center shrink-0">
+      <div className="bg-white border-b border-slate-200 px-7 py-4 flex justify-between items-center shrink-0">
         <div className="flex items-center gap-4">
           <button type="button" onClick={() => navigate(-1)} className="p-2 hover:bg-slate-100 rounded-full group transition-all">
             <ChevronLeftIcon className="w-5 h-5 text-slate-500 group-hover:text-slate-900" />

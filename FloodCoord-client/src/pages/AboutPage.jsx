@@ -137,7 +137,7 @@ export default function AboutPage() {
         <div className="bg-[#FBFCFE] min-h-screen font-sans text-slate-900">
 
             {/* ══ HERO ══════════════════════════════════════════════════════════ */}
-            <section className="bg-linear-to-br from-blue-700 via-blue-600 to-teal-500 text-white py-20 px-4">
+            <section className="bg-linear-to-br from-blue-700 via-blue-600 to-teal-500 text-white py-20 px-5">
                 <div className="max-w-4xl mx-auto text-center">
                     <div className="inline-flex items-center gap-2 bg-white/20 rounded-full px-4 py-1.5 text-sm font-medium mb-6">
                         <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />

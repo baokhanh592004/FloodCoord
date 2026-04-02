@@ -71,7 +71,7 @@ export default function Footer() {
                   className="flex items-start gap-2.5 text-sm text-navy-200/75 sm:text-base"
                 >
                   <span className="shrink-0 pt-0.5 text-accent">
-                    {React.createElement(icon, { size: 15 })}
+                    {React.createElement(icon, { size: 16 })}
                   </span>
                   <span className={longText ? 'break-all' : 'wrap-break-word'}>{text}</span>
                 </div>

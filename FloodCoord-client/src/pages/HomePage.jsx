@@ -70,7 +70,7 @@ const HomePage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col lg:flex-row items-center gap-16">
             <div className="lg:w-1/2 space-y-8 animate-in fade-in slide-in-from-left duration-1000">
-              <div className="inline-flex items-center gap-2 bg-white/90 border border-blue-200 px-5 py-2.5 rounded-full text-blue-700 font-bold text-sm shadow-sm">
+              <div className="inline-flex items-center gap-2 bg-white/90 border border-blue-200 px-6 py-2.5 rounded-full text-blue-700 font-bold text-sm shadow-sm">
                 <ShieldCheck size={20} className="text-blue-500" />
                 Hệ thống hỗ trợ khẩn cấp 24/7 của Thành phố
               </div>

@@ -244,7 +244,7 @@ function StatCard({ title, value, growth, icon, bgColor, isRating }) {
       <div className="flex justify-between items-start mb-4">
         <div className={`p-3 ${bgColor} rounded-2xl`}>{icon}</div>
         <div className={`flex items-center text-xs font-black ${isPos ? 'text-green-600' : 'text-red-600'}`}>
-          {isPos ? <ArrowTrendingUpIcon className="h-3 w-3 mr-1" /> : <ArrowTrendingDownIcon className="h-3 w-3 mr-1" />}
+          {isPos ? <ArrowTrendingUpIcon className="h-4 w-3 mr-1" /> : <ArrowTrendingDownIcon className="h-3 w-3 mr-1" />}
           {Math.abs(growth || 0).toFixed(1)}%
         </div>
       </div>

@@ -61,7 +61,7 @@ export default function ManagerLayout() {
         </Link>
 
         {/* Menu */}
-        <nav className="flex-1 px-3 py-4 space-y-1">
+        <nav className="flex-1 px-4 py-4 space-y-1">
           {menu.map((item) => (
             <NavLink
               key={item.name}

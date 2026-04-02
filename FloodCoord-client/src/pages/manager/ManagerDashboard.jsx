@@ -74,7 +74,7 @@ export default function ManagerDashboard() {
     return (
       <div className="flex flex-col items-center justify-center h-full space-y-4">
         <ArrowPathIcon className="h-10 w-10 text-blue-600 animate-spin" />
-        <p className="text-gray-500">Đang tải dữ liệu hệ thống...</p>
+        <p className="text-gray-500">Đang tải dữ liệu hệ thống..</p>
       </div>
     );
   }

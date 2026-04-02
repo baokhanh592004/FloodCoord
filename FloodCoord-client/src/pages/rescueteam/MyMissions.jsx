@@ -107,7 +107,7 @@ export default function MyMissions() {
           className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 text-white text-[11px] font-black rounded-xl hover:bg-black shadow-lg transition-all active:scale-95 disabled:opacity-70 uppercase tracking-widest"
         >
           <ArrowPathIcon className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-          LÀM MỚI
+          Làm Mới
         </button>
       </div>
 

@@ -152,7 +152,7 @@ const TrackRescuePage = () => {
                     🔍 Tra Cứu Yêu Cầu Cứu Trợ
                 </h1>
                 <p className="text-center text-gray-600 mb-6">
-                    Nhập mã tra cứu để xem tình trạng yêu cầu cứu trợ của bạn
+                    Nhập mã tra cứu để xem tình trạng yêu cầu cứu trợ của bạn:
                 </p>
 
                 <div className="mb-6 overflow-hidden rounded-2xl border border-yellow-200 bg-yellow-50/40">

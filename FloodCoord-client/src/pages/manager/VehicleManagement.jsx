@@ -246,7 +246,7 @@ export default function VehicleManagement() {
             {/* ── Header ── */}
             <div className="shrink-0 flex items-center justify-between">
                 <div>
-                    <h1 className="text-xl font-bold text-gray-900">Quản lý Phương tiện</h1>
+                    <h1 className="text-xl font-bold text-gray-900">Quản lý Phương tiện.</h1>
                     <p className="text-xs text-gray-500">Quản lý và điều phối phương tiện cứu hộ trong hệ thống.</p>
                 </div>
                 <div className="flex items-center gap-2">

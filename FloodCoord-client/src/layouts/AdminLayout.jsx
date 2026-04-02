@@ -88,7 +88,7 @@ export default function AdminLayout() {
           onClick={handleLogout}
           className="m-4 flex items-center gap-2 px-4 py-2 text-sm text-red-500 hover:bg-red-50 rounded-md transition-colors"
         >
-          <ArrowRightOnRectangleIcon className="h-5 w-5" />
+          <ArrowRightOnRectangleIcon className="h-6 w-5" />
           Đăng xuất
         </button>
       </aside>
