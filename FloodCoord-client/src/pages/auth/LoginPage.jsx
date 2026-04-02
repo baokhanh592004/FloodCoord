@@ -122,10 +122,11 @@ export default function LoginPage() {
           <>
             <div>
               <div className="hq-badge"><div className="hq-dot" />KHẨN CẤP ĐANG HOẠT ĐỘNG</div>
-              <div className="hq-hero">Flood<br />Rescue<br /><em>HQ</em></div>
+              <div className="hq-hero">Trung tâm<br />Cứu hộ cứu nạn<br /><em>Lũ lụt TP.HCM</em></div>
               <div className="hq-sub">
                 Nền tảng phối hợp cứu hộ lũ lụt<br />
-                thời gian thực — Ban Chỉ đạo Quốc gia
+                thời gian thực giúp kết nối người cần cứu hộ với đội cứu hộ<br/> 
+                nhanh chóng và hiệu quả hơn.
               </div>
             </div>
             <div className="hq-stats">

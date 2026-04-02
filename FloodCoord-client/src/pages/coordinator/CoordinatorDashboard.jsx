@@ -846,9 +846,9 @@ export default function CoordinatorDashboard() {
           </div>
         </section>
 
-        <section className="rounded-xl border border-coordinator-100 bg-linear-to-r from-coordinator-50 via-info-50 to-manager-50 px-4 py-3">
+        {/* <section className="rounded-xl border border-coordinator-100 bg-linear-to-r from-coordinator-50 via-info-50 to-manager-50 px-4 py-3">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            {/* <div className="flex min-w-0 flex-1 flex-wrap items-center gap-3 md:gap-4">
+            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-3 md:gap-4">
               <div className="min-w-0">
                 <h3 className="text-sm font-semibold text-neutral-900">Xem phân tích chi tiết</h3>
               </div>
@@ -859,9 +859,9 @@ export default function CoordinatorDashboard() {
                 <ChartBarIcon className="h-4 w-4" />
                 Watch Details Analytics
               </Link>
-            </div> */}
+            </div>
 
-            {/* <div className="h-px w-full bg-coordinator-100 md:hidden" /> */}
+            <div className="h-px w-full bg-coordinator-100 md:hidden" />
 
             <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-coordinator-100 text-xs text-neutral-600 md:ml-4 md:border-l md:pl-4">
               <span className="inline-flex items-center gap-1">
@@ -871,12 +871,12 @@ export default function CoordinatorDashboard() {
               <span>
                 Cảnh báo hoạt động: <strong>{activeAlerts.length}</strong>
               </span>
-              {/* <span>
+              <span>
                 Thời tiết: {current?.weatherCode != null ? getWeatherLabel(current.weatherCode) : 'Chưa có dữ liệu'}
-              </span> */}
+              </span>
             </div>
           </div>
-        </section>
+        </section> */}
 
         <VerifyRequestModal
           request={selectedActionRequest}

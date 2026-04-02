@@ -42,19 +42,19 @@ axiosClient.interceptors.request.use(
 // Response interceptor - Xử lý khi token hết hạn
 axiosClient.interceptors.response.use(
     (response) => {
-        console.log('✅ API Success:', response.config.method.toUpperCase(), response.config.url, 'Status:', response.status);
+        //console.log('✅ API Success:', response.config.method.toUpperCase(), response.config.url, 'Status:', response.status);
         return response;
     },
     async (error) => {
         const originalRequest = error.config;
 
         // LOG CHI TIẾT LỖI
-        console.error('❌ API Error:', {
-            method: error.config?.method?.toUpperCase(),
-            url: error.config?.url,
-            status: error.response?.status,
-            statusText: error.response?.statusText,
-            data: error.response?.data,
+        console.error('Error:', {
+        //    method: error.config?.method?.toUpperCase(),
+        //    url: error.config?.url,
+        //    status: error.response?.status,
+        //    statusText: error.response?.statusText,
+        //    data: error.response?.data,
             message: error.message
         });
 
@@ -90,7 +90,7 @@ axiosClient.interceptors.response.use(
                     return Promise.reject(error);
                 }
 
-                console.log('🔄 Calling refresh token API...');
+                //console.log('🔄 Calling refresh token API...');
                 const response = await axios.post(
                     `${import.meta.env.VITE_API_ROOT_URL}/api/auth/refresh`,
                     { refreshToken }
