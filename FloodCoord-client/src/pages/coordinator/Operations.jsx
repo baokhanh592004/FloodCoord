@@ -1,24 +1,113 @@
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
-import L from 'leaflet';
+import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
+import { MapContainer, TileLayer, CircleMarker, Popup, Tooltip, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { coordinatorDashboardApi } from '../../services/coordinatorDashboardApi';
-import { getCurrentWeather, getFloodRisk, getActiveAlerts, getWeatherLabel } from '../../services/weatherService';
 import StatusBadge from '../../components/coordinator/StatusBadge';
 import PriorityBadge from '../../components/coordinator/PriorityBadge';
 import RequestDetailModal from '../../components/coordinator/RequestDetailModal';
-import { MapIcon, ArrowPathIcon, ClockIcon, SignalIcon } from '@heroicons/react/24/outline';
+import { MapIcon, ArrowPathIcon, ClockIcon } from '@heroicons/react/24/outline';
 
-// Fix Leaflet marker icons
-import icon from 'leaflet/dist/images/marker-icon.png';
-import iconShadow from 'leaflet/dist/images/marker-shadow.png';
-let DefaultIcon = L.icon({
-    iconUrl: icon,
-    shadowUrl: iconShadow,
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-});
-L.Marker.prototype.options.icon = DefaultIcon;
+function getStatusMarkerColor(status) {
+    const value = (status || '').toUpperCase();
+    if (value === 'PENDING') return '#0ea5e9'; // info
+    if (value === 'VERIFIED' || value === 'VALIDATED') return '#2563eb'; // coordinator
+    if (['IN_PROGRESS', 'MOVING', 'ARRIVED', 'RESCUING', 'ASSIGNED'].includes(value)) return '#ca8a04'; // warning
+    if (value === 'COMPLETED') return '#16a34a'; // success
+    if (value === 'REJECTED') return '#dc2626'; // danger
+    return '#0ea5e9'; // info fallback
+}
+
+function OperationsMapViewportController({ points, fallbackPoints = [], selectedPoint, followLive, recenterSignal, onUserMapInteraction }) {
+    const map = useMap();
+    const programmaticMoveRef = useRef(false);
+    const hasInitialFitRef = useRef(false);
+
+    const fitToPoints = useCallback((sourcePoints) => {
+        const targetPoints = sourcePoints.length ? sourcePoints : fallbackPoints;
+        if (!targetPoints.length) return;
+
+        if (targetPoints.length === 1) {
+            const lat = Number(targetPoints[0]?.location?.latitude);
+            const lon = Number(targetPoints[0]?.location?.longitude);
+            if (Number.isFinite(lat) && Number.isFinite(lon)) {
+                map.setView([lat, lon], 13, { animate: false });
+            }
+            return;
+        }
+
+        const lats = targetPoints.map((p) => Number(p.location.latitude));
+        const lons = targetPoints.map((p) => Number(p.location.longitude));
+
+        map.fitBounds(
+            [
+                [Math.min(...lats), Math.min(...lons)],
+                [Math.max(...lats), Math.max(...lons)],
+            ],
+            { padding: [24, 24], maxZoom: 14, animate: false }
+        );
+    }, [map, fallbackPoints]);
+
+    useEffect(() => {
+        const onMoveStart = () => {
+            if (!programmaticMoveRef.current) {
+                onUserMapInteraction?.();
+            }
+        };
+
+        map.on('movestart', onMoveStart);
+        map.on('zoomstart', onMoveStart);
+
+        return () => {
+            map.off('movestart', onMoveStart);
+            map.off('zoomstart', onMoveStart);
+        };
+    }, [map, onUserMapInteraction]);
+
+    useEffect(() => {
+        map.invalidateSize();
+
+        if (!points.length && !fallbackPoints.length) return;
+
+        if (!hasInitialFitRef.current || followLive) {
+            hasInitialFitRef.current = true;
+            programmaticMoveRef.current = true;
+            fitToPoints(points);
+            setTimeout(() => {
+                programmaticMoveRef.current = false;
+            }, 0);
+        }
+    }, [map, points, fallbackPoints, followLive, fitToPoints]);
+
+    useEffect(() => {
+        if (!recenterSignal) return;
+
+        programmaticMoveRef.current = true;
+        fitToPoints(points);
+        setTimeout(() => {
+            programmaticMoveRef.current = false;
+        }, 0);
+    }, [recenterSignal, points, fitToPoints]);
+
+    useEffect(() => {
+        const lat = Number(selectedPoint?.location?.latitude);
+        const lon = Number(selectedPoint?.location?.longitude);
+        if (Number.isFinite(lat) && Number.isFinite(lon)) {
+            programmaticMoveRef.current = true;
+            map.panTo([lat, lon], { animate: true });
+            setTimeout(() => {
+                programmaticMoveRef.current = false;
+            }, 250);
+        }
+    }, [map, selectedPoint?.requestId, selectedPoint?.location?.latitude, selectedPoint?.location?.longitude]);
+
+    useEffect(() => {
+        const handleResize = () => map.invalidateSize();
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, [map]);
+
+    return null;
+}
 
 /**
  * Operations — Trang giám sát hoạt động cứu hộ
@@ -30,23 +119,28 @@ L.Marker.prototype.options.icon = DefaultIcon;
  * - Auto-refresh mỗi 15 giây
  */
 export default function Operations() {
-    const WEATHER_LOCATION = { name: 'Hồ Chí Minh', lat: 10.823, lon: 106.63 };
+    //const WEATHER_LOCATION = { name: 'Hồ Chí Minh', lat: 10.823, lon: 106.63 };
+    const STATUS_ORDER = ['PENDING', 'VERIFIED', 'VALIDATED', 'ASSIGNED', 'IN_PROGRESS', 'MOVING', 'ARRIVED', 'RESCUING', 'COMPLETED', 'REJECTED'];
+    const IN_PROGRESS_STATUSES = ['ASSIGNED', 'IN_PROGRESS', 'MOVING', 'ARRIVED', 'RESCUING'];
 
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [weatherLoading, setWeatherLoading] = useState(false);
-    const [weatherError, setWeatherError] = useState('');
-    const [currentWeather, setCurrentWeather] = useState(null);
-    const [floodRisk, setFloodRisk] = useState(null);
-    const [activeAlerts, setActiveAlerts] = useState([]);
+    // const [weatherLoading, setWeatherLoading] = useState(false);
+    // const [weatherError, setWeatherError] = useState('');
+    // const [currentWeather, setCurrentWeather] = useState(null);
+    // const [floodRisk, setFloodRisk] = useState(null);
+    // const [activeAlerts, setActiveAlerts] = useState([]);
     const [selectedRequest, setSelectedRequest] = useState(null);
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [lastRefresh, setLastRefresh] = useState(null);
+    const [followLiveMap, setFollowLiveMap] = useState(true);
+    const [recenterSignal, setRecenterSignal] = useState(0);
+    const [statusFilter, setStatusFilter] = useState('ALL');
 
     const loadData = useCallback(async () => {
         setLoading(true);
         try {
-            const data = await coordinatorDashboardApi.getRequests();
+            const data = await coordinatorDashboardApi.getRequestsWithDetails();
             setRequests(data || []);
             setLastRefresh(new Date());
         } catch (error) {
@@ -56,59 +150,128 @@ export default function Operations() {
         }
     }, []);
 
-    const loadWeatherData = useCallback(async () => {
-        setWeatherLoading(true);
-        setWeatherError('');
-        try {
-            const [currentData, riskData, alertsData] = await Promise.all([
-                getCurrentWeather(WEATHER_LOCATION.lat, WEATHER_LOCATION.lon),
-                getFloodRisk(WEATHER_LOCATION.lat, WEATHER_LOCATION.lon),
-                getActiveAlerts(24),
-            ]);
+    // const loadWeatherData = useCallback(async () => {
+    //     setWeatherLoading(true);
+    //     setWeatherError('');
+    //     try {
+    //         const [currentData, riskData, alertsData] = await Promise.all([
+    //             getCurrentWeather(WEATHER_LOCATION.lat, WEATHER_LOCATION.lon),
+    //             getFloodRisk(WEATHER_LOCATION.lat, WEATHER_LOCATION.lon),
+    //             getActiveAlerts(24),
+    //         ]);
 
-            setCurrentWeather(currentData);
-            setFloodRisk(riskData);
-            setActiveAlerts(alertsData || []);
-        } catch (error) {
-            console.error('Failed to load operations weather data:', error);
-            setWeatherError('Không thể tải dữ liệu thời tiết.');
-        } finally {
-            setWeatherLoading(false);
-        }
-    }, [WEATHER_LOCATION.lat, WEATHER_LOCATION.lon]);
+    //         setCurrentWeather(currentData);
+    //         setFloodRisk(riskData);
+    //         setActiveAlerts(alertsData || []);
+    //     } catch (error) {
+    //         console.error('Failed to load operations weather data:', error);
+    //         setWeatherError('Không thể tải dữ liệu thời tiết.');
+    //     } finally {
+    //         setWeatherLoading(false);
+    //     }
+    // }, [WEATHER_LOCATION.lat, WEATHER_LOCATION.lon]);
 
     const handleRefresh = async () => {
-        await Promise.all([loadData(), loadWeatherData()]);
+        await Promise.all([loadData()]); //loadWeatherData()
+        setFollowLiveMap(true);
+        setRecenterSignal((v) => v + 1);
     };
 
     // Auto-refresh mỗi 15 giây
     useEffect(() => {
         loadData();
-        loadWeatherData();
+        //loadWeatherData();
         const interval = setInterval(loadData, 15000);
-        const weatherInterval = setInterval(loadWeatherData, 10 * 60 * 1000);
+        //const weatherInterval = setInterval(loadWeatherData, 10 * 60 * 1000);
         return () => {
             clearInterval(interval);
-            clearInterval(weatherInterval);
         };
-    }, [loadData, loadWeatherData]);
+    }, [loadData]); //loadWeatherData
 
-    // Nhiệm vụ đang active (IN_PROGRESS, MOVING, ARRIVED, RESCUING)
+    // Yêu cầu chưa hoàn tất: loại trừ COMPLETED và REJECTED
     const activeRequests = useMemo(
         () =>
             requests
-                .filter((r) => ['IN_PROGRESS', 'MOVING', 'ARRIVED', 'RESCUING', 'ASSIGNED'].includes(r.status))
+                .filter((r) => !['COMPLETED', 'REJECTED'].includes(r.status))
                 .sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt)),
         [requests]
     );
 
+    const inProgressCount = useMemo(
+        () => requests.filter((r) => IN_PROGRESS_STATUSES.includes((r.status || '').toUpperCase())).length,
+        [requests, IN_PROGRESS_STATUSES]
+    );
+
+    const statusLabel = (status) => {
+        const map = {
+            PENDING: 'Chờ duyệt',
+            VERIFIED: 'Đã xác thực',
+            VALIDATED: 'Đã xác thực',
+            IN_PROGRESS: 'Đang thực thi',
+            MOVING: 'Đang di chuyển',
+            ARRIVED: 'Đã đến nơi',
+            RESCUING: 'Đang cứu hộ',
+            ASSIGNED: 'Đã phân công',
+            COMPLETED: 'Hoàn thành',
+            REJECTED: 'Từ chối',
+        };
+        return map[status] || status;
+    };
+
+    const statusFilterOptions = useMemo(() => {
+        const counts = activeRequests.reduce((acc, req) => {
+            const key = (req.status || '').toUpperCase();
+            if (!key) return acc;
+            acc[key] = (acc[key] || 0) + 1;
+            return acc;
+        }, {});
+
+        const orderedStatuses = STATUS_ORDER.filter((status) => counts[status] > 0);
+
+        return [
+            { key: 'ALL', label: 'Tất cả', count: activeRequests.length },
+            ...orderedStatuses.map((status) => ({
+                key: status,
+                label: statusLabel(status),
+                count: counts[status],
+            })),
+        ];
+    }, [activeRequests, STATUS_ORDER]);
+
+    const filteredActiveRequests = useMemo(() => {
+        if (statusFilter === 'ALL') return activeRequests;
+        return activeRequests.filter((req) => req.status === statusFilter);
+    }, [activeRequests, statusFilter]);
+
+    const activeMapPoints = useMemo(
+        () =>
+            filteredActiveRequests.filter((req) => {
+                const lat = Number(req?.location?.latitude);
+                const lon = Number(req?.location?.longitude);
+                return Number.isFinite(lat) && Number.isFinite(lon);
+            }),
+        [filteredActiveRequests]
+    );
+
+    const allActiveMapPoints = useMemo(
+        () =>
+            activeRequests.filter((req) => {
+                const lat = Number(req?.location?.latitude);
+                const lon = Number(req?.location?.longitude);
+                return Number.isFinite(lat) && Number.isFinite(lon);
+            }),
+        [activeRequests]
+    );
+
     // Hoạt động gần nhất (completed + active, sort theo thời gian)
     const recentActivity = useMemo(() => {
-        return requests
+        const base = requests
             .filter((r) => r.status !== 'PENDING')
-            .sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt))
-            .slice(0, 10);
-    }, [requests]);
+            .sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt));
+
+        if (statusFilter === 'ALL') return base.slice(0, 10);
+        return base.filter((r) => r.status === statusFilter).slice(0, 10);
+    }, [requests, statusFilter]);
 
     const formatTimeAgo = (dateString) => {
         if (!dateString) return '—';
@@ -118,20 +281,6 @@ export default function Operations() {
         const diffHour = Math.floor(diffMin / 60);
         if (diffHour < 24) return `${diffHour} giờ trước`;
         return `${Math.floor(diffHour / 24)} ngày trước`;
-    };
-
-    const statusLabel = (status) => {
-        const map = {
-            VERIFIED: 'Đã xác thực',
-            VALIDATED: 'Đã xác thực',
-            IN_PROGRESS: 'Đang thực thi',
-            MOVING: 'Đang di chuyển',
-            ARRIVED: 'Đã đến nơi',
-            RESCUING: 'Đang cứu hộ',
-            ASSIGNED: 'Đã phân công',
-            COMPLETED: 'Hoàn thành',
-        };
-        return map[status] || status;
     };
 
     // Đảm bảo toàn bộ trang có thể cuộn nếu nội dung vượt quá chiều cao màn hình
@@ -155,26 +304,27 @@ export default function Operations() {
                     <div className="flex items-center gap-1.5 px-2.5 py-1 bg-success-50 border border-success-100 rounded-full">
                         <span className="h-2 w-2 bg-success rounded-full animate-pulse"></span>
                         <span className="text-xs text-success-dark font-medium">
-                            {activeRequests.length} đang hoạt động
+                            {activeRequests.length} chưa hoàn tất
                         </span>
                     </div>
                     <button
                         onClick={handleRefresh}
-                        disabled={loading || weatherLoading}
+                        disabled={loading}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-coordinator text-white text-xs font-medium rounded-md hover:bg-coordinator-dark disabled:opacity-60 transition-colors"
                     >
-                        <ArrowPathIcon className={`h-3.5 w-3.5 ${(loading || weatherLoading) ? 'animate-spin' : ''}`} />
+                        <ArrowPathIcon className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
                         Làm mới
                     </button>
                 </div>
             </div>
-            
+
             {/* Summary cards */}
-            <div className="shrink-0 grid grid-cols-4 gap-3">
+            <div className="shrink-0 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
                 {[
-                    { label: 'Đang hoạt động', value: activeRequests.length, color: 'text-warning-dark bg-warning-50 border-warning-100' },
+                    { label: 'Chưa hoàn tất', value: activeRequests.length, color: 'text-warning-dark bg-warning-50 border-warning-100' },
                     { label: 'Chờ duyệt', value: requests.filter(r => r.status === 'PENDING').length, color: 'text-info-dark bg-info-50 border-info-100' },
                     { label: 'Đã xác thực', value: requests.filter(r => r.status === 'VERIFIED' || r.status === 'VALIDATED').length, color: 'text-coordinator-dark bg-coordinator-50 border-coordinator-100' },
+                    { label: 'Đang thực hiện', value: inProgressCount, color: 'text-warning-dark bg-warning-50 border-warning-100' },
                     { label: 'Hoàn thành', value: requests.filter(r => r.status === 'COMPLETED').length, color: 'text-success-dark bg-success-50 border-success-100' },
                 ].map((stat, i) => (
                     <div key={i} className={`px-3 py-2 rounded-lg border ${stat.color}`}>
@@ -188,9 +338,63 @@ export default function Operations() {
             <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-3">
                 {/* ===== BẢN ĐỒ ===== */}
                 <div className="lg:col-span-2 bg-white border border-neutral-100 rounded-lg flex flex-col overflow-hidden relative z-0">
-                    <div className="shrink-0 flex items-center gap-2 text-neutral-600 px-4 py-2.5 border-b border-neutral-100">
-                        <MapIcon className="h-4 w-4" />
-                        <span className="text-xs font-semibold">Bản đồ hoạt động</span>
+                    <div className="shrink-0 flex items-center justify-between gap-2 px-4 py-2.5 border-b border-neutral-100">
+                        <div className="flex items-center gap-2 text-neutral-600">
+                            <MapIcon className="h-4 w-4" />
+                            <span className="text-xs font-semibold">Bản đồ hoạt động</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                            <div className="hidden xl:flex items-center gap-1">
+                                {statusFilterOptions.map((option) => (
+                                    <button
+                                        key={option.key}
+                                        onClick={() => {
+                                            setStatusFilter(option.key);
+                                            setFollowLiveMap(true);
+                                            setRecenterSignal((v) => v + 1);
+                                        }}
+                                        className={`rounded-md px-2 py-1 text-[11px] font-semibold border transition-colors ${
+                                            statusFilter === option.key
+                                                ? 'border-coordinator bg-coordinator text-white'
+                                                : 'border-neutral-200 text-neutral-600 hover:bg-neutral-100'
+                                        }`}
+                                        title={`${option.label}: ${option.count}`}
+                                    >
+                                        {option.label} ({option.count})
+                                    </button>
+                                ))}
+                            </div>
+                            <button
+                                onClick={() => {
+                                    setFollowLiveMap(true);
+                                    setRecenterSignal((v) => v + 1);
+                                }}
+                                className="rounded-md border border-coordinator-100 bg-coordinator-50 px-2 py-1 text-[11px] font-semibold text-coordinator-dark hover:bg-coordinator-100"
+                            >
+                                Căn giữa lại
+                            </button>
+                        </div>
+                    </div>
+                    <div className="xl:hidden shrink-0 px-4 py-2 border-b border-neutral-100 overflow-x-auto">
+                        <div className="flex items-center gap-1.5 min-w-max">
+                            {statusFilterOptions.map((option) => (
+                                <button
+                                    key={option.key}
+                                    onClick={() => {
+                                        setStatusFilter(option.key);
+                                        setFollowLiveMap(true);
+                                        setRecenterSignal((v) => v + 1);
+                                    }}
+                                    className={`rounded-md px-2 py-1 text-[11px] font-semibold border transition-colors ${
+                                        statusFilter === option.key
+                                            ? 'border-coordinator bg-coordinator text-white'
+                                            : 'border-neutral-200 text-neutral-600 hover:bg-neutral-100'
+                                    }`}
+                                >
+                                    {option.label} ({option.count})
+                                </button>
+                            ))}
+                        </div>
                     </div>
                     <div className="flex-1 min-h-0">
                         <MapContainer
@@ -198,14 +402,31 @@ export default function Operations() {
                             zoom={12}
                             style={{ height: '100%', width: '100%' }}
                         >
+                            <OperationsMapViewportController
+                                points={activeMapPoints}
+                                fallbackPoints={allActiveMapPoints}
+                                selectedPoint={selectedRequest}
+                                followLive={followLiveMap}
+                                recenterSignal={recenterSignal}
+                                onUserMapInteraction={() => setFollowLiveMap(false)}
+                            />
                             <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                            {activeRequests.map((req) => {
+                            {activeMapPoints.map((req) => {
                                 const loc = req.location;
-                                if (!loc?.latitude || !loc?.longitude) return null;
+                                const fillColor = getStatusMarkerColor(req.status);
+                                const isSelected = selectedRequest?.requestId === req.requestId;
+
                                 return (
-                                    <Marker
+                                    <CircleMarker
                                         key={req.requestId}
-                                        position={[loc.latitude, loc.longitude]}
+                                        center={[Number(loc.latitude), Number(loc.longitude)]}
+                                        radius={isSelected ? 10 : 8}
+                                        pathOptions={{
+                                            color: '#ffffff',
+                                            weight: isSelected ? 3 : 2,
+                                            fillColor,
+                                            fillOpacity: 1,
+                                        }}
                                         eventHandlers={{
                                             click: () => {
                                                 setSelectedRequest(req);
@@ -213,14 +434,27 @@ export default function Operations() {
                                             },
                                         }}
                                     >
+                                        <Tooltip direction="top" offset={[0, -8]} opacity={1}>
+                                            <div className="min-w-64 max-w-72 text-sm">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <PriorityBadge priority={req.emergencyLevel} />
+                                                </div>
+                                                <p className="font-semibold text-neutral-900">{req.title || 'Yêu cầu cứu hộ'}</p>
+                                                <p className="text-xs text-neutral-600 mt-1 whitespace-normal wrap-break-words">{loc.addressText || 'Địa điểm chưa rõ'}</p>
+                                                {req.assignedTeamName && (
+                                                    <p className="text-xs text-success-dark mt-2">
+                                                        🚨 Đội: {req.assignedTeamName}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </Tooltip>
                                         <Popup>
                                             <div className="text-sm">
                                                 <div className="flex items-center gap-2 mb-2">
                                                     <PriorityBadge priority={req.emergencyLevel} />
-                                                    <StatusBadge status={req.status} />
                                                 </div>
                                                 <p className="font-semibold text-neutral-900">{req.title || 'Yêu cầu cứu hộ'}</p>
-                                                <p className="text-xs text-neutral-600 mt-1">{loc.addressText}</p>
+                                                <p className="text-xs text-neutral-600 mt-1 whitespace-normal wrap-break-words">{loc.addressText || 'Địa điểm chưa rõ'}</p>
                                                 {req.assignedTeamName && (
                                                     <p className="text-xs text-success-dark mt-2">
                                                         🚨 Đội: {req.assignedTeamName}
@@ -228,7 +462,7 @@ export default function Operations() {
                                                 )}
                                             </div>
                                         </Popup>
-                                    </Marker>
+                                    </CircleMarker>
                                 );
                             })}
                         </MapContainer>
@@ -244,53 +478,52 @@ export default function Operations() {
                             <span className="text-xs font-semibold">Hoạt động gần đây</span>
                         </div>
                         <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-2">
-                        {recentActivity.map((req) => (
-                            <div
-                                key={req.requestId}
-                                className="flex gap-3 p-2 rounded-md hover:bg-neutral-50 cursor-pointer transition-colors"
-                                onClick={() => {
-                                    setSelectedRequest(req);
-                                    setShowDetailModal(true);
-                                }}
-                            >
-                                <div className="shrink-0 mt-1">
-                                    <div className={`w-2 h-2 rounded-full ${
-                                        req.status === 'COMPLETED' ? 'bg-success' :
-                                        ['IN_PROGRESS', 'MOVING', 'ARRIVED', 'RESCUING'].includes(req.status) ? 'bg-warning' :
-                                        'bg-info'
-                                    }`} />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-1.5">
-                                        <p className="text-sm font-medium text-neutral-900 truncate">
-                                            {req.title || 'Yêu cầu cứu hộ'}
-                                        </p>
-                                        {req.trackingCode && (
-                                            <span className="shrink-0 text-[10px] font-mono text-neutral-400 bg-neutral-100 px-1.5 py-0.5 rounded">
-                                                {req.trackingCode}
-                                            </span>
-                                        )}
+                            {recentActivity.map((req) => (
+                                <div
+                                    key={req.requestId}
+                                    className="flex gap-3 p-2 rounded-md hover:bg-neutral-50 cursor-pointer transition-colors"
+                                    onClick={() => {
+                                        setSelectedRequest(req);
+                                        setShowDetailModal(true);
+                                    }}
+                                >
+                                    <div className="shrink-0 mt-1">
+                                        <div className={`w-2 h-2 rounded-full ${req.status === 'COMPLETED' ? 'bg-success' :
+                                                ['IN_PROGRESS', 'MOVING', 'ARRIVED', 'RESCUING'].includes(req.status) ? 'bg-warning' :
+                                                    'bg-info'
+                                            }`} />
                                     </div>
-                                    <p className="text-xs text-neutral-400">
-                                        {statusLabel(req.status)}
-                                        {req.assignedTeamName && ` • ${req.assignedTeamName}`}
-                                    </p>
-                                    <p className="text-xs text-neutral-400 mt-0.5">
-                                        {formatTimeAgo(req.updatedAt || req.createdAt)}
-                                    </p>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-1.5">
+                                            <p className="text-sm font-medium text-neutral-900 truncate">
+                                                {req.title || 'Yêu cầu cứu hộ'}
+                                            </p>
+                                            {req.trackingCode && (
+                                                <span className="shrink-0 text-[10px] font-mono text-neutral-400 bg-neutral-100 px-1.5 py-0.5 rounded">
+                                                    {req.trackingCode}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <p className="text-xs text-neutral-400">
+                                            {statusLabel(req.status)}
+                                            {req.assignedTeamName && ` • ${req.assignedTeamName}`}
+                                        </p>
+                                        <p className="text-xs text-neutral-400 mt-0.5">
+                                            {formatTimeAgo(req.updatedAt || req.createdAt)}
+                                        </p>
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
-                        {recentActivity.length === 0 && !loading && (
-                            <div className="text-sm text-neutral-400 text-center py-4">
-                                Chưa có hoạt động nào
-                            </div>
-                        )}
+                            ))}
+                            {recentActivity.length === 0 && !loading && (
+                                <div className="text-sm text-neutral-400 text-center py-4">
+                                    {statusFilter === 'ALL' ? 'Chưa có hoạt động nào' : 'Không có hoạt động cho trạng thái đã chọn'}
+                                </div>
+                            )}
+                        </div>
                     </div>
-                </div>
 
                     {/* Thời tiết & Lũ lụt */}
-                    <div className="shrink-0 bg-white border border-neutral-100 rounded-lg p-3">
+                    {/* <div className="shrink-0 bg-white border border-neutral-100 rounded-lg p-3">
                         <h3 className="text-xs font-semibold text-neutral-600 mb-2 flex items-center gap-1.5">
                             {`🌊 Thời tiết & Mực nước (${WEATHER_LOCATION.name})`}
                         </h3>
@@ -334,7 +567,7 @@ export default function Operations() {
                                     ? `${activeAlerts.length} cảnh báo nguy cơ cao trong 24h`
                                     : 'Dữ liệu thời tiết được đồng bộ từ API'}
                         </p>
-                    </div>
+                    </div> */}
                 </div>
             </div>
 
