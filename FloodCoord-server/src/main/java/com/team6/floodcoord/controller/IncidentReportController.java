@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.MediaType;
@@ -71,7 +72,7 @@ public class IncidentReportController {
     @PreAuthorize("hasRole('COORDINATOR') or hasRole('ADMIN') or hasRole('MANAGER')")
     @Operation(summary = "Lấy toàn bộ lịch sử báo cáo sự cố")
     public ResponseEntity<Page<IncidentReportResponse>> getAllIncidents(
-            @PageableDefault(page = 0, size = 10) Pageable pageable // Thiết lập mặc định
+            @PageableDefault(page = 0, size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
         return ResponseEntity.ok(incidentService.getAllIncidents(pageable));
     }

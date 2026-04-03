@@ -10,7 +10,9 @@ import com.team6.floodcoord.repository.jpa.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -328,7 +330,11 @@ public class IncidentReportServiceImpl implements IncidentReportService {
 
     @Override
     public Page<IncidentReportResponse> getAllIncidents(Pageable pageable) {
-        return incidentRepo.findAll(pageable)
+        Pageable sortedPageable = pageable.getSort().isSorted()
+            ? pageable
+            : PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(Sort.Direction.DESC, "createdAt"));
+
+        return incidentRepo.findAll(sortedPageable)
                 .map(this::mapToResponse);
     }
 

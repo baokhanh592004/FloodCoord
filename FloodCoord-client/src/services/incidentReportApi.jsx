@@ -5,7 +5,7 @@ export const incidentReportApi = {
     getAllIncidents: async (page = 0, size = 10) => {
         try {
             const response = await axiosClient.get('/api/incidents', {
-                params: { page, size }
+                params: { page, size, sort: 'createdAt,desc' }
             });
             return response.data;
         } catch (error) {
